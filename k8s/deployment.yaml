@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cv-simulator
+  labels:
+    app: cv-simulator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cv-simulator
+  template:
+    metadata:
+      labels:
+        app: cv-simulator
+    spec:
+      containers:
+      - name: cv-simulator
+        image: rust:1.92.0  # 自身のイメージタグに置き換え
+        command: ["/bin/bash"]
+        args: ["-c", "while true; do echo Hello from Rust App; sleep 10; done"]
+        resources:
+          limits:
+            memory: "2Gi"
+            cpu: "4"
+          requests:
+            memory: "512Mi"
+            cpu: "2"
+        volumeMounts:
+        - name: cv-simulator-storage
+          mountPath: /workspace
+      volumes:
+        - name: cv-simulator-storage
+          persistentVolumeClaim:
+            claimName: pvc-cv-simulator

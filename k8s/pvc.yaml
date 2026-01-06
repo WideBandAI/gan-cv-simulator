@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-cv-simulator
+spec:
+  storageClassName: nfs-cv-simulator   # set to the StorageClass name provided by your NFS provisioner
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi

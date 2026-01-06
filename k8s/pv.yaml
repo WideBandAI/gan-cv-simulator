@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-cv-simulator
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-cv-simulator
+  nfs:
+    server: 192.168.11.16
+    path: /mnt/raid5/pv/gan-cv-simulator
