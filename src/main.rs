@@ -7,6 +7,17 @@ fn main() {
     println!("Define the structure. Enter the number of layers.");
     let num_layers: u32 = read_buffer();
     println!("Number of layers: {}", num_layers);
+    
+    let mut device = DeviceStructure {
+        depth: vec![],
+        me: vec![],
+        er_s: vec![],
+        eg: vec![],
+        dec: vec![],
+        nd: vec![],
+        end: vec![],
+    };
+    
     for n in 1..(num_layers + 1) {
         println!("Enter parameters for layer {}: depth (nm), me, er_s, eg (eV), dec (cm^-3), nd (cm^-3), end (eV)", n);
         let mut input = String::new();
@@ -21,26 +32,17 @@ fn main() {
         }
         println!("Layer {} parameters: depth: {}, me: {}, er_s: {}, eg: {}, dec: {}, nd: {}, end: {}", 
                  n, params[0], params[1], params[2], params[3], params[4], params[5], params[6]);
-        DeviceStructure {
-            depth: vec![params[0]],
-            me: vec![params[1]],
-            er_s: vec![params[2]],
-            eg: vec![params[3]],
-            dec: vec![params[4]],
-            nd: vec![params[5]],
-            end: vec![params[6]],
-        };
+        
+        device.depth.push(params[0]);
+        device.me.push(params[1]);
+        device.er_s.push(params[2]);
+        device.eg.push(params[3]);
+        device.dec.push(params[4]);
+        device.nd.push(params[5]);
+        device.end.push(params[6]);
     }
     println!("Structure definition complete.");
-    println!("{:?}", DeviceStructure {
-        depth: vec![],
-        me: vec![],
-        er_s: vec![],
-        eg: vec![],
-        dec: vec![],
-        nd: vec![],
-        end: vec![],
-    });
+    println!("{:?}", device);
 }
 
 fn read_buffer() -> u32 {
