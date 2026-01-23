@@ -143,3 +143,51 @@ pub fn define_structure() -> DeviceStructure {
 
     device
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_material_type_equality() {
+        assert_eq!(MaterialType::Semiconductor, MaterialType::Semiconductor);
+        assert_eq!(MaterialType::Insulator, MaterialType::Insulator);
+        assert_ne!(MaterialType::Semiconductor, MaterialType::Insulator);
+    }
+
+    #[test]
+    fn test_device_structure_creation() {
+        let device = DeviceStructure {
+            material_type: vec![MaterialType::Semiconductor],
+            thickness: vec![1e-8],
+            me: vec![0.5],
+            er: vec![12.0],
+            eg: vec![1.12],
+            dec: vec![0.0],
+            nd: vec![1e16],
+            end: vec![0.1],
+        };
+
+        assert_eq!(device.material_type.len(), 1);
+        assert_eq!(device.thickness[0], 1e-8);
+        assert_eq!(device.me[0], 0.5);
+        assert_eq!(device.er[0], 12.0);
+    }
+
+    #[test]
+    fn test_device_structure_multiple_layers() {
+        let device = DeviceStructure {
+            material_type: vec![MaterialType::Semiconductor, MaterialType::Insulator],
+            thickness: vec![1e-8, 2e-8],
+            me: vec![0.5, 0.0],
+            er: vec![12.0, 3.9],
+            eg: vec![1.12, 9.0],
+            dec: vec![0.3, 0.0],
+            nd: vec![1e16, 0.0],
+            end: vec![0.1, 0.0],
+        };
+
+        assert_eq!(device.material_type.len(), 2);
+        assert_eq!(device.thickness.len(), 2);
+    }
+}
