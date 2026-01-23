@@ -19,6 +19,7 @@ pub struct DeviceStructure {
 }
 
 pub fn define_structure() -> DeviceStructure {
+    // Interactive structure definition
     println!("Define the structure. Enter the number of layers.");
     let mut input = String::new();
     io::stdin()
@@ -85,17 +86,21 @@ pub fn define_structure() -> DeviceStructure {
         let eg: f64 = eg_input.trim().parse().expect("Failed to parse eg");
         device.eg.push(eg); // bandgap energy in eV
 
-        println!(
-            "Enter delta conduction band (dec) in eV from bottom layer to layer {}: ",
-            n
-        );
-        io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-        let mut dec_input = String::new();
-        io::stdin()
-            .read_line(&mut dec_input)
-            .expect("Failed to read line");
-        let dec: f64 = dec_input.trim().parse().expect("Failed to parse dec");
-        device.dec.push(dec); // delta conduction band in eV
+        if n == num_layers {
+            device.dec.push(0.0); // last layer delta conduction band is 0
+        } else {
+            println!(
+                "Enter delta conduction band (dec) in eV from bottom layer to layer {}: ",
+                n
+            );
+            io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
+            let mut dec_input = String::new();
+            io::stdin()
+                .read_line(&mut dec_input)
+                .expect("Failed to read line");
+            let dec: f64 = dec_input.trim().parse().expect("Failed to parse dec");
+            device.dec.push(dec); // delta conduction band in eV
+        }
 
         if device.material_type[n as usize - 1] == MaterialType::Semiconductor {
             println!("Enter effective mass of electron (me) for layer {}: ", n);
@@ -128,38 +133,10 @@ pub fn define_structure() -> DeviceStructure {
             let end: f64 = end_input.trim().parse().expect("Failed to parse end");
             device.end.push(end); // energy level of donor in eV
         } else {
+            device.me.push(0.0); // No effective mass in insulator
             device.nd.push(0.0); // No donors in insulator
             device.end.push(0.0); // No donor energy level in insulator
         }
-
-        // println!(
-        //     "Enter parameters for layer {}: depth (nm), me, er, eg (eV), dec (cm^-3), nd (cm^-3), end (eV)",
-        //     n
-        // );
-        // let mut input = String::new();
-        // io::stdin()
-        //     .read_line(&mut input)
-        //     .expect("Failed to read line");
-        // let params: Vec<f64> = input
-        //     .trim()
-        //     .split_whitespace()
-        //     .map(|x| x.parse().expect("Failed to parse parameter"))
-        //     .collect();
-        // if params.len() != 7 {
-        //     panic!("Expected 7 parameters, got {}", params.len());
-        // }
-        // println!(
-        //     "Layer {} parameters: depth: {}, me: {}, er: {}, eg: {}, dec: {}, nd: {}, end: {}",
-        //     n, params[0], params[1], params[2], params[3], params[4], params[5], params[6]
-        // );
-
-        // device.thickness.push(params[0]);
-        // device.me.push(params[1]);
-        // device.er.push(params[2]);
-        // device.eg.push(params[3]);
-        // device.dec.push(params[4]);
-        // device.nd.push(params[5]);
-        // device.end.push(params[6]);
     }
     println!("Structure definition complete.");
     println!("{:?}", device);
