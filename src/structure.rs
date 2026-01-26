@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, vec};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaterialType {
@@ -8,6 +8,8 @@ pub enum MaterialType {
 
 #[derive(Debug)]
 pub struct DeviceStructure {
+    pub id: Vec<u32>,    // Optional: layer ID
+    pub name: Vec<String>,  // Optional: name of the device structure
     pub material_type: Vec<MaterialType>,
     pub thickness: Vec<f64>, // meters
     pub me: Vec<f64>,        // effective mass of electron
@@ -32,6 +34,8 @@ pub fn define_structure() -> DeviceStructure {
     println!("Number of layers: {}", num_layers);
 
     let mut device = DeviceStructure {
+        id: vec![],
+        name: vec![],
         material_type: vec![],
         thickness: vec![],
         me: vec![],
@@ -42,7 +46,17 @@ pub fn define_structure() -> DeviceStructure {
         end: vec![],
     };
 
-    for n in 1..(num_layers + 1) {
+    for n in 0..(num_layers) {
+        device.id.push(n);
+        println!("\nLayer {}:", n);
+        println!("Enter name for layer {} (or press Enter to skip): ", n);
+        io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
+        let mut name_input = String::new();
+        io::stdin()
+            .read_line(&mut name_input)
+            .expect("Failed to read line");
+        device.name.push(name_input.trim().to_string());
+
         println!("Is layer {} a Semiconductor (s) or Insulator (i)? ", n);
         io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
         let mut mat_input = String::new();
@@ -86,7 +100,7 @@ pub fn define_structure() -> DeviceStructure {
         let eg: f64 = eg_input.trim().parse().expect("Failed to parse eg");
         device.eg.push(eg); // bandgap energy in eV
 
-        if n == num_layers {
+        if n == (num_layers - 1) {
             device.dec.push(0.0); // last layer delta conduction band is 0
         } else {
             println!(
@@ -102,7 +116,7 @@ pub fn define_structure() -> DeviceStructure {
             device.dec.push(dec); // delta conduction band in eV
         }
 
-        if device.material_type[n as usize - 1] == MaterialType::Semiconductor {
+        if device.material_type[n as usize] == MaterialType::Semiconductor {
             println!("Enter effective mass of electron (me) for layer {}: ", n);
             io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
             let mut me_input = String::new();
@@ -158,6 +172,8 @@ mod tests {
     #[test]
     fn test_device_structure_creation() {
         let device = DeviceStructure {
+            id: vec![0],
+            name: vec!["test".to_string()],
             material_type: vec![MaterialType::Semiconductor],
             thickness: vec![1e-8],
             me: vec![0.5],
@@ -177,6 +193,8 @@ mod tests {
     #[test]
     fn test_device_structure_multiple_layers() {
         let device = DeviceStructure {
+            id: vec![0, 1],
+            name: vec!["layer1".to_string(), "layer2".to_string()],
             material_type: vec![MaterialType::Semiconductor, MaterialType::Insulator],
             thickness: vec![1e-8, 2e-8],
             me: vec![0.5, 0.0],
