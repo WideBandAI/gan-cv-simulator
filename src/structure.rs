@@ -8,8 +8,8 @@ pub enum MaterialType {
 
 #[derive(Debug)]
 pub struct DeviceStructure {
-    pub id: Vec<u32>,    // Optional: layer ID
-    pub name: Vec<String>,  // Optional: name of the device structure
+    pub id: Vec<u32>,      // Optional: layer ID
+    pub name: Vec<String>, // Optional: name of the device structure
     pub material_type: Vec<MaterialType>,
     pub thickness: Vec<f64>, // meters
     pub me: Vec<f64>,        // effective mass of electron
