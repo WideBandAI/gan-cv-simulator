@@ -1,4 +1,4 @@
-use std::{io, vec};
+use std::{io, str::FromStr, vec};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaterialType {
@@ -20,17 +20,41 @@ pub struct DeviceStructure {
     pub end: Vec<f64>,       // energy level of donor in eV (Ec-Ed)
 }
 
-pub fn define_structure() -> DeviceStructure {
-    // Interactive structure definition
-    println!("Define the structure. Enter the number of layers.");
+fn get_input(prompt: &str) -> String {
+    print!("{}", prompt);
+    io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
     let mut input = String::new();
     io::stdin()
         .read_line(&mut input)
         .expect("Failed to read line");
-    let num_layers: u32 = input
-        .trim()
-        .parse()
-        .expect("Failed to parse number of layers");
+    input
+}
+
+fn get_parsed_input<T: FromStr>(prompt: &str) -> T {
+    loop {
+        let input = get_input(prompt);
+        match input.trim().parse::<T>() {
+            Ok(value) => return value,
+            Err(_) => println!("Invalid input. Please enter a valid value."),
+        }
+    }
+}
+
+fn get_material_type(prompt: &str) -> MaterialType {
+    loop {
+        let input = get_input(prompt);
+        match input.trim().to_lowercase().as_str() {
+            "s" => return MaterialType::Semiconductor,
+            "i" => return MaterialType::Insulator,
+            _ => println!("Invalid input. Please enter 's' or 'i'."),
+        }
+    }
+}
+
+pub fn define_structure() -> DeviceStructure {
+    // Interactive structure definition
+    println!("Define the structure.");
+    let num_layers: u32 = get_parsed_input("Enter the number of layers: ");
     println!("Number of layers: {}", num_layers);
 
     let mut device = DeviceStructure {
@@ -49,107 +73,61 @@ pub fn define_structure() -> DeviceStructure {
     for n in 0..(num_layers) {
         device.id.push(n);
         println!("\nLayer {}:", n);
-        println!("Enter name for layer {} (or press Enter to skip): ", n);
-        io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-        let mut name_input = String::new();
-        io::stdin()
-            .read_line(&mut name_input)
-            .expect("Failed to read line");
-        device.name.push(name_input.trim().to_string());
 
-        println!("Is layer {} a Semiconductor (s) or Insulator (i)? ", n);
-        io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-        let mut mat_input = String::new();
-        io::stdin()
-            .read_line(&mut mat_input)
-            .expect("Failed to read line");
-        let mat_type = match mat_input.trim().to_lowercase().as_str() {
-            "s" => MaterialType::Semiconductor,
-            "i" => MaterialType::Insulator,
-            _ => panic!("Invalid material type"),
-        };
+        let name = get_input(&format!("Enter name for layer {} (or press Enter to skip): ", n));
+        device.name.push(name.trim().to_string());
+
+        let mat_type = get_material_type(&format!(
+            "Is layer {} a Semiconductor (s) or Insulator (i)? ",
+            n
+        ));
         device.material_type.push(mat_type);
 
-        println!("Enter thickness of layer {} (nm): ", n);
-        io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-        let mut thickness_input = String::new();
-        io::stdin()
-            .read_line(&mut thickness_input)
-            .expect("Failed to read line");
-        let thickness_nm: f64 = thickness_input
-            .trim()
-            .parse()
-            .expect("Failed to parse thickness");
+        let thickness_nm: f64 =
+            get_parsed_input(&format!("Enter thickness of layer {} (nm): ", n));
         device.thickness.push(thickness_nm * 1e-9); // convert nm to meters
 
-        println!("Enter relative permittivity (er) for layer {}: ", n);
-        io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-        let mut er_input = String::new();
-        io::stdin()
-            .read_line(&mut er_input)
-            .expect("Failed to read line");
-        let er: f64 = er_input.trim().parse().expect("Failed to parse er");
-        device.er.push(er); // relative permittivity
+        let er: f64 = get_parsed_input(&format!(
+            "Enter relative permittivity (er) for layer {}: ",
+            n
+        ));
+        device.er.push(er);
 
-        println!("Enter bandgap energy (eg) in eV for layer {}: ", n);
-        io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-        let mut eg_input = String::new();
-        io::stdin()
-            .read_line(&mut eg_input)
-            .expect("Failed to read line");
-        let eg: f64 = eg_input.trim().parse().expect("Failed to parse eg");
-        device.eg.push(eg); // bandgap energy in eV
+        let eg: f64 = get_parsed_input(&format!("Enter bandgap energy (eg) in eV for layer {}: ", n));
+        device.eg.push(eg);
 
         if n == (num_layers - 1) {
             device.dec.push(0.0); // last layer delta conduction band is 0
         } else {
-            println!(
+            let dec: f64 = get_parsed_input(&format!(
                 "Enter delta conduction band (dec) in eV from bottom layer to layer {}: ",
                 n
-            );
-            io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-            let mut dec_input = String::new();
-            io::stdin()
-                .read_line(&mut dec_input)
-                .expect("Failed to read line");
-            let dec: f64 = dec_input.trim().parse().expect("Failed to parse dec");
-            device.dec.push(dec); // delta conduction band in eV
+            ));
+            device.dec.push(dec);
         }
 
         if device.material_type[n as usize] == MaterialType::Semiconductor {
-            println!("Enter effective mass of electron (me) for layer {}: ", n);
-            io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-            let mut me_input = String::new();
-            io::stdin()
-                .read_line(&mut me_input)
-                .expect("Failed to read line");
-            let me: f64 = me_input.trim().parse().expect("Failed to parse me");
-            device.me.push(me); // effective mass of electron
+            let me: f64 = get_parsed_input(&format!(
+                "Enter effective mass of electron (me) for layer {}: ",
+                n
+            ));
+            device.me.push(me);
 
-            println!("Enter donor concentration (nd) in cm^-3 for layer {}: ", n);
-            io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-            let mut nd_input = String::new();
-            io::stdin()
-                .read_line(&mut nd_input)
-                .expect("Failed to read line");
-            let nd: f64 = nd_input.trim().parse().expect("Failed to parse nd");
-            device.nd.push(nd); // donor concentration in cm^-3
+            let nd: f64 = get_parsed_input(&format!(
+                "Enter donor concentration (nd) in cm^-3 for layer {}: ",
+                n
+            ));
+            device.nd.push(nd);
 
-            println!(
+            let end: f64 = get_parsed_input(&format!(
                 "Enter energy level of donor (end) in eV (Ec-Ed) for layer {}: ",
                 n
-            );
-            io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-            let mut end_input = String::new();
-            io::stdin()
-                .read_line(&mut end_input)
-                .expect("Failed to read line");
-            let end: f64 = end_input.trim().parse().expect("Failed to parse end");
-            device.end.push(end); // energy level of donor in eV
+            ));
+            device.end.push(end);
         } else {
-            device.me.push(0.0); // No effective mass in insulator
-            device.nd.push(0.0); // No donors in insulator
-            device.end.push(0.0); // No donor energy level in insulator
+            device.me.push(0.0);
+            device.nd.push(0.0);
+            device.end.push(0.0);
         }
     }
     println!("Structure definition complete.");
