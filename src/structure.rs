@@ -74,7 +74,10 @@ pub fn define_structure() -> DeviceStructure {
         device.id.push(n);
         println!("\nLayer {}:", n);
 
-        let name = get_input(&format!("Enter name for layer {} (or press Enter to skip): ", n));
+        let name = get_input(&format!(
+            "Enter name for layer {} (or press Enter to skip): ",
+            n
+        ));
         device.name.push(name.trim().to_string());
 
         let mat_type = get_material_type(&format!(
@@ -83,8 +86,7 @@ pub fn define_structure() -> DeviceStructure {
         ));
         device.material_type.push(mat_type);
 
-        let thickness_nm: f64 =
-            get_parsed_input(&format!("Enter thickness of layer {} (nm): ", n));
+        let thickness_nm: f64 = get_parsed_input(&format!("Enter thickness of layer {} (nm): ", n));
         device.thickness.push(thickness_nm * 1e-9); // convert nm to meters
 
         let er: f64 = get_parsed_input(&format!(
@@ -93,7 +95,10 @@ pub fn define_structure() -> DeviceStructure {
         ));
         device.er.push(er);
 
-        let eg: f64 = get_parsed_input(&format!("Enter bandgap energy (eg) in eV for layer {}: ", n));
+        let eg: f64 = get_parsed_input(&format!(
+            "Enter bandgap energy (eg) in eV for layer {}: ",
+            n
+        ));
         device.eg.push(eg);
 
         if n == (num_layers - 1) {
