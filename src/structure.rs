@@ -1,5 +1,5 @@
 use crate::utils::{get_input, get_parsed_input};
-use std::{io, str::FromStr, vec};
+use std::{vec};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaterialType {
