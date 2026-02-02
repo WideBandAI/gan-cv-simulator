@@ -1,3 +1,4 @@
+use crate::utils::{get_input, get_parsed_input};
 use std::{io, str::FromStr, vec};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,26 +19,6 @@ pub struct DeviceStructure {
     pub dec: Vec<f64>,       // delta conduction band in eV from bottom layer to current layer
     pub nd: Vec<f64>,        // donor concentration in cm^-3
     pub end: Vec<f64>,       // energy level of donor in eV (Ec-Ed)
-}
-
-fn get_input(prompt: &str) -> String {
-    print!("{}", prompt);
-    io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-    let mut input = String::new();
-    io::stdin()
-        .read_line(&mut input)
-        .expect("Failed to read line");
-    input
-}
-
-fn get_parsed_input<T: FromStr>(prompt: &str) -> T {
-    loop {
-        let input = get_input(prompt);
-        match input.trim().parse::<T>() {
-            Ok(value) => return value,
-            Err(_) => println!("Invalid input. Please enter a valid value."),
-        }
-    }
 }
 
 fn get_material_type(prompt: &str) -> MaterialType {
