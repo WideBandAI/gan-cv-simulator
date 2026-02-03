@@ -2,8 +2,8 @@ pub mod fixcharge;
 pub mod structure;
 pub mod utils;
 
-use structure::define_structure;
 use fixcharge::{define_bulk_fixed_charge, define_interface_fixed_charge};
+use structure::define_structure;
 
 fn main() {
     println!("Starting C-V simulation with the following parameters:");

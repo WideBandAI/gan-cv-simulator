@@ -1,5 +1,5 @@
 use crate::structure::DeviceStructure;
-use crate::utils::{get_parsed_input};
+use crate::utils::get_parsed_input;
 
 #[derive(Debug)]
 pub struct BulkFixedCharge {
@@ -9,8 +9,8 @@ pub struct BulkFixedCharge {
 
 #[derive(Debug)]
 pub struct InterfaceFixedCharge {
-    pub interface_id: Vec<u32>,       // Interface ID between layers
-    pub charge_density: Vec<f64>,     // Fixed charge density in C/m^2
+    pub interface_id: Vec<u32>,   // Interface ID between layers
+    pub charge_density: Vec<f64>, // Fixed charge density in C/m^2
 }
 
 pub fn define_bulk_fixed_charge(device_structure: &DeviceStructure) -> BulkFixedCharge {
@@ -57,8 +57,9 @@ pub fn define_interface_fixed_charge(device_structure: &DeviceStructure) -> Inte
             i
         ));
         interfacefixedcharge.interface_id.push(i as u32);
-        interfacefixedcharge.charge_density.push(charge_density * 1e4); // Convert from C/cm^2 to C/m^2
+        interfacefixedcharge
+            .charge_density
+            .push(charge_density * 1e4); // Convert from C/cm^2 to C/m^2
     }
     interfacefixedcharge
 }
-           
