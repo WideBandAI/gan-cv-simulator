@@ -13,6 +13,23 @@ pub struct InterfaceFixedCharge {
     pub charge_density: Vec<f64>, // Fixed charge density in C/m^2
 }
 
+/// Define the fixed charge of each bulk by prompting the user for input.
+///
+/// # Arguments
+///
+/// - `device_structure` (`&DeviceStructure`) - The device structure for which to define fixed charges.
+///
+/// # Returns
+///
+/// - `BulkFixedCharge` - The defined bulk fixed charges.
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let _ = define_bulk_fixed_charge();
+/// ```
 pub fn define_bulk_fixed_charge(device_structure: &DeviceStructure) -> BulkFixedCharge {
     let mut bulkfixedcharge = BulkFixedCharge {
         layer_id: vec![],
@@ -34,6 +51,23 @@ pub fn define_bulk_fixed_charge(device_structure: &DeviceStructure) -> BulkFixed
     bulkfixedcharge
 }
 
+/// Define the fixed charge at each interface by prompting the user for input.
+///
+/// # Arguments
+///
+/// - `device_structure` (`&DeviceStructure`) - The device structure for which to define interface fixed charges.
+///
+/// # Returns
+///
+/// - `InterfaceFixedCharge` - The defined interface fixed charges.
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let _ = define_interface_fixed_charge();
+/// ```
 pub fn define_interface_fixed_charge(device_structure: &DeviceStructure) -> InterfaceFixedCharge {
     let mut interfacefixedcharge = InterfaceFixedCharge {
         interface_id: vec![],

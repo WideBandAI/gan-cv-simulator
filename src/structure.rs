@@ -32,8 +32,20 @@ fn get_material_type(prompt: &str) -> MaterialType {
     }
 }
 
+/// Define the device structure by prompting the user for input.
+///
+/// # Returns
+///
+/// - `DeviceStructure` - The defined device structure.
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let _ = define_structure();
+/// ```
 pub fn define_structure() -> DeviceStructure {
-    // Interactive structure definition
     println!("Define the structure.");
     let num_layers: u32 = get_parsed_input("Enter the number of layers: ");
     println!("Number of layers: {}", num_layers);
