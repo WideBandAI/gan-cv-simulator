@@ -1,4 +1,6 @@
-use std::{io, str::FromStr, vec};
+use crate::constants::units::NM_TO_M;
+use crate::utils::{get_input, get_parsed_input};
+use std::vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaterialType {
@@ -20,26 +22,6 @@ pub struct DeviceStructure {
     pub end: Vec<f64>,       // energy level of donor in eV (Ec-Ed)
 }
 
-fn get_input(prompt: &str) -> String {
-    print!("{}", prompt);
-    io::Write::flush(&mut io::stdout()).expect("Failed to flush stdout");
-    let mut input = String::new();
-    io::stdin()
-        .read_line(&mut input)
-        .expect("Failed to read line");
-    input
-}
-
-fn get_parsed_input<T: FromStr>(prompt: &str) -> T {
-    loop {
-        let input = get_input(prompt);
-        match input.trim().parse::<T>() {
-            Ok(value) => return value,
-            Err(_) => println!("Invalid input. Please enter a valid value."),
-        }
-    }
-}
-
 fn get_material_type(prompt: &str) -> MaterialType {
     loop {
         let input = get_input(prompt);
@@ -51,8 +33,20 @@ fn get_material_type(prompt: &str) -> MaterialType {
     }
 }
 
+/// Define the device structure by prompting the user for input.
+///
+/// # Returns
+///
+/// - `DeviceStructure` - The defined device structure.
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let _ = define_structure();
+/// ```
 pub fn define_structure() -> DeviceStructure {
-    // Interactive structure definition
     println!("Define the structure.");
     let num_layers: u32 = get_parsed_input("Enter the number of layers: ");
     println!("Number of layers: {}", num_layers);
@@ -87,7 +81,7 @@ pub fn define_structure() -> DeviceStructure {
         device.material_type.push(mat_type);
 
         let thickness_nm: f64 = get_parsed_input(&format!("Enter thickness of layer {} (nm): ", n));
-        device.thickness.push(thickness_nm * 1e-9); // convert nm to meters
+        device.thickness.push(thickness_nm * NM_TO_M); // convert nm to meters
 
         let er: f64 = get_parsed_input(&format!(
             "Enter relative permittivity (er) for layer {}: ",
