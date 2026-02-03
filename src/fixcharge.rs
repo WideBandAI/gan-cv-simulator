@@ -7,6 +7,12 @@ pub struct BulkFixedCharge {
     pub charge_density: Vec<f64>, // Fixed charge density in C/m^3
 }
 
+#[derive(Debug)]
+pub struct InterfaceFixedCharge {
+    pub interface_id: Vec<u32>,       // Interface ID between layers
+    pub charge_density: Vec<f64>,     // Fixed charge density in C/m^2
+}
+
 pub fn define_bulk_fixed_charge(device_structure: &DeviceStructure) -> BulkFixedCharge {
     let mut bulkfixedcharge = BulkFixedCharge {
         layer_id: vec![],
@@ -27,3 +33,32 @@ pub fn define_bulk_fixed_charge(device_structure: &DeviceStructure) -> BulkFixed
     }
     bulkfixedcharge
 }
+
+pub fn define_interface_fixed_charge(device_structure: &DeviceStructure) -> InterfaceFixedCharge {
+    let mut interfacefixedcharge = InterfaceFixedCharge {
+        interface_id: vec![],
+        charge_density: vec![],
+    };
+
+    println!("Define interface fixed charge parameters.");
+    let num_layers = device_structure.id.len();
+
+    for i in 0..(num_layers - 1) {
+        println!(
+            "Interface {} between Layer {} (Name: {}) and Layer {} (Name: {})",
+            i,
+            device_structure.id[i],
+            device_structure.name[i],
+            device_structure.id[i + 1],
+            device_structure.name[i + 1]
+        );
+        let charge_density: f64 = get_parsed_input(&format!(
+            "Enter fixed charge density (C/cm^2) for interface {}: ",
+            i
+        ));
+        interfacefixedcharge.interface_id.push(i as u32);
+        interfacefixedcharge.charge_density.push(charge_density * 1e4); // Convert from C/cm^2 to C/m^2
+    }
+    interfacefixedcharge
+}
+           
