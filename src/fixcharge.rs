@@ -1,3 +1,4 @@
+use crate::constants::units::{CM2_TO_M2, CM3_TO_M3};
 use crate::structure::DeviceStructure;
 use crate::utils::get_parsed_input;
 
@@ -46,8 +47,13 @@ pub fn define_bulk_fixed_charge(device_structure: &DeviceStructure) -> BulkFixed
             device_structure.id[i]
         ));
         bulkfixedcharge.layer_id.push(device_structure.id[i]);
-        bulkfixedcharge.charge_density.push(charge_density * 1e6); // Convert from C/cm^3 to C/m^3
+        bulkfixedcharge
+            .charge_density
+            .push(charge_density * CM3_TO_M3); // Convert from C/cm^3 to C/m^3
     }
+    println!("Fixed charge definition complete.");
+    println!("{:?}", bulkfixedcharge);
+
     bulkfixedcharge
 }
 
@@ -93,7 +99,10 @@ pub fn define_interface_fixed_charge(device_structure: &DeviceStructure) -> Inte
         interfacefixedcharge.interface_id.push(i as u32);
         interfacefixedcharge
             .charge_density
-            .push(charge_density * 1e4); // Convert from C/cm^2 to C/m^2
+            .push(charge_density * CM2_TO_M2); // Convert from C/cm^2 to C/m^2
     }
+    println!("Interface fixed charge definition complete.");
+    println!("{:?}", interfacefixedcharge);
+
     interfacefixedcharge
 }
