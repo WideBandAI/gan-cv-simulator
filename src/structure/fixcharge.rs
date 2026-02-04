@@ -1,5 +1,5 @@
 use crate::constants::units::{CM2_TO_M2, CM3_TO_M3};
-use crate::structure::DeviceStructure;
+use crate::structure::structure::DeviceStructure;
 use crate::utils::get_parsed_input;
 
 #[derive(Debug)]
