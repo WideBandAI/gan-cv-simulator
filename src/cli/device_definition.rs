@@ -1,9 +1,9 @@
-use crate::structure::fixcharge::BulkFixedCharge;
-use crate::structure::fixcharge::InterfaceFixedCharge;
-use crate::structure::fixcharge::define_bulk_fixed_charge;
-use crate::structure::fixcharge::define_interface_fixed_charge;
-use crate::structure::structure::DeviceStructure;
-use crate::structure::structure::define_structure;
+use crate::cli::fixcharge::BulkFixedCharge;
+use crate::cli::fixcharge::InterfaceFixedCharge;
+use crate::cli::fixcharge::define_bulk_fixed_charge;
+use crate::cli::fixcharge::define_interface_fixed_charge;
+use crate::cli::structure::DeviceStructure;
+use crate::cli::structure::define_structure;
 
 #[derive(Debug)]
 pub struct DeviceDefinition {

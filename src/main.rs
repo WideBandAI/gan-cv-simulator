@@ -1,8 +1,8 @@
+pub mod cli;
 pub mod constants;
-pub mod structure;
 pub mod utils;
 
-use structure::device_definition;
+use cli::device_definition;
 
 fn main() {
     println!("Starting C-V simulation with the following parameters:");
