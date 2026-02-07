@@ -1,5 +1,23 @@
 use crate::constants::physics::*;
 
+/// Conduction band density
+///
+/// # Arguments
+///
+/// - `effective_mass_coefficient` (`f64`) - The effective mass coefficient of the material in units of electron mass.
+/// - `temperature` (`f64`) - The temperature in Kelvin.
+///
+/// # Returns
+///
+/// - `f64` - The conduction band density in units of m^-3.
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let _ = conduction_band_density();
+/// ```
 pub fn conduction_band_density(effective_mass_coefficient: f64, temperature: f64) -> f64 {
     let coefficient = 2.0
         * (2.0
