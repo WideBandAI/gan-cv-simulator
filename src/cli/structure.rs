@@ -1,3 +1,4 @@
+use crate::constants::physics::M_ELECTRON;
 use crate::constants::units::{CM3_TO_M3, NM_TO_M};
 use crate::utils::{get_input, get_parsed_input};
 use std::vec;
@@ -110,7 +111,7 @@ pub fn define_structure() -> DeviceStructure {
                 "Enter effective mass coefficient of electron (me) for layer {}: ",
                 n
             ));
-            device.me.push(me);
+            device.me.push(me * M_ELECTRON); // convert to units of electron mass
 
             let nd: f64 = get_parsed_input(&format!(
                 "Enter donor concentration (nd) in cm^-3 for layer {}: ",

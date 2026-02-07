@@ -4,7 +4,7 @@ use crate::constants::physics::*;
 ///
 /// # Arguments
 ///
-/// - `effective_mass_coefficient` (`f64`) - The effective mass coefficient of the material in units of electron mass.
+/// - `effective_mass` (`f64`) - The effective mass of the material in units of electron mass.
 /// - `temperature` (`f64`) - The temperature in Kelvin.
 ///
 /// # Returns
@@ -14,19 +14,13 @@ use crate::constants::physics::*;
 /// # Examples
 ///
 /// ```
-/// use crate::...;
+/// use crate::physics_equations::conduction_band_density;
 ///
-/// let _ = conduction_band_density();
+/// let _ = conduction_band_density(1.08 * crate::constants::physics::M_ELECTRON, 300.0);
 /// ```
-pub fn conduction_band_density(effective_mass_coefficient: f64, temperature: f64) -> f64 {
-    let coefficient = 2.0
-        * (2.0
-            * std::f64::consts::PI
-            * effective_mass_coefficient
-            * M_ELECTRON
-            * K_BOLTZMANN
-            * temperature)
-            .powf(1.5);
+pub fn conduction_band_density(effective_mass: f64, temperature: f64) -> f64 {
+    let coefficient =
+        2.0 * (2.0 * std::f64::consts::PI * effective_mass * K_BOLTZMANN * temperature).powf(1.5);
     let denominator = H_PLANK_CONSTANT.powf(3.0);
 
     coefficient / denominator
@@ -35,6 +29,7 @@ pub fn conduction_band_density(effective_mass_coefficient: f64, temperature: f64
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::constants::physics::M_ELECTRON;
     use approx::relative_eq;
     use test_case::test_case;
 
@@ -45,7 +40,7 @@ mod tests {
         temp: f64,
         expected_density: f64,
     ) {
-        let density = conduction_band_density(effective_mass_coefficient, temp);
+        let density = conduction_band_density(effective_mass_coefficient * M_ELECTRON, temp);
         let _ = relative_eq!(density, expected_density, max_relative = 1e-3);
     }
 }
