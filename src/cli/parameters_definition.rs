@@ -2,18 +2,21 @@ use crate::cli::fixcharge::BulkFixedCharge;
 use crate::cli::fixcharge::InterfaceFixedCharge;
 use crate::cli::fixcharge::define_bulk_fixed_charge;
 use crate::cli::fixcharge::define_interface_fixed_charge;
+use crate::cli::mesh::MeshParams;
+use crate::cli::mesh::define_mesh_params;
 use crate::cli::structure::DeviceStructure;
 use crate::cli::structure::define_structure;
 
 #[derive(Debug)]
-pub struct DeviceDefinition {
+pub struct ParametersDefinition {
     pub device_structure: DeviceStructure,
     pub bulk_fixed_charge: BulkFixedCharge,
     pub interface_fixed_charge: InterfaceFixedCharge,
+    pub mesh_params: MeshParams,
 }
 
-impl DeviceDefinition {
-    /// Create a new `DeviceDefinition` from components.
+impl ParametersDefinition {
+    /// Create a new `ParametersDefinition` from components.
     ///
     /// # Arguments
     ///
@@ -23,7 +26,7 @@ impl DeviceDefinition {
     ///
     /// # Returns
     ///
-    /// A new `DeviceDefinition` instance.
+    /// A new `ParametersDefinition` instance.
     ///
     /// # Examples
     ///
@@ -31,21 +34,24 @@ impl DeviceDefinition {
     /// let device_structure = define_structure();
     /// let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
     /// let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
-    /// let device_def = DeviceDefinition::new(device_structure, bulk_fixed_charge, interface_fixed_charge);
+    /// let mesh_params = define_mesh_params();
+    /// let device_def = ParametersDefinition::new(device_structure, bulk_fixed_charge, interface_fixed_charge, mesh_params);
     /// ```
     pub fn new(
         device_structure: DeviceStructure,
         bulk_fixed_charge: BulkFixedCharge,
         interface_fixed_charge: InterfaceFixedCharge,
+        mesh_params: MeshParams,
     ) -> Self {
         Self {
             device_structure,
             bulk_fixed_charge,
             interface_fixed_charge,
+            mesh_params,
         }
     }
 
-    /// Create a `DeviceDefinition` with default/predefined values.
+    /// Create a `ParametersDefinition` with default/predefined values.
     ///
     /// This function automatically constructs a complete device definition by calling
     /// the appropriate definition functions for each component (structure, bulk fixed charge,
@@ -54,17 +60,23 @@ impl DeviceDefinition {
     ///
     /// # Returns
     ///
-    /// A new `DeviceDefinition` with predefined configuration.
+    /// A new `ParametersDefinition` with predefined configuration.
     ///
     /// # Examples
     ///
     /// ```ignore
-    /// let device_def = DeviceDefinition::define();
+    /// let device_def = ParametersDefinition::define();
     /// ```
     pub fn define() -> Self {
         let device_structure = define_structure();
         let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
-        Self::new(device_structure, bulk_fixed_charge, interface_fixed_charge)
+        let mesh_params = define_mesh_params();
+        Self::new(
+            device_structure,
+            bulk_fixed_charge,
+            interface_fixed_charge,
+            mesh_params,
+        )
     }
 }
