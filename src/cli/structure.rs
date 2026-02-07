@@ -1,4 +1,4 @@
-use crate::constants::physics::M_ELECTRON;
+use crate::constants::physics::{EPSILON_0, M_ELECTRON};
 use crate::constants::units::{CM3_TO_M3, NM_TO_M};
 use crate::utils::{get_input, get_parsed_input};
 use std::vec;
@@ -84,23 +84,17 @@ pub fn define_structure() -> DeviceStructure {
         let thickness_nm: f64 = get_parsed_input(&format!("Enter thickness of layer {} (nm): ", n));
         device.thickness.push(thickness_nm * NM_TO_M); // convert nm to meters
 
-        let er: f64 = get_parsed_input(&format!(
-            "Enter relative permittivity (er) for layer {}: ",
-            n
-        ));
-        device.er.push(er);
+        let er: f64 = get_parsed_input(&format!("Enter relative permittivity for layer {}: ", n));
+        device.er.push(er * EPSILON_0); // store absolute permittivity
 
-        let eg: f64 = get_parsed_input(&format!(
-            "Enter bandgap energy (eg) in eV for layer {}: ",
-            n
-        ));
+        let eg: f64 = get_parsed_input(&format!("Enter bandgap energy in eV for layer {}: ", n));
         device.eg.push(eg);
 
         if n == (num_layers - 1) {
             device.dec.push(0.0); // last layer delta conduction band is 0
         } else {
             let dec: f64 = get_parsed_input(&format!(
-                "Enter delta conduction band (dec) in eV from bottom layer to layer {}: ",
+                "Enter delta conduction band in eV from bottom layer to layer {}: ",
                 n
             ));
             device.dec.push(dec);
@@ -108,19 +102,19 @@ pub fn define_structure() -> DeviceStructure {
 
         if device.material_type[n as usize] == MaterialType::Semiconductor {
             let me: f64 = get_parsed_input(&format!(
-                "Enter effective mass coefficient of electron (me) for layer {}: ",
+                "Enter effective mass coefficient of electron for layer {}: ",
                 n
             ));
             device.me.push(me * M_ELECTRON); // convert to units of electron mass
 
             let nd: f64 = get_parsed_input(&format!(
-                "Enter donor concentration (nd) in cm^-3 for layer {}: ",
+                "Enter donor concentration in cm^-3 for layer {}: ",
                 n
             ));
             device.nd.push(nd * CM3_TO_M3); // convert cm^-3 to m^-3
 
             let end: f64 = get_parsed_input(&format!(
-                "Enter energy level of donor (end) in eV (Ec-Ed) for layer {}: ",
+                "Enter energy level of donor in eV (Ec-Ed) for layer {}: ",
                 n
             ));
             device.end.push(end);
@@ -130,9 +124,6 @@ pub fn define_structure() -> DeviceStructure {
             device.end.push(0.0);
         }
     }
-    println!("Structure definition complete.");
-    println!("{:?}", device);
-
     device
 }
 
