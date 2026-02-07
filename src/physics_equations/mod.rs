@@ -1,1 +1,1 @@
-pub mod equations;
+pub mod conduction_band_density;
