@@ -10,5 +10,8 @@ pub const CM_TO_M: f64 = 1.0e-2;
 /// [nm] → [m]
 pub const NM_TO_M: f64 = 1.0e-9;
 
+/// [m] → [nm]
+pub const M_TO_NM: f64 = 1.0e9;
+
 /// [meV] → [eV]
 pub const MEV_TO_EV: f64 = 1.0e-3;
