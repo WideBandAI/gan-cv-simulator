@@ -4,7 +4,7 @@ use crate::constants::physics::*;
 ///
 /// # Arguments
 ///
-/// - `effective_mass` (`f64`) - The effective mass of the material in units of electron mass.
+/// - `effective_mass` (`f64`) - The effective mass of the electron in kg.
 /// - `temperature` (`f64`) - The temperature in Kelvin.
 ///
 /// # Returns
