@@ -25,7 +25,6 @@ mod tests {
         let temp = 300.0;
 
         let density = conduction_band_density(effective_mass_coefficient, temp);
-        println!("Conduction band density at {} K: {:e}", temp, density);
         let _ = relative_eq!(density, 2.81e25, max_relative = 1e-3);
     }
 }
