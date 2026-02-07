@@ -14,13 +14,13 @@ pub struct DeviceStructure {
     pub id: Vec<u32>,      // Optional: layer ID
     pub name: Vec<String>, // Optional: name of the device structure
     pub material_type: Vec<MaterialType>,
-    pub thickness: Vec<f64>, // meters
-    pub me: Vec<f64>,        // effective mass of electron
-    pub er: Vec<f64>,        // relative permittivity
-    pub eg: Vec<f64>,        // bandgap energy in eV
-    pub dec: Vec<f64>,       // delta conduction band in eV from bottom layer to current layer
-    pub nd: Vec<f64>,        // donor concentration in cm^-3
-    pub end: Vec<f64>,       // energy level of donor in eV (Ec-Ed)
+    pub thickness: Vec<f64>,    // meters
+    pub me: Vec<f64>,           // effective mass of electron
+    pub permittivity: Vec<f64>, // absolute permittivity in F/m
+    pub eg: Vec<f64>,           // bandgap energy in eV
+    pub dec: Vec<f64>,          // delta conduction band in eV from bottom layer to current layer
+    pub nd: Vec<f64>,           // donor concentration in m^-3
+    pub end: Vec<f64>,          // energy level of donor in eV (Ec-Ed)
 }
 
 fn get_material_type(prompt: &str) -> MaterialType {
@@ -58,7 +58,7 @@ pub fn define_structure() -> DeviceStructure {
         material_type: vec![],
         thickness: vec![],
         me: vec![],
-        er: vec![],
+        permittivity: vec![],
         eg: vec![],
         dec: vec![],
         nd: vec![],
@@ -84,8 +84,9 @@ pub fn define_structure() -> DeviceStructure {
         let thickness_nm: f64 = get_parsed_input(&format!("Enter thickness of layer {} (nm): ", n));
         device.thickness.push(thickness_nm * NM_TO_M); // convert nm to meters
 
-        let er: f64 = get_parsed_input(&format!("Enter relative permittivity for layer {}: ", n));
-        device.er.push(er * EPSILON_0); // store absolute permittivity
+        let permittivity: f64 =
+            get_parsed_input(&format!("Enter relative permittivity for layer {}: ", n));
+        device.permittivity.push(permittivity * EPSILON_0); // convert relative permittivity to absolute
 
         let eg: f64 = get_parsed_input(&format!("Enter bandgap energy in eV for layer {}: ", n));
         device.eg.push(eg);
@@ -146,7 +147,7 @@ mod tests {
             material_type: vec![MaterialType::Semiconductor],
             thickness: vec![1e-8],
             me: vec![0.5],
-            er: vec![12.0],
+            permittivity: vec![12.0],
             eg: vec![1.12],
             dec: vec![0.0],
             nd: vec![1e16],
@@ -156,7 +157,7 @@ mod tests {
         assert_eq!(device.material_type.len(), 1);
         assert_eq!(device.thickness[0], 1e-8);
         assert_eq!(device.me[0], 0.5);
-        assert_eq!(device.er[0], 12.0);
+        assert_eq!(device.permittivity[0], 12.0);
     }
 
     #[test]
@@ -167,7 +168,7 @@ mod tests {
             material_type: vec![MaterialType::Semiconductor, MaterialType::Insulator],
             thickness: vec![1e-8, 2e-8],
             me: vec![0.5, 0.0],
-            er: vec![12.0, 3.9],
+            permittivity: vec![12.0, 3.9],
             eg: vec![1.12, 9.0],
             dec: vec![0.3, 0.0],
             nd: vec![1e16, 0.0],

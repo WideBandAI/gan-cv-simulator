@@ -22,7 +22,7 @@ pub struct MeshParams {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// use crate::...;
 ///
 /// let _ = define_mesh_params(&device_structure);
@@ -70,8 +70,8 @@ pub fn define_mesh_params(device_structure: &DeviceStructure) -> MeshParams {
             let thickness: f64 =
                 get_parsed_input(&format!("Enter the thickness (in nm) for layer {}: ", i));
 
-            if (thickness * NM_TO_M) > (total_thickness - layer_thickness.iter().sum::<f64>()) {
-                let available_thickness = total_thickness - layer_thickness.iter().sum::<f64>();
+            let available_thickness = total_thickness - layer_thickness.iter().sum::<f64>();
+            if (thickness * NM_TO_M) > available_thickness {
                 layer_thickness.push(available_thickness);
                 println!(
                     "Specified thickness exceeds remaining device thickness. Setting layer {} thickness to remaining thickness: {:.1} nm",

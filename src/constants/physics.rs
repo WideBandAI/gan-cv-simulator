@@ -1,5 +1,5 @@
 // planck constant in Joule seconds
-pub const H_PLANK_CONSTANT: f64 = 6.62607015e-34; // in Joule seconds
+pub const H_PLANCK_CONSTANT: f64 = 6.62607015e-34; // in Joule seconds
 
 // boltzmann constant in Joule per Kelvin
 pub const K_BOLTZMANN: f64 = 1.380649e-23; // in Joule per Kelvin
