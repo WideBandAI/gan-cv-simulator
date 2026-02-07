@@ -34,7 +34,8 @@ mod tests {
     use test_case::test_case;
 
     #[test_case(1.08, 300.0, 2.816486e25 ; "Silicon at 300K")]
-    #[test_case(0.26, 300.0, 3.326841e24 ; "GaAs at 300K")]
+    #[test_case(0.20, 300.0, 2.244486e24 ; "GaN at 300K")]
+    #[test_case(0.97, 300.0, 2.397339e25 ; "Silicon(vertical) at 300K")]
     fn test_conduction_band_density(
         effective_mass_coefficient: f64,
         temp: f64,
