@@ -8,7 +8,9 @@ pub struct MeshParams {
     pub layer_thickness: Vec<f64>,
     pub energy_step: f64,
 }
-
+// TODO: DeviceStructureに基づいてメッシュを定義するように修正する
+// TODO: layer_numが1のときは、DeviceStructureのトータルの厚さをlength_thicknessに設定する
+// TODO: layer_thicknessの合計がDeviceStructureのトータルの厚さと一致するようにする
 pub fn define_mesh_params() -> MeshParams {
     println!("Define mesh parameters.");
 
