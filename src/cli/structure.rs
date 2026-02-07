@@ -107,7 +107,7 @@ pub fn define_structure() -> DeviceStructure {
 
         if device.material_type[n as usize] == MaterialType::Semiconductor {
             let me: f64 = get_parsed_input(&format!(
-                "Enter effective mass of electron (me) for layer {}: ",
+                "Enter effective mass coefficient of electron (me) for layer {}: ",
                 n
             ));
             device.me.push(me);
