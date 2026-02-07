@@ -20,3 +20,16 @@ pub fn get_parsed_input<T: FromStr>(prompt: &str) -> T {
         }
     }
 }
+
+pub fn get_parsed_input_with_default<T: FromStr + Clone>(prompt: &str, default: T) -> T {
+    loop {
+        let input = get_input(prompt);
+        if input.is_empty() {
+            return default.clone();
+        }
+        match input.parse() {
+            Ok(value) => return value,
+            Err(_) => println!("Invalid input. Please try again."),
+        }
+    }
+}
