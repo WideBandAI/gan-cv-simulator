@@ -1,11 +1,11 @@
-use crate::cli::fixcharge::BulkFixedCharge;
-use crate::cli::fixcharge::InterfaceFixedCharge;
 use crate::cli::fixcharge::define_bulk_fixed_charge;
 use crate::cli::fixcharge::define_interface_fixed_charge;
-use crate::cli::mesh::MeshParams;
+use crate::cli::fixcharge::BulkFixedCharge;
+use crate::cli::fixcharge::InterfaceFixedCharge;
 use crate::cli::mesh::define_mesh_params;
-use crate::cli::structure::DeviceStructure;
+use crate::cli::mesh::MeshParams;
 use crate::cli::structure::define_structure;
+use crate::cli::structure::DeviceStructure;
 
 #[derive(Debug)]
 pub struct ParametersDefinition {
