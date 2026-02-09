@@ -34,11 +34,25 @@ pub struct Time {
 
 pub fn define_measurement() -> Measurement {
     println!("Define measurement.");
-    let temperature: f64 =
-        get_parsed_input_with_default("Enter the temperature (in K). Default is 300: ", 300.0);
+    let temperature = loop {
+        let temperature: f64 =
+            get_parsed_input_with_default("Enter the temperature (in K). Default is 300: ", 300.0);
+        if temperature <= 0.0 {
+            println!("Temperature cannot be less than or equal to zero. Please try again.");
+        } else {
+            break temperature;
+        }
+    };
     let voltage_start: f64 = get_parsed_input("Enter the starting voltage (in V): ");
     let voltage_stop: f64 = get_parsed_input("Enter the stopping voltage (in V): ");
-    let voltage_step: f64 = get_parsed_input("Enter the voltage step (in V): ");
+    let voltage_step = loop {
+        let voltage_step: f64 = get_parsed_input("Enter the voltage step (in V): ");
+        if voltage_step == 0.0 {
+            println!("Voltage step cannot be zero. Please try again.");
+        } else {
+            break voltage_step;
+        }
+    };
     let measurement_time: f64 =
         get_parsed_input_with_default("Enter the measurement time (in s): default is 100 ", 100.0);
     let voltage_stress: f64 =
