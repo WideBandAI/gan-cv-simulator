@@ -38,7 +38,7 @@ impl ParametersDefinition {
     ///
     /// ```ignore
     /// let measurement = define_measurement();
-    /// let device_structure = define_structure();
+    /// let device_structure = define_structure(&measurement);
     /// let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
     /// let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
     /// let mesh_params = define_mesh_params();
@@ -80,7 +80,7 @@ impl ParametersDefinition {
     /// ```
     pub fn define() -> Self {
         let measurement = define_measurement();
-        let device_structure = define_structure();
+        let device_structure = define_structure(&measurement);
         let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
         let mesh_params = define_mesh_params(&device_structure);
