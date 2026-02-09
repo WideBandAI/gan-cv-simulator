@@ -84,7 +84,7 @@ impl ParametersDefinition {
         let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
         let mesh_params = define_mesh_params(&device_structure);
-        let boundary_conditions = define_boundary_conditions(&device_structure);
+        let boundary_conditions = define_boundary_conditions(&device_structure, &measurement);
         Self::new(
             measurement,
             device_structure,
