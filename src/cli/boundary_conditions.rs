@@ -17,17 +17,13 @@ pub fn define_boundary_conditions(
 
     let barrier_height: f64 = get_parsed_input("Enter the barrier height (in eV): ");
 
-    let ec_ef_bottom: f64 = if device_structure
-        .material_type
-        .last()
-        .map_or(false, |material_type| {
-            *material_type == MaterialType::Semiconductor
-        }) {
-        let equilibrium_potential = equilibrium_potential_n_type(
-            device_structure.nc.last().unwrap(),
-            device_structure.nd.last().unwrap(),
-            &measurement.temperature.temperature,
-        );
+    let ec_ef_bottom: f64 = if let (Some(&MaterialType::Semiconductor), Some(nc), Some(nd)) = (
+        device_structure.material_type.last(),
+        device_structure.nc.last(),
+        device_structure.nd.last(),
+    ) {
+        let equilibrium_potential =
+            equilibrium_potential_n_type(*nc, *nd, measurement.temperature.temperature);
         get_parsed_input_with_default(
             "Enter the potential difference between the bottom layer's conduction band and fermi level (in eV). default is equilibrium potential: ",
             equilibrium_potential,

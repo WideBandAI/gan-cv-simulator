@@ -12,9 +12,9 @@ use crate::constants::physics::*;
 ///
 /// - `f64` - The equilibrium potential (Ec - Ef) (in eV).
 pub fn equilibrium_potential_n_type(
-    conduction_band_density: &f64,
-    donor_concentration: &f64,
-    temperature: &f64,
+    conduction_band_density: f64,
+    donor_concentration: f64,
+    temperature: f64,
 ) -> f64 {
     let phi = (K_BOLTZMANN * temperature / Q_ELECTRON)
         * (conduction_band_density / donor_concentration).ln();
@@ -35,7 +35,7 @@ mod tests {
         expected_equilibrium_potential: f64,
     ) {
         let equilibrium_potential =
-            equilibrium_potential_n_type(&conduction_band_density, &donor_concentration, &300.0);
+            equilibrium_potential_n_type(conduction_band_density, donor_concentration, 300.0);
         assert!(relative_eq!(
             equilibrium_potential,
             expected_equilibrium_potential,
