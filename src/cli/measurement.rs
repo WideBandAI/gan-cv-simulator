@@ -42,11 +42,11 @@ pub fn define_measurement() -> Measurement {
     let measurement_time: f64 =
         get_parsed_input_with_default("Enter the measurement time (in s): default is 100 ", 100.0);
     let voltage_stress: f64 =
-        get_parsed_input_with_default("Enter the stress voltage (in V): default is 0", 0.0);
+        get_parsed_input_with_default("Enter the stress voltage (in V): default is 0 ", 0.0);
     let stress_relief_voltage: f64 =
-        get_parsed_input_with_default("Enter the stress relief voltage (in V): default is 0", 0.0);
+        get_parsed_input_with_default("Enter the stress relief voltage (in V): default is 0 ", 0.0);
     let stress_relief_time: f64 =
-        get_parsed_input_with_default("Enter the stress relief time (in s): default is 0", 0.0);
+        get_parsed_input_with_default("Enter the stress relief time (in s): default is 0 ", 0.0);
 
     Measurement {
         temperature: Temperature { temperature },

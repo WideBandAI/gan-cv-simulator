@@ -46,7 +46,10 @@ pub fn define_mesh_params(device_structure: &DeviceStructure) -> MeshParams {
         layer_id.push(i);
 
         let length: f64 = get_parsed_input_with_default(
-            &format!("Enter the length (in nm) for layer {}. Default is 0.1: ", i),
+            &format!(
+                "Enter the mesh length (in nm) for layer {}. Default is 0.1: ",
+                i
+            ),
             0.1,
         );
         length_per_layer.push(length * NM_TO_M);
@@ -86,7 +89,7 @@ pub fn define_mesh_params(device_structure: &DeviceStructure) -> MeshParams {
     }
 
     let energy_step: f64 =
-        get_parsed_input_with_default("Enter the energy step (in meV). Default is 0.1: ", 0.1)
+        get_parsed_input_with_default("Enter the mesh energy step (in meV). Default is 0.1: ", 0.1)
             * MEV_TO_EV;
 
     MeshParams {

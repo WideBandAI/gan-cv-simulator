@@ -4,6 +4,8 @@ use crate::cli::fixcharge::define_bulk_fixed_charge;
 use crate::cli::fixcharge::define_interface_fixed_charge;
 use crate::cli::fixcharge::BulkFixedCharge;
 use crate::cli::fixcharge::InterfaceFixedCharge;
+use crate::cli::measurement::define_measurement;
+use crate::cli::measurement::Measurement;
 use crate::cli::mesh::define_mesh_params;
 use crate::cli::mesh::MeshParams;
 use crate::cli::structure::define_structure;
@@ -11,6 +13,7 @@ use crate::cli::structure::DeviceStructure;
 
 #[derive(Debug)]
 pub struct ParametersDefinition {
+    pub measurement: Measurement,
     pub device_structure: DeviceStructure,
     pub bulk_fixed_charge: BulkFixedCharge,
     pub interface_fixed_charge: InterfaceFixedCharge,
@@ -34,6 +37,7 @@ impl ParametersDefinition {
     /// # Examples
     ///
     /// ```ignore
+    /// let measurement = define_measurement();
     /// let device_structure = define_structure();
     /// let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
     /// let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
@@ -41,6 +45,7 @@ impl ParametersDefinition {
     /// let device_def = ParametersDefinition::new(device_structure, bulk_fixed_charge, interface_fixed_charge, mesh_params);
     /// ```
     pub fn new(
+        measurement: Measurement,
         device_structure: DeviceStructure,
         bulk_fixed_charge: BulkFixedCharge,
         interface_fixed_charge: InterfaceFixedCharge,
@@ -48,6 +53,7 @@ impl ParametersDefinition {
         boundary_conditions: BoundaryConditions,
     ) -> Self {
         Self {
+            measurement,
             device_structure,
             bulk_fixed_charge,
             interface_fixed_charge,
@@ -73,12 +79,14 @@ impl ParametersDefinition {
     /// let device_def = ParametersDefinition::define();
     /// ```
     pub fn define() -> Self {
+        let measurement = define_measurement();
         let device_structure = define_structure();
         let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
         let mesh_params = define_mesh_params(&device_structure);
         let boundary_conditions = define_boundary_conditions(&device_structure);
         Self::new(
+            measurement,
             device_structure,
             bulk_fixed_charge,
             interface_fixed_charge,
