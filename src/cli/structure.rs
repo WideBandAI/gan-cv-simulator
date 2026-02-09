@@ -3,6 +3,9 @@ use crate::constants::units::{CM3_TO_M3, NM_TO_M};
 use crate::utils::{get_input, get_parsed_input};
 use std::vec;
 
+use crate::cli::measurement::Measurement;
+use crate::physics_equations::conduction_band_density::conduction_band_density;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaterialType {
     Semiconductor,
@@ -21,6 +24,7 @@ pub struct DeviceStructure {
     pub dec: Vec<f64>,          // delta conduction band in eV from bottom layer to current layer
     pub nd: Vec<f64>,           // donor concentration in m^-3
     pub end: Vec<f64>,          // energy level of donor in eV (Ec-Ed)
+    pub nc: Vec<f64>,           // effective density of states in conduction band in m^-3
 }
 
 fn get_material_type(prompt: &str) -> MaterialType {
@@ -47,7 +51,7 @@ fn get_material_type(prompt: &str) -> MaterialType {
 ///
 /// let _ = define_structure();
 /// ```
-pub fn define_structure() -> DeviceStructure {
+pub fn define_structure(measurement: &Measurement) -> DeviceStructure {
     println!("Define the structure.");
     let num_layers: u32 = get_parsed_input("Enter the number of layers: ");
     println!("Number of layers: {}", num_layers);
@@ -63,6 +67,7 @@ pub fn define_structure() -> DeviceStructure {
         dec: vec![],
         nd: vec![],
         end: vec![],
+        nc: vec![],
     };
 
     for n in 0..(num_layers) {
@@ -84,8 +89,10 @@ pub fn define_structure() -> DeviceStructure {
         let thickness_nm: f64 = get_parsed_input(&format!("Enter thickness of layer {} (nm): ", n));
         device.thickness.push(thickness_nm * NM_TO_M); // convert nm to meters
 
-        let permittivity: f64 =
-            get_parsed_input(&format!("Enter relative permittivity for layer {}: ", n));
+        let permittivity: f64 = get_parsed_input(&format!(
+            "Enter relative permittivity coefficient for layer {}: ",
+            n
+        ));
         device.permittivity.push(permittivity * EPSILON_0); // convert relative permittivity to absolute
 
         let eg: f64 = get_parsed_input(&format!("Enter bandgap energy in eV for layer {}: ", n));
@@ -108,6 +115,10 @@ pub fn define_structure() -> DeviceStructure {
             ));
             device.me.push(me * M_ELECTRON); // convert to units of electron mass
 
+            let nc: f64 =
+                conduction_band_density(me * M_ELECTRON, measurement.temperature.temperature);
+            device.nc.push(nc);
+
             let nd: f64 = get_parsed_input(&format!(
                 "Enter donor concentration in cm^-3 for layer {}: ",
                 n
@@ -123,6 +134,7 @@ pub fn define_structure() -> DeviceStructure {
             device.me.push(0.0);
             device.nd.push(0.0);
             device.end.push(0.0);
+            device.nc.push(0.0);
         }
     }
     device
@@ -152,6 +164,7 @@ mod tests {
             dec: vec![0.0],
             nd: vec![1e16],
             end: vec![0.1],
+            nc: vec![1e25],
         };
 
         assert_eq!(device.material_type.len(), 1);
@@ -173,6 +186,7 @@ mod tests {
             dec: vec![0.3, 0.0],
             nd: vec![1e16, 0.0],
             end: vec![0.1, 0.0],
+            nc: vec![1e25, 0.0],
         };
 
         assert_eq!(device.material_type.len(), 2);

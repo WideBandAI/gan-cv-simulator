@@ -1,6 +1,6 @@
 use crate::constants::physics::*;
 
-/// Conduction band density
+/// Calculate the conduction band density.
 ///
 /// # Arguments
 ///
