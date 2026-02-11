@@ -12,13 +12,18 @@ use crate::cli::structure::define_structure;
 use crate::cli::structure::DeviceStructure;
 
 #[derive(Debug)]
-pub struct ConfigurationBuilder {
+pub struct Configuration {
     pub measurement: Measurement,
     pub device_structure: DeviceStructure,
     pub bulk_fixed_charge: BulkFixedCharge,
     pub interface_fixed_charge: InterfaceFixedCharge,
     pub mesh_params: MeshParams,
     pub boundary_conditions: BoundaryConditions,
+}
+
+#[derive(Debug)]
+pub struct ConfigurationBuilder {
+    pub configuration: Configuration,
 }
 
 impl ConfigurationBuilder {
@@ -44,22 +49,8 @@ impl ConfigurationBuilder {
     /// let mesh_params = define_mesh_params();
     /// let device_def = ConfigurationBuilder::new(device_structure, bulk_fixed_charge, interface_fixed_charge, mesh_params);
     /// ```
-    pub fn new(
-        measurement: Measurement,
-        device_structure: DeviceStructure,
-        bulk_fixed_charge: BulkFixedCharge,
-        interface_fixed_charge: InterfaceFixedCharge,
-        mesh_params: MeshParams,
-        boundary_conditions: BoundaryConditions,
-    ) -> Self {
-        Self {
-            measurement,
-            device_structure,
-            bulk_fixed_charge,
-            interface_fixed_charge,
-            mesh_params,
-            boundary_conditions,
-        }
+    pub fn new(configuration: Configuration) -> Self {
+        Self { configuration }
     }
 
     /// Create a `ConfigurationBuilder` with default/predefined values.
@@ -85,13 +76,13 @@ impl ConfigurationBuilder {
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
         let mesh_params = define_mesh_params(&device_structure);
         let boundary_conditions = define_boundary_conditions(&device_structure, &measurement);
-        Self::new(
+        Self::new(Configuration {
             measurement,
             device_structure,
             bulk_fixed_charge,
             interface_fixed_charge,
             mesh_params,
             boundary_conditions,
-        )
+        })
     }
 }
