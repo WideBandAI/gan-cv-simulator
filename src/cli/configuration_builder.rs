@@ -12,7 +12,7 @@ use crate::cli::structure::define_structure;
 use crate::cli::structure::DeviceStructure;
 
 #[derive(Debug)]
-pub struct ParametersDefinition {
+pub struct ConfigurationBuilder {
     pub measurement: Measurement,
     pub device_structure: DeviceStructure,
     pub bulk_fixed_charge: BulkFixedCharge,
@@ -21,8 +21,8 @@ pub struct ParametersDefinition {
     pub boundary_conditions: BoundaryConditions,
 }
 
-impl ParametersDefinition {
-    /// Create a new `ParametersDefinition` from components.
+impl ConfigurationBuilder {
+    /// Create a new `ConfigurationBuilder` from components.
     ///
     /// # Arguments
     ///
@@ -32,7 +32,7 @@ impl ParametersDefinition {
     ///
     /// # Returns
     ///
-    /// A new `ParametersDefinition` instance.
+    /// A new `ConfigurationBuilder` instance.
     ///
     /// # Examples
     ///
@@ -42,7 +42,7 @@ impl ParametersDefinition {
     /// let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
     /// let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
     /// let mesh_params = define_mesh_params();
-    /// let device_def = ParametersDefinition::new(device_structure, bulk_fixed_charge, interface_fixed_charge, mesh_params);
+    /// let device_def = ConfigurationBuilder::new(device_structure, bulk_fixed_charge, interface_fixed_charge, mesh_params);
     /// ```
     pub fn new(
         measurement: Measurement,
@@ -62,7 +62,7 @@ impl ParametersDefinition {
         }
     }
 
-    /// Create a `ParametersDefinition` with default/predefined values.
+    /// Create a `ConfigurationBuilder` with default/predefined values.
     ///
     /// This function automatically constructs a complete device definition by calling
     /// the appropriate definition functions for each component (structure, bulk fixed charge,
@@ -71,14 +71,14 @@ impl ParametersDefinition {
     ///
     /// # Returns
     ///
-    /// A new `ParametersDefinition` with predefined configuration.
+    /// A new `ConfigurationBuilder` with predefined configuration.
     ///
     /// # Examples
     ///
     /// ```ignore
-    /// let device_def = ParametersDefinition::define();
+    /// let device_def = ConfigurationBuilder::define();
     /// ```
-    pub fn define() -> Self {
+    pub fn run() -> Self {
         let measurement = define_measurement();
         let device_structure = define_structure(&measurement);
         let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
