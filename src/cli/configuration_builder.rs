@@ -49,10 +49,21 @@ impl ConfigurationBuilder {
     /// let mesh_params = define_mesh_params();
     /// let device_def = ConfigurationBuilder::new(device_structure, bulk_fixed_charge, interface_fixed_charge, mesh_params);
     /// ```
-    pub fn new(configuration: Configuration) -> Self {
-        Self { configuration }
+    pub fn new() -> Configuration {
+        Configuration {
+            measurement: define_measurement(),
+            device_structure: define_structure(&define_measurement()),
+            bulk_fixed_charge: define_bulk_fixed_charge(&define_structure(&define_measurement())),
+            interface_fixed_charge: define_interface_fixed_charge(&define_structure(
+                &define_measurement(),
+            )),
+            mesh_params: define_mesh_params(&define_structure(&define_measurement())),
+            boundary_conditions: define_boundary_conditions(
+                &define_structure(&define_measurement()),
+                &define_measurement(),
+            ),
+        }
     }
-
     /// Create a `ConfigurationBuilder` with default/predefined values.
     ///
     /// This function automatically constructs a complete device definition by calling
@@ -67,22 +78,22 @@ impl ConfigurationBuilder {
     /// # Examples
     ///
     /// ```ignore
-    /// let device_def = ConfigurationBuilder::define();
+    /// let device_def = ConfigurationBuilder::run();
     /// ```
-    pub fn run() -> Self {
+    pub fn run() -> Configuration {
         let measurement = define_measurement();
         let device_structure = define_structure(&measurement);
         let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
         let mesh_params = define_mesh_params(&device_structure);
         let boundary_conditions = define_boundary_conditions(&device_structure, &measurement);
-        Self::new(Configuration {
+        Configuration {
             measurement,
             device_structure,
             bulk_fixed_charge,
             interface_fixed_charge,
             mesh_params,
             boundary_conditions,
-        })
+        }
     }
 }
