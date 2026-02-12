@@ -9,9 +9,9 @@ use mesh_builder::mesh_builder::MeshBuilder;
 
 fn main() {
     println!("Starting C-V simulation with the following parameters:");
-    let config = configuration_builder::ConfigurationBuilder::run();
+    let config = configuration_builder::ConfigurationBuilder::from_interactive().build();
     println!("{:#?}", config);
     let mesh_builder = MeshBuilder::run(&config);
-    println!("{:#?}", mesh_builder);
+    // println!("{:#?}", mesh_builder);
     println!("Simulation complete.");
 }

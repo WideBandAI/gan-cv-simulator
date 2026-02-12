@@ -23,77 +23,64 @@ pub struct Configuration {
 
 #[derive(Debug)]
 pub struct ConfigurationBuilder {
-    pub configuration: Configuration,
+    configuration: Configuration,
 }
 
 impl ConfigurationBuilder {
-    /// Create a new `ConfigurationBuilder` from components.
-    ///
-    /// # Arguments
-    ///
-    /// - `device_structure` (`DeviceStructure`) - The device structure.
-    /// - `bulk_fixed_charge` (`BulkFixedCharge`) - The bulk fixed charge configuration.
-    /// - `interface_fixed_charge` (`InterfaceFixedCharge`) - The interface fixed charge configuration.
-    ///
-    /// # Returns
-    ///
-    /// A new `ConfigurationBuilder` instance.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let measurement = define_measurement();
-    /// let device_structure = define_structure(&measurement);
-    /// let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
-    /// let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
-    /// let mesh_params = define_mesh_params();
-    /// let device_def = ConfigurationBuilder::new(device_structure, bulk_fixed_charge, interface_fixed_charge, mesh_params);
-    /// ```
-    pub fn new() -> Configuration {
-        Configuration {
-            measurement: define_measurement(),
-            device_structure: define_structure(&define_measurement()),
-            bulk_fixed_charge: define_bulk_fixed_charge(&define_structure(&define_measurement())),
-            interface_fixed_charge: define_interface_fixed_charge(&define_structure(
-                &define_measurement(),
-            )),
-            mesh_params: define_mesh_params(&define_structure(&define_measurement())),
-            boundary_conditions: define_boundary_conditions(
-                &define_structure(&define_measurement()),
-                &define_measurement(),
-            ),
-        }
+    /// Create a new ConfigurationBuilder from an existing Configuration
+    pub fn new(configuration: Configuration) -> Self {
+        Self { configuration }
     }
-    /// Create a `ConfigurationBuilder` with default/predefined values.
-    ///
-    /// This function automatically constructs a complete device definition by calling
-    /// the appropriate definition functions for each component (structure, bulk fixed charge,
-    /// and interface fixed charge). This is useful for creating a fully initialized device
-    /// definition with sensible defaults.
-    ///
-    /// # Returns
-    ///
-    /// A new `ConfigurationBuilder` with predefined configuration.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let device_def = ConfigurationBuilder::run();
-    /// ```
-    pub fn run() -> Configuration {
+
+    /// Build configuration from interactive CLI input
+    pub fn from_interactive() -> Self {
         let measurement = define_measurement();
         let device_structure = define_structure(&measurement);
         let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
         let mesh_params = define_mesh_params(&device_structure);
         let boundary_conditions = define_boundary_conditions(&device_structure, &measurement);
-        Configuration {
+
+        let configuration = Configuration {
             measurement,
             device_structure,
             bulk_fixed_charge,
             interface_fixed_charge,
             mesh_params,
             boundary_conditions,
-        }
+        };
+
+        Self { configuration }
+    }
+
+    /// Build configuration from a JSON file (placeholder for future implementation)
+    ///
+    /// # Arguments
+    /// * `path` - Path to the JSON configuration file
+    ///
+    /// # Example (future usage)
+    /// ```ignore
+    /// let builder = ConfigurationBuilder::from_json("config.json")?;
+    /// ```
+    #[allow(dead_code)]
+    pub fn from_json(_path: &str) -> Result<Self, std::io::Error> {
+        // TODO: Implement JSON deserialization
+        // This is a placeholder for future implementation when serde support is added
+        unimplemented!("JSON configuration loading is not yet implemented")
+    }
+
+    /// Get a reference to the configuration
+    pub fn configuration(&self) -> &Configuration {
+        &self.configuration
+    }
+
+    /// Get a mutable reference to the configuration
+    pub fn configuration_mut(&mut self) -> &mut Configuration {
+        &mut self.configuration
+    }
+
+    /// Consume the builder and return the configuration
+    pub fn build(self) -> Configuration {
+        self.configuration
     }
 }
