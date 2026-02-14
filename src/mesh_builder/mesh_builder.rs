@@ -42,21 +42,17 @@ impl MeshBuilder {
             nc: Vec::new(),
             fixcharge: Vec::new(),
         };
-        let total_structure_thickness =
-            configuration.device_structure.thickness.iter().sum::<f64>();
-        println!(
-            "total_structure_thickness: {}",
-            total_structure_thickness * 1e9
-        );
 
         let mut current_depth = 0.0;
         let mut structure_idx = 0;
         let mut total_layer_thickness = 0.0;
+        let mut add_mesh_layer_thickness = 0.0;
         for idx in 0..configuration.mesh_params.layer_id.len() {
             let mesh_length = configuration.mesh_params.length_per_layer[idx];
             let mesh_layer_thickness = configuration.mesh_params.layer_thickness[idx];
+            add_mesh_layer_thickness += mesh_layer_thickness;
             let num_mesh_layers = (mesh_layer_thickness / mesh_length) as u32;
-            println!("num_mesh_layers: {}", num_mesh_layers);
+
             // Surface
             mesh_structure.id.push(IDX::Surface);
             mesh_structure.depth.push(current_depth);
@@ -91,7 +87,7 @@ impl MeshBuilder {
                     structure_idx += 1;
                     current_depth = total_layer_thickness + mesh_length;
                 } else if structure_idx == configuration.device_structure.id.len() - 1
-                    && (current_depth) >= (total_structure_thickness)
+                    && (current_depth) >= (add_mesh_layer_thickness)
                 {
                     break;
                 } else {
@@ -120,7 +116,9 @@ impl MeshBuilder {
                 }
             }
             mesh_structure.id.push(IDX::Bottom);
-            mesh_structure.depth.push(total_structure_thickness);
+            mesh_structure
+                .depth
+                .push(configuration.device_structure.thickness.iter().sum::<f64>());
             mesh_structure.permittivity.push(0.0);
             mesh_structure.dec.push(0.0);
             mesh_structure.nd.push(0.0);
