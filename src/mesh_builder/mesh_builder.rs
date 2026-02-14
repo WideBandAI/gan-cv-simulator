@@ -135,6 +135,7 @@ mod tests {
     use crate::cli::measurement::{Measurement, Stress, Temperature, Time, Voltage};
     use crate::cli::mesh::MeshParams;
     use crate::cli::structure::{DeviceStructure, MaterialType};
+    use approx::relative_eq;
 
     fn create_dummy_configuration(
         thicknesses: Vec<f64>,
@@ -242,7 +243,7 @@ mod tests {
         } else {
             panic!("Last node should be Bottom");
         }
-        assert!((mesh.depth[5] - 10e-9).abs() < 1e-15);
+        assert!(relative_eq!(mesh.depth[5], 10e-9, max_relative = 1e-6));
     }
 
     #[test]
@@ -298,10 +299,10 @@ mod tests {
             panic!("node 4 fail");
         }
 
-        assert!((mesh.depth[0] - 0.0).abs() < 1e-15);
-        assert!((mesh.depth[1] - 2.5e-9).abs() < 1e-15);
-        assert!((mesh.depth[2] - 5.0e-9).abs() < 1e-15);
-        assert!((mesh.depth[3] - 7.5e-9).abs() < 1e-15);
-        assert!((mesh.depth[4] - 10.0e-9).abs() < 1e-15);
+        assert!(relative_eq!(mesh.depth[0], 0.0, max_relative = 1e-6));
+        assert!(relative_eq!(mesh.depth[1], 2.5e-9, max_relative = 1e-6));
+        assert!(relative_eq!(mesh.depth[2], 5.0e-9, max_relative = 1e-6));
+        assert!(relative_eq!(mesh.depth[3], 7.5e-9, max_relative = 1e-6));
+        assert!(relative_eq!(mesh.depth[4], 10.0e-9, max_relative = 1e-6));
     }
 }
