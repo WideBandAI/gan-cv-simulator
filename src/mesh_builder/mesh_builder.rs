@@ -47,22 +47,24 @@ impl MeshBuilder {
         let mut structure_idx = 0;
         let mut total_layer_thickness = 0.0;
         let mut add_mesh_layer_thickness = 0.0;
+
+        // Surface
+        mesh_structure.id.push(IDX::Surface);
+        mesh_structure.depth.push(current_depth);
+        mesh_structure.permittivity.push(0.0);
+        mesh_structure.dec.push(0.0);
+        mesh_structure.nd.push(0.0);
+        mesh_structure.end.push(0.0);
+        mesh_structure.nc.push(0.0);
+        mesh_structure.fixcharge.push(FixCharge::Interface(0.0));
         for idx in 0..configuration.mesh_params.layer_id.len() {
             let mesh_length = configuration.mesh_params.length_per_layer[idx];
             let mesh_layer_thickness = configuration.mesh_params.layer_thickness[idx];
             add_mesh_layer_thickness += mesh_layer_thickness;
-            let num_mesh_layers = (mesh_layer_thickness / mesh_length) as u32;
 
-            // Surface
-            mesh_structure.id.push(IDX::Surface);
-            mesh_structure.depth.push(current_depth);
-            mesh_structure.permittivity.push(0.0);
-            mesh_structure.dec.push(0.0);
-            mesh_structure.nd.push(0.0);
-            mesh_structure.end.push(0.0);
-            mesh_structure.nc.push(0.0);
-            mesh_structure.fixcharge.push(FixCharge::Interface(0.0));
-            current_depth += mesh_length;
+            if idx == 0 {
+                current_depth += mesh_length;
+            }
             loop {
                 if structure_idx < configuration.device_structure.id.len() - 1 // Interface between layers
                     && (current_depth)
@@ -115,20 +117,23 @@ impl MeshBuilder {
                     current_depth += mesh_length;
                 }
             }
-            mesh_structure.id.push(IDX::Bottom);
-            mesh_structure
-                .depth
-                .push(configuration.device_structure.thickness.iter().sum::<f64>());
-            mesh_structure.permittivity.push(0.0);
-            mesh_structure.dec.push(0.0);
-            mesh_structure.nd.push(0.0);
-            mesh_structure.end.push(0.0);
-            mesh_structure.nc.push(0.0);
-            mesh_structure.fixcharge.push(FixCharge::Interface(0.0));
         }
+        // Bottom
+        mesh_structure.id.push(IDX::Bottom);
+        mesh_structure
+            .depth
+            .push(configuration.device_structure.thickness.iter().sum::<f64>());
+        mesh_structure.permittivity.push(0.0);
+        mesh_structure.dec.push(0.0);
+        mesh_structure.nd.push(0.0);
+        mesh_structure.end.push(0.0);
+        mesh_structure.nc.push(0.0);
+        mesh_structure.fixcharge.push(FixCharge::Interface(0.0));
+
         mesh_structure
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
