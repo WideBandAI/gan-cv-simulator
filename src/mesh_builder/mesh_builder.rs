@@ -75,12 +75,8 @@ impl MeshBuilder {
                         total_layer_thickness
                             + configuration.device_structure.thickness[structure_idx],
                     );
-                    mesh_structure
-                        .permittivity
-                        .push(configuration.device_structure.permittivity[structure_idx]);
-                    mesh_structure
-                        .dec
-                        .push(configuration.device_structure.dec[structure_idx]);
+                    mesh_structure.permittivity.push(0.0);
+                    mesh_structure.dec.push(0.0);
                     mesh_structure.nd.push(0.0);
                     mesh_structure.end.push(0.0);
                     mesh_structure.nc.push(0.0);
