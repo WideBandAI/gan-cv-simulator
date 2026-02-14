@@ -42,6 +42,12 @@ impl MeshBuilder {
             nc: Vec::new(),
             fixcharge: Vec::new(),
         };
+        let total_structure_thickness =
+            configuration.device_structure.thickness.iter().sum::<f64>();
+        println!(
+            "total_structure_thickness: {}",
+            total_structure_thickness * 1e9
+        );
 
         let mut current_depth = 0.0;
         let mut structure_idx = 0;
@@ -50,20 +56,20 @@ impl MeshBuilder {
             let mesh_length = configuration.mesh_params.length_per_layer[idx];
             let mesh_layer_thickness = configuration.mesh_params.layer_thickness[idx];
             let num_mesh_layers = (mesh_layer_thickness / mesh_length) as u32;
-            // println!("num_mesh_layers: {}", num_mesh_layers);
-            for _ in 0..num_mesh_layers {
-                if idx == 0 && structure_idx == 0 && current_depth == 0.0 {
-                    // Surface
-                    mesh_structure.id.push(IDX::Surface);
-                    mesh_structure.depth.push(current_depth);
-                    mesh_structure.permittivity.push(0.0);
-                    mesh_structure.dec.push(0.0);
-                    mesh_structure.nd.push(0.0);
-                    mesh_structure.end.push(0.0);
-                    mesh_structure.nc.push(0.0);
-                    mesh_structure.fixcharge.push(FixCharge::Interface(0.0));
-                } else if structure_idx < configuration.device_structure.id.len() - 1 // Interface between layers
-                    && (current_depth + mesh_length)
+            println!("num_mesh_layers: {}", num_mesh_layers);
+            // Surface
+            mesh_structure.id.push(IDX::Surface);
+            mesh_structure.depth.push(current_depth);
+            mesh_structure.permittivity.push(0.0);
+            mesh_structure.dec.push(0.0);
+            mesh_structure.nd.push(0.0);
+            mesh_structure.end.push(0.0);
+            mesh_structure.nc.push(0.0);
+            mesh_structure.fixcharge.push(FixCharge::Interface(0.0));
+            current_depth += mesh_length;
+            for _ in 0..(num_mesh_layers) {
+                if structure_idx < configuration.device_structure.id.len() - 1 // Interface between layers
+                    && (current_depth)
                         >= (total_layer_thickness
                             + configuration.device_structure.thickness[structure_idx])
                 {
@@ -83,6 +89,11 @@ impl MeshBuilder {
                     total_layer_thickness +=
                         configuration.device_structure.thickness[structure_idx];
                     structure_idx += 1;
+                    current_depth = total_layer_thickness + mesh_length;
+                } else if structure_idx == configuration.device_structure.id.len() - 1
+                    && (current_depth) >= (total_structure_thickness)
+                {
+                    break;
                 } else {
                     // Bulk
                     mesh_structure.id.push(IDX::Bulk(structure_idx));
@@ -105,16 +116,12 @@ impl MeshBuilder {
                     mesh_structure.fixcharge.push(FixCharge::Bulk(
                         configuration.bulk_fixed_charge.charge_density[structure_idx],
                     ));
+                    current_depth += mesh_length;
                 }
-                current_depth += mesh_length;
             }
             mesh_structure.id.push(IDX::Bottom);
-            mesh_structure
-                .depth
-                .push(configuration.device_structure.thickness.iter().sum::<f64>());
-            mesh_structure
-                .permittivity
-                .push(configuration.device_structure.permittivity[structure_idx]);
+            mesh_structure.depth.push(total_structure_thickness);
+            mesh_structure.permittivity.push(0.0);
             mesh_structure.dec.push(0.0);
             mesh_structure.nd.push(0.0);
             mesh_structure.end.push(0.0);
