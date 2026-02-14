@@ -21,10 +21,10 @@ pub enum FixCharge {
 /// - `id` (`Vec<IDX>`) - ID of each node in the mesh, which can be `Bulk`, `Interface`, `Surface`, or `Bottom`.
 /// - `depth` (`Vec<f64>`) - Depth of each node in the mesh.
 /// - `permittivity` (`Vec<f64>`) - Permittivity of each node in the mesh.
-/// - `dec` (`Vec<f64>`) - Donor concentration of each node in the mesh.
-/// - `nd` (`Vec<f64>`) - Donor concentration of each node in the mesh.
-/// - `end` (`Vec<f64>`) - Electron affinity of each node in the mesh.
-/// - `nc` (`Vec<f64>`) - Electron affinity of each node in the mesh.
+/// - `dec` (`Vec<f64>`) - この層と最下層との間の伝導帯のエネルギー差 (eV)
+/// - `nd` (`Vec<f64>`) - 各メッシュノードのドナー濃度
+/// - `end` (`Vec<f64>`) - 各メッシュノードのドナーのエネルギー準位 (eV, Ec-Ed)
+/// - `nc` (`Vec<f64>`) - 各メッシュノードの伝導帯の有効状態密度
 /// - `fixcharge` (`Vec<FixCharge>`) - Fixed charge of each node in the mesh.
 ///
 /// # Examples
