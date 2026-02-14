@@ -13,6 +13,36 @@ pub enum FixCharge {
     Bulk(f64),
     Interface(f64),
 }
+
+/// Mesh structure
+///
+/// # Fields
+///
+/// - `id` (`Vec<IDX>`) - ID of each node in the mesh, which can be `Bulk`, `Interface`, `Surface`, or `Bottom`.
+/// - `depth` (`Vec<f64>`) - Depth of each node in the mesh.
+/// - `permittivity` (`Vec<f64>`) - Permittivity of each node in the mesh.
+/// - `dec` (`Vec<f64>`) - Donor concentration of each node in the mesh.
+/// - `nd` (`Vec<f64>`) - Donor concentration of each node in the mesh.
+/// - `end` (`Vec<f64>`) - Electron affinity of each node in the mesh.
+/// - `nc` (`Vec<f64>`) - Electron affinity of each node in the mesh.
+/// - `fixcharge` (`Vec<FixCharge>`) - Fixed charge of each node in the mesh.
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let s = MeshStructure {
+///     id: value,
+///     depth: value,
+///     permittivity: value,
+///     dec: value,
+///     nd: value,
+///     end: value,
+///     nc: value,
+///     fixcharge: value,
+/// };
+/// ```
 #[derive(Debug)]
 pub struct MeshStructure {
     pub id: Vec<IDX>,
@@ -31,6 +61,23 @@ pub struct MeshBuilder {
 }
 
 impl MeshBuilder {
+    /// Build mesh structure
+    ///
+    /// # Arguments
+    ///
+    /// - `configuration` (`&Configuration`) - Configuration of the device.
+    ///
+    /// # Returns
+    ///
+    /// - `MeshStructure` - Mesh structure.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let mesh_structure = MeshBuilder::build(&configuration);
+    /// ```
     pub fn build(configuration: &Configuration) -> MeshStructure {
         let mut mesh_structure = MeshStructure {
             id: Vec::new(),
