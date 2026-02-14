@@ -55,31 +55,9 @@ pub struct MeshStructure {
     pub fixcharge: Vec<FixCharge>,
 }
 
-#[derive(Debug)]
-pub struct MeshBuilder {
-    pub mesh_structure: MeshStructure,
-}
-
-impl MeshBuilder {
-    /// Build mesh structure
-    ///
-    /// # Arguments
-    ///
-    /// - `configuration` (`&Configuration`) - Configuration of the device.
-    ///
-    /// # Returns
-    ///
-    /// - `MeshStructure` - Mesh structure.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use crate::...;
-    ///
-    /// let mesh_structure = MeshBuilder::build(&configuration);
-    /// ```
-    pub fn build(configuration: &Configuration) -> MeshStructure {
-        let mut mesh_structure = MeshStructure {
+impl MeshStructure {
+    pub fn new() -> Self {
+        Self {
             id: Vec::new(),
             depth: Vec::new(),
             permittivity: Vec::new(),
@@ -88,97 +66,130 @@ impl MeshBuilder {
             end: Vec::new(),
             nc: Vec::new(),
             fixcharge: Vec::new(),
-        };
+        }
+    }
 
-        let mut current_depth = 0.0;
-        let mut structure_idx = 0;
-        let mut total_layer_thickness = 0.0;
-        let mut add_mesh_layer_thickness = 0.0;
+    pub fn add_surface_node(&mut self, depth: f64) {
+        self.id.push(IDX::Surface);
+        self.depth.push(depth);
+        self.permittivity.push(0.0);
+        self.dec.push(0.0);
+        self.nd.push(0.0);
+        self.end.push(0.0);
+        self.nc.push(0.0);
+        self.fixcharge.push(FixCharge::Interface(0.0));
+    }
 
-        // Surface
-        mesh_structure.id.push(IDX::Surface);
-        mesh_structure.depth.push(current_depth);
-        mesh_structure.permittivity.push(0.0);
-        mesh_structure.dec.push(0.0);
-        mesh_structure.nd.push(0.0);
-        mesh_structure.end.push(0.0);
-        mesh_structure.nc.push(0.0);
-        mesh_structure.fixcharge.push(FixCharge::Interface(0.0));
-        for idx in 0..configuration.mesh_params.layer_id.len() {
-            let mesh_length = configuration.mesh_params.length_per_layer[idx];
-            let mesh_layer_thickness = configuration.mesh_params.layer_thickness[idx];
-            add_mesh_layer_thickness += mesh_layer_thickness;
+    pub fn add_interface_node(
+        &mut self,
+        depth: f64,
+        struct_idx: usize,
+        configuration: &Configuration,
+    ) {
+        self.id.push(IDX::Interface(struct_idx));
+        self.depth.push(depth);
+        self.permittivity.push(0.0);
+        self.dec.push(0.0);
+        self.nd.push(0.0);
+        self.end.push(0.0);
+        self.nc.push(0.0);
+        self.fixcharge.push(FixCharge::Interface(
+            configuration.interface_fixed_charge.charge_density[struct_idx],
+        ));
+    }
 
-            if idx == 0 {
+    pub fn add_bulk_node(&mut self, depth: f64, struct_idx: usize, configuration: &Configuration) {
+        self.id.push(IDX::Bulk(struct_idx));
+        self.depth.push(depth);
+        self.permittivity
+            .push(configuration.device_structure.permittivity[struct_idx]);
+        self.dec
+            .push(configuration.device_structure.dec[struct_idx]);
+        self.nd.push(configuration.device_structure.nd[struct_idx]);
+        self.end
+            .push(configuration.device_structure.end[struct_idx]);
+        self.nc.push(configuration.device_structure.nc[struct_idx]);
+        self.fixcharge.push(FixCharge::Bulk(
+            configuration.bulk_fixed_charge.charge_density[struct_idx],
+        ));
+    }
+
+    pub fn add_bottom_node(&mut self, depth: f64) {
+        self.id.push(IDX::Bottom);
+        self.depth.push(depth);
+        self.permittivity.push(0.0);
+        self.dec.push(0.0);
+        self.nd.push(0.0);
+        self.end.push(0.0);
+        self.nc.push(0.0);
+        self.fixcharge.push(FixCharge::Interface(0.0));
+    }
+}
+
+/// Build mesh structure
+///
+/// # Arguments
+///
+/// - `configuration` (`&Configuration`) - Configuration of the device.
+///
+/// # Returns
+///
+/// - `MeshStructure` - Mesh structure.
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let mesh_structure = build(&configuration);
+/// ```
+pub fn build(configuration: &Configuration) -> MeshStructure {
+    let mut mesh_structure = MeshStructure::new();
+
+    let mut current_depth = 0.0;
+    let mut structure_idx = 0;
+    let mut total_layer_thickness = 0.0;
+    let mut add_mesh_layer_thickness = 0.0;
+
+    // Surface
+    mesh_structure.add_surface_node(current_depth);
+
+    for idx in 0..configuration.mesh_params.layer_id.len() {
+        let mesh_length = configuration.mesh_params.length_per_layer[idx];
+        let mesh_layer_thickness = configuration.mesh_params.layer_thickness[idx];
+        add_mesh_layer_thickness += mesh_layer_thickness;
+
+        if idx == 0 {
+            current_depth += mesh_length;
+        }
+        loop {
+            if structure_idx < configuration.device_structure.id.len() - 1 // Interface between layers
+                && (current_depth)
+                    >= (total_layer_thickness
+                        + configuration.device_structure.thickness[structure_idx])
+            {
+                let interface_depth =
+                    total_layer_thickness + configuration.device_structure.thickness[structure_idx];
+                mesh_structure.add_interface_node(interface_depth, structure_idx, configuration);
+
+                total_layer_thickness += configuration.device_structure.thickness[structure_idx];
+                structure_idx += 1;
+                current_depth = total_layer_thickness + mesh_length;
+            } else if structure_idx == configuration.device_structure.id.len() - 1
+                && (current_depth) >= (add_mesh_layer_thickness)
+            {
+                break;
+            } else {
+                // Bulk
+                mesh_structure.add_bulk_node(current_depth, structure_idx, configuration);
                 current_depth += mesh_length;
             }
-            loop {
-                if structure_idx < configuration.device_structure.id.len() - 1 // Interface between layers
-                    && (current_depth)
-                        >= (total_layer_thickness
-                            + configuration.device_structure.thickness[structure_idx])
-                {
-                    mesh_structure.id.push(IDX::Interface(structure_idx));
-                    mesh_structure.depth.push(
-                        total_layer_thickness
-                            + configuration.device_structure.thickness[structure_idx],
-                    );
-                    mesh_structure.permittivity.push(0.0);
-                    mesh_structure.dec.push(0.0);
-                    mesh_structure.nd.push(0.0);
-                    mesh_structure.end.push(0.0);
-                    mesh_structure.nc.push(0.0);
-                    mesh_structure.fixcharge.push(FixCharge::Interface(
-                        configuration.interface_fixed_charge.charge_density[structure_idx],
-                    ));
-                    total_layer_thickness +=
-                        configuration.device_structure.thickness[structure_idx];
-                    structure_idx += 1;
-                    current_depth = total_layer_thickness + mesh_length;
-                } else if structure_idx == configuration.device_structure.id.len() - 1
-                    && (current_depth) >= (add_mesh_layer_thickness)
-                {
-                    break;
-                } else {
-                    // Bulk
-                    mesh_structure.id.push(IDX::Bulk(structure_idx));
-                    mesh_structure.depth.push(current_depth);
-                    mesh_structure
-                        .permittivity
-                        .push(configuration.device_structure.permittivity[structure_idx]);
-                    mesh_structure
-                        .dec
-                        .push(configuration.device_structure.dec[structure_idx]);
-                    mesh_structure
-                        .nd
-                        .push(configuration.device_structure.nd[structure_idx]);
-                    mesh_structure
-                        .end
-                        .push(configuration.device_structure.end[structure_idx]);
-                    mesh_structure
-                        .nc
-                        .push(configuration.device_structure.nc[structure_idx]);
-                    mesh_structure.fixcharge.push(FixCharge::Bulk(
-                        configuration.bulk_fixed_charge.charge_density[structure_idx],
-                    ));
-                    current_depth += mesh_length;
-                }
-            }
         }
-        // Bottom
-        mesh_structure.id.push(IDX::Bottom);
-        mesh_structure
-            .depth
-            .push(configuration.device_structure.thickness.iter().sum::<f64>());
-        mesh_structure.permittivity.push(0.0);
-        mesh_structure.dec.push(0.0);
-        mesh_structure.nd.push(0.0);
-        mesh_structure.end.push(0.0);
-        mesh_structure.nc.push(0.0);
-        mesh_structure.fixcharge.push(FixCharge::Interface(0.0));
-
-        mesh_structure
     }
+    // Bottom
+    mesh_structure.add_bottom_node(configuration.device_structure.thickness.iter().sum::<f64>());
+
+    mesh_structure
 }
 
 #[cfg(test)]
@@ -256,7 +267,7 @@ mod tests {
             vec![10e-9],
         );
 
-        let mesh = MeshBuilder::build(&config);
+        let mesh = build(&config);
 
         // Expected nodes:
         // 0.0nm (Surface)
@@ -267,7 +278,7 @@ mod tests {
         // 8.0nm (Bulk 0)
         // 10.0nm (Bottom)
 
-        // Let's re-verify the logic in MeshBuilder::build
+        // Let's re-verify the logic in build
         // num_mesh_layers = 10e-9 / 2e-9 = 5
         // loop _ in 0..5:
         //  i=0: idx=0, struct_idx=0, depth=0.0 -> Surface (depth 0.0, struct_idx 0)
@@ -279,24 +290,25 @@ mod tests {
 
         assert_eq!(mesh.id.len(), 6);
 
-        if let IDX::Surface = mesh.id[0] {
-        } else {
-            panic!("First node should be Surface");
-        }
+        assert!(
+            matches!(mesh.id[0], IDX::Surface),
+            "First node should be Surface"
+        );
         assert_eq!(mesh.depth[0], 0.0);
 
         for i in 1..5 {
-            if let IDX::Bulk(0) = mesh.id[i] {
-            } else {
-                panic!("Node {} should be Bulk(0)", i);
-            }
+            assert!(
+                matches!(mesh.id[i], IDX::Bulk(0)),
+                "Node {} should be Bulk(0)",
+                i
+            );
             assert_eq!(mesh.depth[i], (i as f64) * 2e-9);
         }
 
-        if let IDX::Bottom = mesh.id[5] {
-        } else {
-            panic!("Last node should be Bottom");
-        }
+        assert!(
+            matches!(mesh.id[5], IDX::Bottom),
+            "Last node should be Bottom"
+        );
         assert!(relative_eq!(mesh.depth[5], 10e-9, max_relative = 1e-6));
     }
 
@@ -306,7 +318,7 @@ mod tests {
         // Mesh: 2.5nm steps.
         let config = create_dummy_configuration(vec![5e-9, 5e-9], vec![2.5e-9], vec![10e-9]);
 
-        let mesh = MeshBuilder::build(&config);
+        let mesh = build(&config);
 
         // idx = 0 (one mesh layer)
         // mesh_length = 2.5e-9
@@ -332,26 +344,11 @@ mod tests {
         // Expected IDs: Surface, Bulk(0), Interface(0), Bulk(1), Bottom
         assert_eq!(mesh.id.len(), 5);
 
-        if let IDX::Surface = mesh.id[0] {
-        } else {
-            panic!("node 0 fail");
-        }
-        if let IDX::Bulk(0) = mesh.id[1] {
-        } else {
-            panic!("node 1 fail");
-        }
-        if let IDX::Interface(0) = mesh.id[2] {
-        } else {
-            panic!("node 2 fail");
-        }
-        if let IDX::Bulk(1) = mesh.id[3] {
-        } else {
-            panic!("node 3 fail");
-        }
-        if let IDX::Bottom = mesh.id[4] {
-        } else {
-            panic!("node 4 fail");
-        }
+        assert!(matches!(mesh.id[0], IDX::Surface), "node 0 fail");
+        assert!(matches!(mesh.id[1], IDX::Bulk(0)), "node 1 fail");
+        assert!(matches!(mesh.id[2], IDX::Interface(0)), "node 2 fail");
+        assert!(matches!(mesh.id[3], IDX::Bulk(1)), "node 3 fail");
+        assert!(matches!(mesh.id[4], IDX::Bottom), "node 4 fail");
 
         assert!(relative_eq!(mesh.depth[0], 0.0, max_relative = 1e-6));
         assert!(relative_eq!(mesh.depth[1], 2.5e-9, max_relative = 1e-6));
