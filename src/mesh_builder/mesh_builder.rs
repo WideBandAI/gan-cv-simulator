@@ -49,9 +49,10 @@ impl MeshBuilder {
             let mesh_layer_thickness = configuration.mesh_params.layer_thickness[idx];
             let num_mesh_layers = (mesh_layer_thickness / mesh_length) as u32;
             for _ in 0..num_mesh_layers {
-                if (current_depth + mesh_length)
-                    > (total_layer_thickness
-                        + configuration.device_structure.thickness[structure_idx])
+                if structure_idx < configuration.device_structure.id.len() - 1
+                    && (current_depth + mesh_length)
+                        > (total_layer_thickness
+                            + configuration.device_structure.thickness[structure_idx])
                 {
                     mesh_structure.id.push(IDX::Interface(structure_idx));
                     mesh_structure.depth.push(
@@ -70,29 +71,29 @@ impl MeshBuilder {
                     mesh_structure.fixcharge.push(FixCharge::Interface(
                         configuration.interface_fixed_charge.charge_density[structure_idx],
                     ));
-                    structure_idx += 1;
                     total_layer_thickness +=
                         configuration.device_structure.thickness[structure_idx];
+                    structure_idx += 1;
                 } else {
                     mesh_structure.id.push(IDX::Bulk(structure_idx));
                     mesh_structure.depth.push(current_depth);
                     mesh_structure
                         .permittivity
-                        .push(configuration.device_structure.permittivity[idx]);
+                        .push(configuration.device_structure.permittivity[structure_idx]);
                     mesh_structure
                         .dec
-                        .push(configuration.device_structure.dec[idx]);
+                        .push(configuration.device_structure.dec[structure_idx]);
                     mesh_structure
                         .nd
-                        .push(configuration.device_structure.nd[idx]);
+                        .push(configuration.device_structure.nd[structure_idx]);
                     mesh_structure
                         .end
-                        .push(configuration.device_structure.end[idx]);
+                        .push(configuration.device_structure.end[structure_idx]);
                     mesh_structure
                         .nc
-                        .push(configuration.device_structure.nc[idx]);
+                        .push(configuration.device_structure.nc[structure_idx]);
                     mesh_structure.fixcharge.push(FixCharge::Bulk(
-                        configuration.bulk_fixed_charge.charge_density[idx],
+                        configuration.bulk_fixed_charge.charge_density[structure_idx],
                     ));
                 }
                 current_depth += mesh_length;
