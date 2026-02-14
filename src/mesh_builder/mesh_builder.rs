@@ -63,7 +63,7 @@ impl MeshBuilder {
             mesh_structure.nc.push(0.0);
             mesh_structure.fixcharge.push(FixCharge::Interface(0.0));
             current_depth += mesh_length;
-            for _ in 0..(num_mesh_layers) {
+            loop {
                 if structure_idx < configuration.device_structure.id.len() - 1 // Interface between layers
                     && (current_depth)
                         >= (total_layer_thickness
