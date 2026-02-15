@@ -21,27 +21,19 @@ pub enum FixCharge {
 /// - `id` (`Vec<IDX>`) - ID of each node in the mesh, which can be `Bulk`, `Interface`, `Surface`, or `Bottom`.
 /// - `depth` (`Vec<f64>`) - Depth of each node in the mesh.
 /// - `permittivity` (`Vec<f64>`) - Permittivity of each node in the mesh.
-/// - `dec` (`Vec<f64>`) - Donor concentration of each node in the mesh.
-/// - `nd` (`Vec<f64>`) - Donor concentration of each node in the mesh.
-/// - `end` (`Vec<f64>`) - Electron affinity of each node in the mesh.
-/// - `nc` (`Vec<f64>`) - Electron affinity of each node in the mesh.
+/// - `dec` (`Vec<f64>`) - Energy difference of the conduction band between this layer and the bottom layer (eV).
+/// - `nd` (`Vec<f64>`) - Donor concentration of each node in the mesh (m^-3).
+/// - `end` (`Vec<f64>`) - Energy level of the donor of each node in the mesh (eV, Ec-Ed).
+/// - `nc` (`Vec<f64>`) - Effective density of states in the conduction band of each node in the mesh (m^-3).
 /// - `fixcharge` (`Vec<FixCharge>`) - Fixed charge of each node in the mesh.
 ///
 /// # Examples
 ///
 /// ```
-/// use crate::...;
+/// use crate::mesh_builder::{MeshStructure, IDX, FixCharge};
 ///
-/// let s = MeshStructure {
-///     id: value,
-///     depth: value,
-///     permittivity: value,
-///     dec: value,
-///     nd: value,
-///     end: value,
-///     nc: value,
-///     fixcharge: value,
-/// };
+/// let mut s = MeshStructure::new();
+/// s.add_surface_node(0.0);
 /// ```
 #[derive(Debug)]
 pub struct MeshStructure {
@@ -69,15 +61,38 @@ impl MeshStructure {
         }
     }
 
-    pub fn add_surface_node(&mut self, depth: f64) {
-        self.id.push(IDX::Surface);
+    fn push_properties(
+        &mut self,
+        id: IDX,
+        depth: f64,
+        permittivity: f64,
+        dec: f64,
+        nd: f64,
+        end: f64,
+        nc: f64,
+        fixcharge: FixCharge,
+    ) {
+        self.id.push(id);
         self.depth.push(depth);
-        self.permittivity.push(0.0);
-        self.dec.push(0.0);
-        self.nd.push(0.0);
-        self.end.push(0.0);
-        self.nc.push(0.0);
-        self.fixcharge.push(FixCharge::Interface(0.0));
+        self.permittivity.push(permittivity);
+        self.dec.push(dec);
+        self.nd.push(nd);
+        self.end.push(end);
+        self.nc.push(nc);
+        self.fixcharge.push(fixcharge);
+    }
+
+    pub fn add_surface_node(&mut self, depth: f64) {
+        self.push_properties(
+            IDX::Surface,
+            depth,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            FixCharge::Interface(0.0),
+        );
     }
 
     pub fn add_interface_node(
@@ -86,43 +101,42 @@ impl MeshStructure {
         struct_idx: usize,
         configuration: &Configuration,
     ) {
-        self.id.push(IDX::Interface(struct_idx));
-        self.depth.push(depth);
-        self.permittivity.push(0.0);
-        self.dec.push(0.0);
-        self.nd.push(0.0);
-        self.end.push(0.0);
-        self.nc.push(0.0);
-        self.fixcharge.push(FixCharge::Interface(
-            configuration.interface_fixed_charge.charge_density[struct_idx],
-        ));
+        self.push_properties(
+            IDX::Interface(struct_idx),
+            depth,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            FixCharge::Interface(configuration.interface_fixed_charge.charge_density[struct_idx]),
+        );
     }
 
     pub fn add_bulk_node(&mut self, depth: f64, struct_idx: usize, configuration: &Configuration) {
-        self.id.push(IDX::Bulk(struct_idx));
-        self.depth.push(depth);
-        self.permittivity
-            .push(configuration.device_structure.permittivity[struct_idx]);
-        self.dec
-            .push(configuration.device_structure.dec[struct_idx]);
-        self.nd.push(configuration.device_structure.nd[struct_idx]);
-        self.end
-            .push(configuration.device_structure.end[struct_idx]);
-        self.nc.push(configuration.device_structure.nc[struct_idx]);
-        self.fixcharge.push(FixCharge::Bulk(
-            configuration.bulk_fixed_charge.charge_density[struct_idx],
-        ));
+        self.push_properties(
+            IDX::Bulk(struct_idx),
+            depth,
+            configuration.device_structure.permittivity[struct_idx],
+            configuration.device_structure.dec[struct_idx],
+            configuration.device_structure.nd[struct_idx],
+            configuration.device_structure.end[struct_idx],
+            configuration.device_structure.nc[struct_idx],
+            FixCharge::Bulk(configuration.bulk_fixed_charge.charge_density[struct_idx]),
+        );
     }
 
     pub fn add_bottom_node(&mut self, depth: f64) {
-        self.id.push(IDX::Bottom);
-        self.depth.push(depth);
-        self.permittivity.push(0.0);
-        self.dec.push(0.0);
-        self.nd.push(0.0);
-        self.end.push(0.0);
-        self.nc.push(0.0);
-        self.fixcharge.push(FixCharge::Interface(0.0));
+        self.push_properties(
+            IDX::Bottom,
+            depth,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            FixCharge::Interface(0.0),
+        );
     }
 }
 
@@ -139,9 +153,11 @@ impl MeshStructure {
 /// # Examples
 ///
 /// ```
-/// use crate::...;
+/// use crate::mesh_builder;
+/// use crate::cli::configuration_builder::ConfigurationBuilder;
 ///
-/// let mesh_structure = build(&configuration);
+/// let config = ConfigurationBuilder::from_interactive().build();
+/// let mesh_structure = mesh_builder::build(&config);
 /// ```
 pub fn build(configuration: &Configuration) -> MeshStructure {
     let mut mesh_structure = MeshStructure::new();
@@ -163,20 +179,22 @@ pub fn build(configuration: &Configuration) -> MeshStructure {
             current_depth += mesh_length;
         }
         loop {
+            let next_interface_depth =
+                total_layer_thickness + configuration.device_structure.thickness[structure_idx];
             if structure_idx < configuration.device_structure.id.len() - 1 // Interface between layers
-                && (current_depth)
-                    >= (total_layer_thickness
-                        + configuration.device_structure.thickness[structure_idx])
+                && current_depth >= next_interface_depth - f64::EPSILON
             {
-                let interface_depth =
-                    total_layer_thickness + configuration.device_structure.thickness[structure_idx];
-                mesh_structure.add_interface_node(interface_depth, structure_idx, configuration);
+                mesh_structure.add_interface_node(
+                    next_interface_depth,
+                    structure_idx,
+                    configuration,
+                );
 
                 total_layer_thickness += configuration.device_structure.thickness[structure_idx];
                 structure_idx += 1;
                 current_depth = total_layer_thickness + mesh_length;
             } else if structure_idx == configuration.device_structure.id.len() - 1
-                && (current_depth) >= (add_mesh_layer_thickness)
+                && current_depth >= add_mesh_layer_thickness - f64::EPSILON
             {
                 break;
             } else {
