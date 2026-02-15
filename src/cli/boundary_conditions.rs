@@ -9,6 +9,16 @@ pub struct BoundaryConditions {
     pub ec_ef_bottom: f64,
 }
 
+/// Define boundary conditions.
+///
+/// # Arguments
+///
+/// - `device_structure` (`&DeviceStructure`) - The device structure to base boundary conditions on.
+/// - `measurement` (`&Measurement`) - The measurement parameters to base boundary conditions on.
+///
+/// # Returns
+///
+/// - `BoundaryConditions` - The boundary conditions derived from the device structure and measurement parameters.
 pub fn define_boundary_conditions(
     device_structure: &DeviceStructure,
     measurement: &Measurement,
