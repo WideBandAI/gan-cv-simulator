@@ -164,7 +164,7 @@ pub fn build(configuration: &Configuration) -> MeshStructure {
 
     let mut current_depth = 0.0;
     let mut structure_idx = 0;
-    let mut total_layer_thickness = 0.0;
+    let mut total_layer_thickness = 0.0; // Updated with each interface calculation. The total thickness of layers calculated so far.
     let mut add_mesh_layer_thickness = 0.0;
 
     // Surface
