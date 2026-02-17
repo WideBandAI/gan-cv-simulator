@@ -3,8 +3,6 @@ use crate::constants::units::{CM3_TO_M3, NM_TO_M};
 use crate::utils::{get_input, get_parsed_input};
 use std::vec;
 
-use crate::cli::measurement::Measurement;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaterialType {
     Semiconductor,
