@@ -3,9 +3,6 @@ use crate::constants::units::{CM3_TO_M3, NM_TO_M};
 use crate::utils::{get_input, get_parsed_input};
 use std::vec;
 
-use crate::cli::measurement::Measurement;
-use crate::physics_equations::conduction_band_density::conduction_band_density;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaterialType {
     Semiconductor,
@@ -17,14 +14,13 @@ pub struct DeviceStructure {
     pub id: Vec<u32>,      // Optional: layer ID
     pub name: Vec<String>, // Optional: name of the device structure
     pub material_type: Vec<MaterialType>,
-    pub thickness: Vec<f64>,    // meters
-    pub me: Vec<f64>,           // effective mass of electron
-    pub permittivity: Vec<f64>, // absolute permittivity in F/m
-    pub eg: Vec<f64>,           // bandgap energy in eV
-    pub dec: Vec<f64>,          // delta conduction band in eV from bottom layer to current layer
-    pub nd: Vec<f64>,           // donor concentration in m^-3
-    pub end: Vec<f64>,          // energy level of donor in eV (Ec-Ed)
-    pub nc: Vec<f64>,           // effective density of states in conduction band in m^-3
+    pub thickness: Vec<f64>,             // meters
+    pub mass_electron: Vec<f64>,         // effective mass of electron
+    pub permittivity: Vec<f64>,          // absolute permittivity in F/m
+    pub bandgap_energy: Vec<f64>,        // bandgap energy in eV
+    pub delta_conduction_band: Vec<f64>, // delta conduction band in eV from bottom layer to current layer
+    pub donor_concentration: Vec<f64>,   // donor concentration in m^-3
+    pub energy_level_donor: Vec<f64>,    // energy level of donor in eV (Ec-Ed)
 }
 
 fn get_material_type(prompt: &str) -> MaterialType {
@@ -51,7 +47,7 @@ fn get_material_type(prompt: &str) -> MaterialType {
 ///
 /// let _ = define_structure();
 /// ```
-pub fn define_structure(measurement: &Measurement) -> DeviceStructure {
+pub fn define_structure() -> DeviceStructure {
     println!("Define the structure.");
     let num_layers: u32 = get_parsed_input("Enter the number of layers: ");
     println!("Number of layers: {}", num_layers);
@@ -61,13 +57,12 @@ pub fn define_structure(measurement: &Measurement) -> DeviceStructure {
         name: vec![],
         material_type: vec![],
         thickness: vec![],
-        me: vec![],
+        mass_electron: vec![],
         permittivity: vec![],
-        eg: vec![],
-        dec: vec![],
-        nd: vec![],
-        end: vec![],
-        nc: vec![],
+        bandgap_energy: vec![],
+        delta_conduction_band: vec![],
+        donor_concentration: vec![],
+        energy_level_donor: vec![],
     };
 
     for n in 0..(num_layers) {
@@ -96,16 +91,16 @@ pub fn define_structure(measurement: &Measurement) -> DeviceStructure {
         device.permittivity.push(permittivity * EPSILON_0); // convert relative permittivity to absolute
 
         let eg: f64 = get_parsed_input(&format!("Enter bandgap energy in eV for layer {}: ", n));
-        device.eg.push(eg);
+        device.bandgap_energy.push(eg);
 
         if n == (num_layers - 1) {
-            device.dec.push(0.0); // last layer delta conduction band is 0
+            device.delta_conduction_band.push(0.0); // last layer delta conduction band is 0
         } else {
             let dec: f64 = get_parsed_input(&format!(
                 "Enter delta conduction band in eV from bottom layer to layer {}: ",
                 n
             ));
-            device.dec.push(dec);
+            device.delta_conduction_band.push(dec);
         }
 
         if device.material_type[n as usize] == MaterialType::Semiconductor {
@@ -113,28 +108,23 @@ pub fn define_structure(measurement: &Measurement) -> DeviceStructure {
                 "Enter effective mass coefficient of electron for layer {}: ",
                 n
             ));
-            device.me.push(me * M_ELECTRON); // convert to units of electron mass
-
-            let nc: f64 =
-                conduction_band_density(me * M_ELECTRON, measurement.temperature.temperature);
-            device.nc.push(nc);
+            device.mass_electron.push(me * M_ELECTRON); // convert to units of electron mass
 
             let nd: f64 = get_parsed_input(&format!(
                 "Enter donor concentration in cm^-3 for layer {}: ",
                 n
             ));
-            device.nd.push(nd * CM3_TO_M3); // convert cm^-3 to m^-3
+            device.donor_concentration.push(nd * CM3_TO_M3); // convert cm^-3 to m^-3
 
             let end: f64 = get_parsed_input(&format!(
                 "Enter energy level of donor in eV (Ec-Ed) for layer {}: ",
                 n
             ));
-            device.end.push(end);
+            device.energy_level_donor.push(end);
         } else {
-            device.me.push(0.0);
-            device.nd.push(0.0);
-            device.end.push(0.0);
-            device.nc.push(0.0);
+            device.mass_electron.push(0.0);
+            device.donor_concentration.push(0.0);
+            device.energy_level_donor.push(0.0);
         }
     }
     device
@@ -158,18 +148,17 @@ mod tests {
             name: vec!["test".to_string()],
             material_type: vec![MaterialType::Semiconductor],
             thickness: vec![1e-8],
-            me: vec![0.5],
+            mass_electron: vec![0.5],
             permittivity: vec![12.0],
-            eg: vec![1.12],
-            dec: vec![0.0],
-            nd: vec![1e16],
-            end: vec![0.1],
-            nc: vec![1e25],
+            bandgap_energy: vec![1.12],
+            delta_conduction_band: vec![0.0],
+            donor_concentration: vec![1e16],
+            energy_level_donor: vec![0.1],
         };
 
         assert_eq!(device.material_type.len(), 1);
         assert_eq!(device.thickness[0], 1e-8);
-        assert_eq!(device.me[0], 0.5);
+        assert_eq!(device.mass_electron[0], 0.5);
         assert_eq!(device.permittivity[0], 12.0);
     }
 
@@ -180,13 +169,12 @@ mod tests {
             name: vec!["layer1".to_string(), "layer2".to_string()],
             material_type: vec![MaterialType::Semiconductor, MaterialType::Insulator],
             thickness: vec![1e-8, 2e-8],
-            me: vec![0.5, 0.0],
+            mass_electron: vec![0.5, 0.0],
             permittivity: vec![12.0, 3.9],
-            eg: vec![1.12, 9.0],
-            dec: vec![0.3, 0.0],
-            nd: vec![1e16, 0.0],
-            end: vec![0.1, 0.0],
-            nc: vec![1e25, 0.0],
+            bandgap_energy: vec![1.12, 9.0],
+            delta_conduction_band: vec![0.3, 0.0],
+            donor_concentration: vec![1e16, 0.0],
+            energy_level_donor: vec![0.1, 0.0],
         };
 
         assert_eq!(device.material_type.len(), 2);

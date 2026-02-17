@@ -24,7 +24,6 @@ pub enum FixCharge {
 /// - `dec` (`Vec<f64>`) - Energy difference of the conduction band between this layer and the bottom layer (eV).
 /// - `nd` (`Vec<f64>`) - Donor concentration of each node in the mesh (m^-3).
 /// - `end` (`Vec<f64>`) - Energy level of the donor of each node in the mesh (eV, Ec-Ed).
-/// - `nc` (`Vec<f64>`) - Effective density of states in the conduction band of each node in the mesh (m^-3).
 /// - `fixcharge` (`Vec<FixCharge>`) - Fixed charge of each node in the mesh.
 ///
 /// # Examples
@@ -43,7 +42,6 @@ pub struct MeshStructure {
     pub dec: Vec<f64>,
     pub nd: Vec<f64>,
     pub end: Vec<f64>,
-    pub nc: Vec<f64>,
     pub fixcharge: Vec<FixCharge>,
 }
 
@@ -56,7 +54,6 @@ impl MeshStructure {
             dec: Vec::new(),
             nd: Vec::new(),
             end: Vec::new(),
-            nc: Vec::new(),
             fixcharge: Vec::new(),
         }
     }
@@ -69,7 +66,6 @@ impl MeshStructure {
         dec: f64,
         nd: f64,
         end: f64,
-        nc: f64,
         fixcharge: FixCharge,
     ) {
         self.id.push(id);
@@ -78,7 +74,6 @@ impl MeshStructure {
         self.dec.push(dec);
         self.nd.push(nd);
         self.end.push(end);
-        self.nc.push(nc);
         self.fixcharge.push(fixcharge);
     }
 
@@ -86,7 +81,6 @@ impl MeshStructure {
         self.push_properties(
             IDX::Surface,
             depth,
-            0.0,
             0.0,
             0.0,
             0.0,
@@ -108,7 +102,6 @@ impl MeshStructure {
             0.0,
             0.0,
             0.0,
-            0.0,
             FixCharge::Interface(configuration.interface_fixed_charge.charge_density[struct_idx]),
         );
     }
@@ -118,10 +111,9 @@ impl MeshStructure {
             IDX::Bulk(struct_idx),
             depth,
             configuration.device_structure.permittivity[struct_idx],
-            configuration.device_structure.dec[struct_idx],
-            configuration.device_structure.nd[struct_idx],
-            configuration.device_structure.end[struct_idx],
-            configuration.device_structure.nc[struct_idx],
+            configuration.device_structure.delta_conduction_band[struct_idx],
+            configuration.device_structure.donor_concentration[struct_idx],
+            configuration.device_structure.energy_level_donor[struct_idx],
             FixCharge::Bulk(configuration.bulk_fixed_charge.charge_density[struct_idx]),
         );
     }
@@ -130,7 +122,6 @@ impl MeshStructure {
         self.push_properties(
             IDX::Bottom,
             depth,
-            0.0,
             0.0,
             0.0,
             0.0,
@@ -248,13 +239,12 @@ mod tests {
                 name: vec!["layer".to_string(); num_layers],
                 material_type: vec![MaterialType::Semiconductor; num_layers],
                 thickness: thicknesses,
-                me: vec![0.5; num_layers],
+                mass_electron: vec![0.5; num_layers],
                 permittivity: vec![10.0; num_layers],
-                eg: vec![1.0; num_layers],
-                dec: vec![0.0; num_layers],
-                nd: vec![1e22; num_layers],
-                end: vec![0.05; num_layers],
-                nc: vec![1e25; num_layers],
+                bandgap_energy: vec![1.0; num_layers],
+                delta_conduction_band: vec![0.0; num_layers],
+                donor_concentration: vec![1e22; num_layers],
+                energy_level_donor: vec![0.05; num_layers],
             },
             bulk_fixed_charge: BulkFixedCharge {
                 layer_id: (0..num_layers as u32).collect(),

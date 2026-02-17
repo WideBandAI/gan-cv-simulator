@@ -4,7 +4,7 @@ use crate::constants::physics::*;
 ///
 /// # Arguments
 ///
-/// - `effective_mass` (`f64`) - The effective mass of the electron in kg.
+/// - `mass_electron` (`f64`) - The effective mass of electron in kg.
 /// - `temperature` (`f64`) - The temperature in Kelvin.
 ///
 /// # Returns
@@ -18,9 +18,9 @@ use crate::constants::physics::*;
 ///
 /// let _ = conduction_band_density(1.08 * crate::constants::physics::M_ELECTRON, 300.0);
 /// ```
-pub fn conduction_band_density(effective_mass: f64, temperature: f64) -> f64 {
+pub fn conduction_band_density(mass_electron: f64, temperature: f64) -> f64 {
     let coefficient =
-        2.0 * (2.0 * std::f64::consts::PI * effective_mass * K_BOLTZMANN * temperature).powf(1.5);
+        2.0 * (2.0 * std::f64::consts::PI * mass_electron * K_BOLTZMANN * temperature).powf(1.5);
     let denominator = H_PLANCK_CONSTANT.powf(3.0);
 
     coefficient / denominator
