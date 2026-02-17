@@ -111,9 +111,9 @@ impl MeshStructure {
             IDX::Bulk(struct_idx),
             depth,
             configuration.device_structure.permittivity[struct_idx],
-            configuration.device_structure.dec[struct_idx],
-            configuration.device_structure.nd[struct_idx],
-            configuration.device_structure.end[struct_idx],
+            configuration.device_structure.delta_conduction_band[struct_idx],
+            configuration.device_structure.donor_concentration[struct_idx],
+            configuration.device_structure.energy_level_donor[struct_idx],
             FixCharge::Bulk(configuration.bulk_fixed_charge.charge_density[struct_idx]),
         );
     }

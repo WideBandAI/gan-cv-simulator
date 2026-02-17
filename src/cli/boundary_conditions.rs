@@ -29,8 +29,8 @@ pub fn define_boundary_conditions(
 
     let ec_ef_bottom: f64 = if let (Some(&MaterialType::Semiconductor), Some(me), Some(nd)) = (
         device_structure.material_type.last(),
-        device_structure.me.last(),
-        device_structure.nd.last(),
+        device_structure.mass_electron.last(),
+        device_structure.donor_concentration.last(),
     ) {
         let equilibrium_potential =
             equilibrium_potential_n_type(*me, *nd, measurement.temperature.temperature);
