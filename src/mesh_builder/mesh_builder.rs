@@ -10,8 +10,8 @@ pub enum IDX {
 
 #[derive(Debug)]
 pub enum FixCharge {
-    Bulk(f64),
-    Interface(f64),
+    Bulk(f64),      // Charge density (C/m^3)
+    Interface(f64), // Charge density (C/m^2)
 }
 
 /// Mesh structure
