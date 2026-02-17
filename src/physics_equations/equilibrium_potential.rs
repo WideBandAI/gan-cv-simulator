@@ -4,7 +4,7 @@ use crate::physics_equations::conduction_band_density::conduction_band_density;
 ///
 /// # Arguments
 ///
-/// - `mass_electron` (`&f64`) - The effective mass of electron (in m_e).
+/// - `mass_electron` (`&f64`) - The effective mass of electron (in kg).
 /// - `donor_concentration` (`&f64`) - The donor concentration (in m^-3).
 /// - `temperature` (`&f64`) - The temperature (in K).
 ///
