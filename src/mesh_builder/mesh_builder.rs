@@ -21,9 +21,9 @@ pub enum FixCharge {
 /// - `id` (`Vec<IDX>`) - ID of each node in the mesh, which can be `Bulk`, `Interface`, `Surface`, or `Bottom`.
 /// - `depth` (`Vec<f64>`) - Depth of each node in the mesh.
 /// - `permittivity` (`Vec<f64>`) - Permittivity of each node in the mesh.
-/// - `dec` (`Vec<f64>`) - Energy difference of the conduction band between this layer and the bottom layer (eV).
-/// - `nd` (`Vec<f64>`) - Donor concentration of each node in the mesh (m^-3).
-/// - `end` (`Vec<f64>`) - Energy level of the donor of each node in the mesh (eV, Ec-Ed).
+/// - `delta_conduction_band` (`Vec<f64>`) - Energy difference of the conduction band between this layer and the bottom layer (eV).
+/// - `donor_concentration` (`Vec<f64>`) - Donor concentration of each node in the mesh (m^-3).
+/// - `energy_level_donor` (`Vec<f64>`) - Energy level of the donor of each node in the mesh (eV, Ec-Ed).
 /// - `fixcharge` (`Vec<FixCharge>`) - Fixed charge of each node in the mesh.
 ///
 /// # Examples
@@ -39,9 +39,9 @@ pub struct MeshStructure {
     pub id: Vec<IDX>,
     pub depth: Vec<f64>,
     pub permittivity: Vec<f64>,
-    pub dec: Vec<f64>,
-    pub nd: Vec<f64>,
-    pub end: Vec<f64>,
+    pub delta_conduction_band: Vec<f64>,
+    pub donor_concentration: Vec<f64>,
+    pub energy_level_donor: Vec<f64>,
     pub fixcharge: Vec<FixCharge>,
 }
 
@@ -51,9 +51,9 @@ impl MeshStructure {
             id: Vec::new(),
             depth: Vec::new(),
             permittivity: Vec::new(),
-            dec: Vec::new(),
-            nd: Vec::new(),
-            end: Vec::new(),
+            delta_conduction_band: Vec::new(),
+            donor_concentration: Vec::new(),
+            energy_level_donor: Vec::new(),
             fixcharge: Vec::new(),
         }
     }
@@ -63,17 +63,17 @@ impl MeshStructure {
         id: IDX,
         depth: f64,
         permittivity: f64,
-        dec: f64,
-        nd: f64,
-        end: f64,
+        delta_conduction_band: f64,
+        donor_concentration: f64,
+        energy_level_donor: f64,
         fixcharge: FixCharge,
     ) {
         self.id.push(id);
         self.depth.push(depth);
         self.permittivity.push(permittivity);
-        self.dec.push(dec);
-        self.nd.push(nd);
-        self.end.push(end);
+        self.delta_conduction_band.push(delta_conduction_band);
+        self.donor_concentration.push(donor_concentration);
+        self.energy_level_donor.push(energy_level_donor);
         self.fixcharge.push(fixcharge);
     }
 
