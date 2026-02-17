@@ -17,7 +17,7 @@ fn main() {
     println!("{:#?}", mesh_structure);
     let mut solver = Solver::new(mesh_structure, 1.0);
     solver.set_boundary_conditions(
-        -config.measurement.voltage.start,
+        config.measurement.voltage.start,
         config.boundary_conditions.barrier_height,
         config.boundary_conditions.ec_ef_bottom,
     );
