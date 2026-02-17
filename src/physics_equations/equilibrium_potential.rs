@@ -1,6 +1,5 @@
 use crate::constants::physics::*;
 use crate::physics_equations::conduction_band_density::conduction_band_density;
-
 /// Calculate the equilibrium potential for n-type semiconductor.
 ///
 /// # Arguments
@@ -28,15 +27,15 @@ mod tests {
     use approx::relative_eq;
     use test_case::test_case;
 
-    #[test_case(1.08, 1e17, 0.43499 ; "1")]
-    #[test_case(1.08, 1e22, 0.13709 ; "2")]
+    #[test_case(0.2, 1e17, 0.43758 ; "1")]
+    #[test_case(0.2, 1e22, 0.1399 ; "2")]
     fn test_equilibrium_potential_n_type(
         mass_electron: f64,
         donor_concentration: f64,
         expected_equilibrium_potential: f64,
     ) {
         let equilibrium_potential =
-            equilibrium_potential_n_type(mass_electron, donor_concentration, 300.0);
+            equilibrium_potential_n_type(mass_electron * M_ELECTRON, donor_concentration, 300.0);
         assert!(relative_eq!(
             equilibrium_potential,
             expected_equilibrium_potential,
