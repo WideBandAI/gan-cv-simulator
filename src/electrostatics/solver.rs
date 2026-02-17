@@ -1,16 +1,18 @@
 use crate::mesh_builder::mesh_builder::MeshStructure;
 
+#[derive(Debug)]
 pub struct Potential {
     pub potential: Vec<f64>,
 }
 
+#[derive(Debug)]
 pub struct Solver {
     pub potential: Potential,
     pub mesh_structure: MeshStructure,
 }
 
 impl Solver {
-    pub fn new(mesh_structure: &MeshStructure, initial_potential: f64) -> Self {
+    pub fn new(mesh_structure: MeshStructure, initial_potential: f64) -> Self {
         let potential = Potential {
             potential: vec![initial_potential; mesh_structure.id.len()],
         };

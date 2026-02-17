@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod constants;
+pub mod electrostatics;
 pub mod mesh_builder;
 pub mod physics_equations;
 pub mod utils;
@@ -14,7 +15,12 @@ fn main() {
     println!("{:#?}", config);
     let mesh_structure = mb::build(&config);
     println!("{:#?}", mesh_structure);
-    let solver = Solver::new(&mesh_structure, 0.0);
+    let mut solver = Solver::new(mesh_structure, 1.0);
+    solver.set_boundary_conditions(
+        -config.measurement.voltage.start,
+        config.boundary_conditions.barrier_height,
+        config.boundary_conditions.ec_ef_bottom,
+    );
     println!("{:#?}", solver);
     println!("Simulation complete.");
 }
