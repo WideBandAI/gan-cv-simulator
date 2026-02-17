@@ -1,10 +1,11 @@
 use crate::constants::physics::*;
+use crate::physics_equations::conduction_band_density::conduction_band_density;
 
 /// Calculate the equilibrium potential for n-type semiconductor.
 ///
 /// # Arguments
 ///
-/// - `conduction_band_density` (`&f64`) - The effective density of states in the conduction band (in m^-3).
+/// - `effective_mass` (`&f64`) - The effective mass of electron (in m_e).
 /// - `donor_concentration` (`&f64`) - The donor concentration (in m^-3).
 /// - `temperature` (`&f64`) - The temperature (in K).
 ///
@@ -12,12 +13,12 @@ use crate::constants::physics::*;
 ///
 /// - `f64` - The equilibrium potential (Ec - Ef) (in eV).
 pub fn equilibrium_potential_n_type(
-    conduction_band_density: f64,
+    effective_mass: f64,
     donor_concentration: f64,
     temperature: f64,
 ) -> f64 {
-    let phi = (K_BOLTZMANN * temperature / Q_ELECTRON)
-        * (conduction_band_density / donor_concentration).ln();
+    let nc = conduction_band_density(effective_mass, temperature);
+    let phi = (K_BOLTZMANN * temperature / Q_ELECTRON) * (nc / donor_concentration).ln();
     phi
 }
 
@@ -27,15 +28,15 @@ mod tests {
     use approx::relative_eq;
     use test_case::test_case;
 
-    #[test_case(2e24, 1e17, 0.43499 ; "1")]
-    #[test_case(2e24, 1e22, 0.13709 ; "2")]
+    #[test_case(1.08, 1e17, 0.43499 ; "1")]
+    #[test_case(1.08, 1e22, 0.13709 ; "2")]
     fn test_equilibrium_potential_n_type(
-        conduction_band_density: f64,
+        effective_mass: f64,
         donor_concentration: f64,
         expected_equilibrium_potential: f64,
     ) {
         let equilibrium_potential =
-            equilibrium_potential_n_type(conduction_band_density, donor_concentration, 300.0);
+            equilibrium_potential_n_type(effective_mass, donor_concentration, 300.0);
         assert!(relative_eq!(
             equilibrium_potential,
             expected_equilibrium_potential,
