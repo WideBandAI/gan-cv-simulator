@@ -1,5 +1,6 @@
 use crate::constants::physics::Q_ELECTRON;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure};
+use crate::physics_equations::physics_equations::conduction_band_density::;
 
 #[derive(Debug)]
 pub struct Potential {
@@ -40,7 +41,19 @@ impl Solver {
         }
     }
 
-    pub fn solve_bulk(&mut self) {}
+    pub fn solve_bulk(&self, idx: usize) -> f64 {
+        let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
+        let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
+
+        let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
+            FixChargeDensity::Bulk(q) => q,
+            _ => 0.0,
+        };
+
+        let electron_density = 
+        
+        delta_potential
+    }
 
     pub fn solve_interface(&self, idx: usize) -> f64 {
         let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
