@@ -1,5 +1,5 @@
 use crate::constants::physics::Q_ELECTRON;
-use crate::mesh_builder::mesh_builder::{FixCharge, MeshStructure};
+use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure};
 
 #[derive(Debug)]
 pub struct Potential {
@@ -48,8 +48,8 @@ impl Solver {
         let c_upper = self.mesh_structure.permittivity[idx - 1] / upper_mesh_length;
         let c_lower = self.mesh_structure.permittivity[idx] / lower_mesh_length;
 
-        let fixcharge_density = match self.mesh_structure.fixcharge[idx] {
-            FixCharge::Interface(q) => q,
+        let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
+            FixChargeDensity::Interface(q) => q,
             _ => 0.0,
         };
 
