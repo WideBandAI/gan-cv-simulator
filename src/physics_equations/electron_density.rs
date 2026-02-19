@@ -18,7 +18,7 @@ pub trait ElectronDensity {
     /// # Examples
     ///
     /// ```
-    /// use crate::...;
+    /// use crate::physics_equations::electron_density::ElectronDensity;
     ///
     /// let _ = electron_density();
     /// ```
