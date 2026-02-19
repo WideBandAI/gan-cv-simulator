@@ -1,5 +1,6 @@
 use crate::constants::physics::*;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure};
+use crate::physics_equations::donor_activation::ionized_donor_density;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 
 #[derive(Debug)]
@@ -53,11 +54,17 @@ impl Solver {
         };
 
         let _electron_density = BoltzmannApproximation {}.electron_density(
-            self.potential.potential[idx],
+            self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
             self.mesh_structure.mass_electron[idx],
             self.temperature,
         );
-        let delta_potential = 0.0;
+
+        let _ionized_donor = ionized_donor_density(
+            self.mesh_structure.donor_concentration[idx],
+            self.temperature,
+            self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
+                - self.mesh_structure.energy_level_donor[idx],
+        );
 
         delta_potential
     }
