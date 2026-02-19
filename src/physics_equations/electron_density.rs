@@ -1,5 +1,5 @@
 use crate::constants::physics::*;
-use crate::physics_equations::conduction_band_density::conduction_band_density;
+use crate::physics_equations::band_density::conduction_band_density;
 
 pub trait ElectronDensity {
     fn electron_density(&self, potential: f64, mass_electron: f64, temperature: f64) -> f64;

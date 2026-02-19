@@ -1,5 +1,5 @@
 use crate::constants::physics::*;
-use crate::physics_equations::conduction_band_density::conduction_band_density;
+use crate::physics_equations::band_density::conduction_band_density;
 /// Calculate the equilibrium potential for n-type semiconductor.
 ///
 /// # Arguments
