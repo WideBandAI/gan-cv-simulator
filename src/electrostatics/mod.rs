@@ -1,1 +1,1 @@
-pub mod solver;
+pub mod poisson_solver;

@@ -6,7 +6,7 @@ pub mod physics_equations;
 pub mod utils;
 
 use crate::cli::configuration_builder::ConfigurationBuilder;
-use crate::electrostatics::solver::Solver;
+use crate::electrostatics::poisson_solver::PoissonSolver;
 use crate::mesh_builder::mesh_builder as mb;
 
 fn main() {
@@ -15,7 +15,7 @@ fn main() {
     println!("{:#?}", config);
     let mesh_structure = mb::build(&config);
     println!("{:#?}", mesh_structure);
-    let mut solver = Solver::new(
+    let mut solver = PoissonSolver::new(
         mesh_structure,
         1.0,
         config.measurement.temperature.temperature,
