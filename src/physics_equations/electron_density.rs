@@ -34,3 +34,31 @@ impl ElectronDensity for BoltzmannApproximation {
         n
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use approx::relative_eq;
+    use test_case::test_case;
+
+    #[test_case(0.0, 0.2, 300.0, 2.244486e24 ; "equal Nc")]
+    #[test_case(1.0, 0.2, 300.0, 3.5633331e7 ; "high potential")]
+    #[test_case(-0.5, 0.2, 300.0, 5.633097e32 ; "low potential")]
+    fn test_boltzmann_approximation(
+        potential: f64,
+        effective_mass_coefficient: f64,
+        temperature: f64,
+        expected_electron_density: f64,
+    ) {
+        let electron_density = BoltzmannApproximation {}.electron_density(
+            potential,
+            effective_mass_coefficient * M_ELECTRON,
+            temperature,
+        );
+        assert!(relative_eq!(
+            electron_density,
+            expected_electron_density,
+            max_relative = 1e-6
+        ));
+    }
+}
