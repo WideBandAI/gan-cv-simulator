@@ -1,6 +1,6 @@
 use crate::constants::physics::*;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure};
-use crate::physics_equations::electron_density::ElectronDensity;
+use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 
 #[derive(Debug)]
 pub struct Potential {
@@ -52,13 +52,13 @@ impl Solver {
             _ => 0.0,
         };
 
-        let _electron_density = ElectronDensity::electron_density(
-            &self,
+        let _electron_density = BoltzmannApproximation {}.electron_density(
             self.potential.potential[idx],
             self.mesh_structure.mass_electron[idx],
             self.temperature,
         );
         let delta_potential = 0.0;
+
         delta_potential
     }
 
