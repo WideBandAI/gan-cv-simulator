@@ -6,6 +6,7 @@ pub mod utils;
 
 use crate::cli::configuration_builder::ConfigurationBuilder;
 use crate::mesh_builder::mesh_builder as mb;
+
 fn main() {
     println!("Starting C-V simulation with the following parameters:");
     let config = ConfigurationBuilder::from_interactive().build();
