@@ -20,6 +20,7 @@ pub enum FixChargeDensity {
 ///
 /// - `id` (`Vec<IDX>`) - ID of each node in the mesh, which can be `Bulk`, `Interface`, `Surface`, or `Bottom`.
 /// - `depth` (`Vec<f64>`) - Depth of each node in the mesh.
+/// - `mass_electron` (`Vec<f64>`) - Effective mass of electrons in each node in the mesh.
 /// - `permittivity` (`Vec<f64>`) - Permittivity of each node in the mesh.
 /// - `delta_conduction_band` (`Vec<f64>`) - Energy difference of the conduction band between this layer and the bottom layer (eV).
 /// - `donor_concentration` (`Vec<f64>`) - Donor concentration of each node in the mesh (m^-3).
@@ -38,6 +39,7 @@ pub enum FixChargeDensity {
 pub struct MeshStructure {
     pub id: Vec<IDX>,
     pub depth: Vec<f64>,
+    pub mass_electron: Vec<f64>,
     pub permittivity: Vec<f64>,
     pub delta_conduction_band: Vec<f64>,
     pub donor_concentration: Vec<f64>,
@@ -50,6 +52,7 @@ impl MeshStructure {
         Self {
             id: Vec::new(),
             depth: Vec::new(),
+            mass_electron: Vec::new(),
             permittivity: Vec::new(),
             delta_conduction_band: Vec::new(),
             donor_concentration: Vec::new(),
@@ -62,6 +65,7 @@ impl MeshStructure {
         &mut self,
         id: IDX,
         depth: f64,
+        mass_electron: f64,
         permittivity: f64,
         delta_conduction_band: f64,
         donor_concentration: f64,
@@ -70,6 +74,7 @@ impl MeshStructure {
     ) {
         self.id.push(id);
         self.depth.push(depth);
+        self.mass_electron.push(mass_electron);
         self.permittivity.push(permittivity);
         self.delta_conduction_band.push(delta_conduction_band);
         self.donor_concentration.push(donor_concentration);
@@ -81,6 +86,7 @@ impl MeshStructure {
         self.push_properties(
             IDX::Surface,
             depth,
+            0.0,
             0.0,
             0.0,
             0.0,
@@ -102,6 +108,7 @@ impl MeshStructure {
             0.0,
             0.0,
             0.0,
+            0.0,
             FixChargeDensity::Interface(
                 configuration.interface_fixed_charge.charge_density[struct_idx],
             ),
@@ -112,6 +119,7 @@ impl MeshStructure {
         self.push_properties(
             IDX::Bulk(struct_idx),
             depth,
+            configuration.device_structure.mass_electron[struct_idx],
             configuration.device_structure.permittivity[struct_idx],
             configuration.device_structure.delta_conduction_band[struct_idx],
             configuration.device_structure.donor_concentration[struct_idx],
@@ -124,6 +132,7 @@ impl MeshStructure {
         self.push_properties(
             IDX::Bottom,
             depth,
+            0.0,
             0.0,
             0.0,
             0.0,

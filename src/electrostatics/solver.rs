@@ -1,6 +1,6 @@
-use crate::constants::physics::Q_ELECTRON;
+use crate::constants::physics::*;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure};
-use crate::physics_equations::physics_equations::conduction_band_density::;
+use crate::physics_equations::electron_density::ElectronDensity;
 
 #[derive(Debug)]
 pub struct Potential {
@@ -11,16 +11,18 @@ pub struct Potential {
 pub struct Solver {
     pub potential: Potential,
     pub mesh_structure: MeshStructure,
+    pub temperature: f64,
 }
 
 impl Solver {
-    pub fn new(mesh_structure: MeshStructure, initial_potential: f64) -> Self {
+    pub fn new(mesh_structure: MeshStructure, initial_potential: f64, temperature: f64) -> Self {
         let potential = Potential {
             potential: vec![initial_potential; mesh_structure.id.len()],
         };
         Self {
             potential,
             mesh_structure,
+            temperature,
         }
     }
 
@@ -50,8 +52,13 @@ impl Solver {
             _ => 0.0,
         };
 
-        let electron_density = 
-        
+        let _electron_density = ElectronDensity::electron_density(
+            &self,
+            self.potential.potential[idx],
+            self.mesh_structure.mass_electron[idx],
+            self.temperature,
+        );
+        let delta_potential = 0.0;
         delta_potential
     }
 

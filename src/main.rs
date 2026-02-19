@@ -15,7 +15,11 @@ fn main() {
     println!("{:#?}", config);
     let mesh_structure = mb::build(&config);
     println!("{:#?}", mesh_structure);
-    let mut solver = Solver::new(mesh_structure, 1.0);
+    let mut solver = Solver::new(
+        mesh_structure,
+        1.0,
+        config.measurement.temperature.temperature,
+    );
     solver.set_boundary_conditions(
         config.measurement.voltage.start,
         config.boundary_conditions.barrier_height,
