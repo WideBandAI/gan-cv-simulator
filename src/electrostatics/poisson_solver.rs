@@ -5,6 +5,7 @@ use crate::physics_equations::electron_density::{BoltzmannApproximation, Electro
 
 #[derive(Debug)]
 pub struct Potential {
+    pub depth: Vec<f64>,
     pub potential: Vec<f64>,
 }
 
@@ -28,6 +29,7 @@ impl PoissonSolver {
         max_iterations: usize,
     ) -> Self {
         let potential = Potential {
+            depth: mesh_structure.depth.clone(),
             potential: vec![initial_potential; mesh_structure.id.len()],
         };
         Self {
@@ -62,6 +64,15 @@ impl PoissonSolver {
                 iteration, sum_delta_potential
             );
         }
+    }
+
+    pub fn get_potential_profile(&self) -> Vec<(f64, f64)> {
+        self.potential
+            .depth
+            .iter()
+            .zip(self.potential.potential.iter())
+            .map(|(d, p)| (*d, *p))
+            .collect()
     }
 
     fn solve_poisson_with_sor(&mut self) -> f64 {

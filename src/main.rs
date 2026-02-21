@@ -21,7 +21,7 @@ fn main() {
         config.measurement.temperature.temperature,
         1.9,
         1e-6,
-        10000,
+        500000,
     );
     solver.set_boundary_conditions(
         config.measurement.voltage.start,
@@ -31,4 +31,12 @@ fn main() {
     println!("{:#?}", solver);
     solver.solve_poisson();
     println!("Simulation complete.");
+    let potential_profile = solver.get_potential_profile();
+    // output profile to CSV
+    let output_file = "potential_profile.csv";
+    if let Err(e) = utils::write_potential_profile_csv(output_file, &potential_profile) {
+        eprintln!("Failed to write potential profile CSV: {}", e);
+    } else {
+        println!("Potential profile saved to {}", output_file);
+    }
 }
