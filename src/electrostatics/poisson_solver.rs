@@ -57,19 +57,22 @@ impl PoissonSolver {
         while sum_delta_potential > self.convergence_threshold && iteration < self.max_iterations {
             sum_delta_potential = self.solve_poisson_with_sor();
             iteration += 1;
+            println!(
+                "Iteration: {}, Sum of Delta Potential: {}",
+                iteration, sum_delta_potential
+            );
         }
-        println!(
-            "Iteration: {}, Sum of Delta Potential: {}",
-            iteration, sum_delta_potential
-        );
     }
 
     fn solve_poisson_with_sor(&mut self) -> f64 {
         let mut sum_delta_potential = 0.0;
         for idx in 1..self.mesh_structure.id.len() - 1 {
             let delta_potential = match self.mesh_structure.id[idx] {
-                IDX::Bulk(_) | IDX::Surface | IDX::Bottom => self.solve_bulk(idx),
+                IDX::Bulk(_) => self.solve_bulk(idx),
                 IDX::Interface(_) => self.solve_interface(idx),
+                IDX::Surface | IDX::Bottom => {
+                    panic!("Boundary conditions should not be updated in SOR loop.")
+                }
             };
             self.potential.potential[idx] += self.sor_relaxation_factor * delta_potential;
             sum_delta_potential += delta_potential.abs();
