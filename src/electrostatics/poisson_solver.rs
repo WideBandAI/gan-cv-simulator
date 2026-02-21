@@ -1,6 +1,6 @@
 use crate::constants::physics::*;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
-use crate::physics_equations::donor_activation::ionized_donor_density;
+use crate::physics_equations::donor_activation::ionized_donor_concentration;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 
 #[derive(Debug)]
@@ -55,7 +55,7 @@ impl PoissonSolver {
         let c_lower = self.mesh_structure.permittivity[idx] / lower_mesh_length;
 
         let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
-            FixChargeDensity::Bulk(q) => q, // in C/m^3
+            FixChargeDensity::Bulk(q) => q, // in 1/m^3
             _ => 0.0,
         };
 
@@ -65,7 +65,7 @@ impl PoissonSolver {
             self.temperature,
         );
 
-        let ionized_donor = ionized_donor_density(
+        let ionized_donor = ionized_donor_concentration(
             self.mesh_structure.donor_concentration[idx],
             self.temperature,
             self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
@@ -92,13 +92,13 @@ impl PoissonSolver {
         let c_lower = self.mesh_structure.permittivity[idx] / lower_mesh_length;
 
         let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
-            FixChargeDensity::Interface(q) => q, // in C/m^2
+            FixChargeDensity::Interface(q) => q, // in 1/m^2
             _ => 0.0,
         };
 
         let delta_potential = (c_upper * self.potential.potential[idx - 1]
             + c_lower * self.potential.potential[idx + 1]
-            - fixcharge_density)
+            - Q_ELECTRON * fixcharge_density)
             / (c_upper + c_lower)
             - self.potential.potential[idx];
         delta_potential
