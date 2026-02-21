@@ -14,6 +14,8 @@ pub struct PoissonSolver {
     pub mesh_structure: MeshStructure,
     pub temperature: f64,
     pub sor_relaxation_factor: f64,
+    pub convergence_threshold: f64,
+    pub max_iterations: usize,
 }
 
 impl PoissonSolver {
@@ -22,6 +24,8 @@ impl PoissonSolver {
         initial_potential: f64,
         temperature: f64,
         sor_relaxation_factor: f64,
+        convergence_threshold: f64,
+        max_iterations: usize,
     ) -> Self {
         let potential = Potential {
             potential: vec![initial_potential; mesh_structure.id.len()],
@@ -31,6 +35,8 @@ impl PoissonSolver {
             mesh_structure,
             temperature,
             sor_relaxation_factor,
+            convergence_threshold,
+            max_iterations,
         }
     }
 
@@ -45,7 +51,20 @@ impl PoissonSolver {
         self.potential.potential[self.mesh_structure.id.len() - 1] = ec_ef_bottom;
     }
 
-    pub fn solve_poisson_equation(&mut self) -> f64 {
+    pub fn solve_poisson(&mut self) {
+        let mut iteration = 0;
+        let mut sum_delta_potential = self.solve_poisson_with_sor();
+        while sum_delta_potential > self.convergence_threshold && iteration < self.max_iterations {
+            sum_delta_potential = self.solve_poisson_with_sor();
+            iteration += 1;
+            println!(
+                "Iteration: {}, Sum of Delta Potential: {}",
+                iteration, sum_delta_potential
+            );
+        }
+    }
+
+    pub fn solve_poisson_with_sor(&mut self) -> f64 {
         let mut sum_delta_potential = 0.0;
         for idx in 1..self.mesh_structure.id.len() - 1 {
             let delta_potential = match self.mesh_structure.id[idx] {
