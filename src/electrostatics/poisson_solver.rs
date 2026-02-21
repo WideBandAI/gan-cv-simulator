@@ -113,7 +113,7 @@ impl PoissonSolver {
                 - self.mesh_structure.energy_level_donor[idx],
         );
 
-        let rho = Q_ELECTRON * (fixcharge_density + ionized_donor - electron_density);
+        let rho = -Q_ELECTRON * (fixcharge_density + ionized_donor - electron_density);
         let delta_potential = (1.0 / (1.0 / upper_mesh_length + 1.0 / lower_mesh_length)
             * (self.potential.potential[idx - 1] / lower_mesh_length
                 + self.potential.potential[idx + 1] / upper_mesh_length
