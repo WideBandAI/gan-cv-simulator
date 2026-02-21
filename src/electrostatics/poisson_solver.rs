@@ -13,10 +13,16 @@ pub struct PoissonSolver {
     pub potential: Potential,
     pub mesh_structure: MeshStructure,
     pub temperature: f64,
+    pub sor_relaxation_factor: f64,
 }
 
 impl PoissonSolver {
-    pub fn new(mesh_structure: MeshStructure, initial_potential: f64, temperature: f64) -> Self {
+    pub fn new(
+        mesh_structure: MeshStructure,
+        initial_potential: f64,
+        temperature: f64,
+        sor_relaxation_factor: f64,
+    ) -> Self {
         let potential = Potential {
             potential: vec![initial_potential; mesh_structure.id.len()],
         };
@@ -24,6 +30,7 @@ impl PoissonSolver {
             potential,
             mesh_structure,
             temperature,
+            sor_relaxation_factor,
         }
     }
 
@@ -38,21 +45,22 @@ impl PoissonSolver {
         self.potential.potential[self.mesh_structure.id.len() - 1] = ec_ef_bottom;
     }
 
-    pub fn solve(&mut self) {
+    pub fn solve_poisson_equation(&mut self) -> f64 {
+        let mut sum_delta_potential = 0.0;
         for idx in 1..self.mesh_structure.id.len() - 1 {
-            let delta = match self.mesh_structure.id[idx] {
+            let delta_potential = match self.mesh_structure.id[idx] {
                 IDX::Bulk(_) | IDX::Surface | IDX::Bottom => self.solve_bulk(idx),
                 IDX::Interface(_) => self.solve_interface(idx),
             };
-            self.potential.potential[idx] += delta;
+            self.potential.potential[idx] += self.sor_relaxation_factor * delta_potential;
+            sum_delta_potential += delta_potential.abs();
         }
+        sum_delta_potential
     }
 
     pub fn solve_bulk(&self, idx: usize) -> f64 {
         let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
         let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
-        let c_upper = self.mesh_structure.permittivity[idx - 1] / upper_mesh_length;
-        let c_lower = self.mesh_structure.permittivity[idx] / lower_mesh_length;
 
         let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
             FixChargeDensity::Bulk(q) => q, // in 1/m^3
@@ -72,14 +80,12 @@ impl PoissonSolver {
                 - self.mesh_structure.energy_level_donor[idx],
         );
 
-        // rho = fixcharge + Q_ELECTRON * (ionized_donor - electron_density)
-        let rho = fixcharge_density + Q_ELECTRON * (ionized_donor - electron_density);
-        let node_charge = rho * (upper_mesh_length + lower_mesh_length) / 2.0;
-
-        let delta_potential = (c_upper * self.potential.potential[idx - 1]
-            + c_lower * self.potential.potential[idx + 1]
-            - node_charge)
-            / (c_upper + c_lower)
+        let rho = Q_ELECTRON * (fixcharge_density + ionized_donor - electron_density);
+        let delta_potential = (1.0 / (1.0 / upper_mesh_length + 1.0 / lower_mesh_length)
+            * (self.potential.potential[idx - 1] / lower_mesh_length
+                + self.potential.potential[idx + 1] / upper_mesh_length
+                + ((lower_mesh_length + upper_mesh_length) / 2.0) * rho
+                    / self.mesh_structure.permittivity[idx]))
             - self.potential.potential[idx];
 
         delta_potential
