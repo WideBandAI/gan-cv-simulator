@@ -57,11 +57,11 @@ impl PoissonSolver {
         while sum_delta_potential > self.convergence_threshold && iteration < self.max_iterations {
             sum_delta_potential = self.solve_poisson_with_sor();
             iteration += 1;
-            println!(
-                "Iteration: {}, Sum of Delta Potential: {}",
-                iteration, sum_delta_potential
-            );
         }
+        println!(
+            "Iteration: {}, Sum of Delta Potential: {}",
+            iteration, sum_delta_potential
+        );
     }
 
     fn solve_poisson_with_sor(&mut self) -> f64 {
