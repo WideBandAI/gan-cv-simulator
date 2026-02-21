@@ -64,7 +64,7 @@ impl PoissonSolver {
         }
     }
 
-    pub fn solve_poisson_with_sor(&mut self) -> f64 {
+    fn solve_poisson_with_sor(&mut self) -> f64 {
         let mut sum_delta_potential = 0.0;
         for idx in 1..self.mesh_structure.id.len() - 1 {
             let delta_potential = match self.mesh_structure.id[idx] {
@@ -77,7 +77,7 @@ impl PoissonSolver {
         sum_delta_potential
     }
 
-    pub fn solve_bulk(&self, idx: usize) -> f64 {
+    fn solve_bulk(&self, idx: usize) -> f64 {
         let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
         let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
 
@@ -110,7 +110,7 @@ impl PoissonSolver {
         delta_potential
     }
 
-    pub fn solve_interface(&self, idx: usize) -> f64 {
+    fn solve_interface(&self, idx: usize) -> f64 {
         let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
         let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
         let c_upper = self.mesh_structure.permittivity[idx - 1] / upper_mesh_length;
