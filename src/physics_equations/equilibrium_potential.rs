@@ -17,8 +17,7 @@ pub fn equilibrium_potential_n_type(
     temperature: f64,
 ) -> f64 {
     let nc = conduction_band_density(mass_electron, temperature);
-    let phi = (K_BOLTZMANN * temperature / Q_ELECTRON) * (nc / donor_concentration).ln();
-    phi
+    (K_BOLTZMANN * temperature / Q_ELECTRON) * (nc / donor_concentration).ln()
 }
 
 #[cfg(test)]
