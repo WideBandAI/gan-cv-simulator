@@ -19,6 +19,9 @@ fn main() {
         mesh_structure,
         1.0,
         config.measurement.temperature.temperature,
+        1.9,
+        1e-6,
+        10000,
     );
     solver.set_boundary_conditions(
         config.measurement.voltage.start,
@@ -26,5 +29,6 @@ fn main() {
         config.boundary_conditions.ec_ef_bottom,
     );
     println!("{:#?}", solver);
+    solver.solve_poisson();
     println!("Simulation complete.");
 }
