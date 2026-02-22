@@ -48,7 +48,7 @@ pub fn write_potential_profile_csv(path: &str, profile: &[(f64, f64)]) -> std::i
     let mut file = std::fs::File::create(path)?;
     writeln!(file, "depth,potential")?;
     for &(depth, pot) in profile {
-        writeln!(file, "{},{},", depth, pot)?; // trailing comma optional but ensures two columns
+        writeln!(file, "{},{}", depth, pot)?;
     }
     Ok(())
 }
