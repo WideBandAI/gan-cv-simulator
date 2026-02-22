@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod constants;
+pub mod electrostatics;
 pub mod mesh_builder;
 pub mod physics_equations;
 pub mod utils;
