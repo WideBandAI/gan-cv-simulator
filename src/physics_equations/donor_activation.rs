@@ -15,7 +15,7 @@ use crate::constants::physics::*;
 /// # Examples
 ///
 /// ```
-/// use crate::...;
+/// crate::physics_equations::donor_activation::ionized_donor_density;
 ///
 /// let _ = ionized_donor_concentration();
 /// ```
