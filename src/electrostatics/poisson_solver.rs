@@ -17,8 +17,31 @@ pub struct PoissonSolver {
     pub sor_relaxation_factor: f64,
     pub convergence_threshold: f64,
     pub max_iterations: usize,
+    pub electron_density_model: Box<dyn ElectronDensity>,
 }
 
+/// Poisson equation solver using Successive Over-Relaxation (SOR) method.
+///
+/// # Arguments
+///
+/// - `mesh_structure` (`MeshStructure`) - mesh structure containing depth, permittivity, charge densities, etc.
+/// - `initial_potential` (`f64`) - The initial potential value for all mesh points.
+/// - `temperature` (`f64`) - The temperature of the system, which affects the distribution of electrons and their energy levels.
+/// - `sor_relaxation_factor` (`f64`) - The relaxation factor for the SOR method, which controls how much of the new value is used in updating the potential.
+/// - `convergence_threshold` (`f64`) - The threshold for convergence, which determines when the iterative process stops.
+/// - `max_iterations` (`usize`) - The maximum number of iterations allowed before stopping the iterative process.
+///
+/// # Returns
+///
+/// - `Self` - An instance of `PoissonSolver` initialized with the provided parameters.
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let _ = new();
+/// ```
 impl PoissonSolver {
     pub fn new(
         mesh_structure: MeshStructure,
@@ -39,9 +62,26 @@ impl PoissonSolver {
             sor_relaxation_factor,
             convergence_threshold,
             max_iterations,
+            electron_density_model: Box::new(BoltzmannApproximation {}),
         }
     }
 
+    /// Setting the boundary conditions
+    ///
+    /// # Arguments
+    ///
+    /// - `&mut self` (`undefined`) - The mutable reference to the `PoissonSolver` instance.
+    /// - `gate_voltage` (`f64`) - The voltage applied to the gate.
+    /// - `barrier_height` (`f64`) - The barrier height at the gate, which is the energy difference between the gate material and the surface material.
+    /// - `ec_ef_bottom` (`f64`) - The energy difference between the conduction band and Fermi level at the bottom of the structure.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = set_boundary_conditions();
+    /// ```
     pub fn set_boundary_conditions(
         &mut self,
         gate_voltage: f64,
@@ -53,6 +93,19 @@ impl PoissonSolver {
         self.potential.potential[self.mesh_structure.id.len() - 1] = ec_ef_bottom;
     }
 
+    /// Solve poisson equation
+    ///
+    /// # Arguments
+    ///
+    /// - `&mut self` (`undefined`) - The mutable reference to the `PoissonSolver` instance.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = solve_poisson();
+    /// ```
     pub fn solve_poisson(&mut self) {
         let mut iteration = 0;
         let mut sum_delta_potential = self.solve_poisson_with_sor();
@@ -60,12 +113,29 @@ impl PoissonSolver {
             sum_delta_potential = self.solve_poisson_with_sor();
             iteration += 1;
             println!(
-                "Iteration: {}, Sum of Delta Potential: {}",
+                "Iteration: {}, Sum of Delta Potential: {:e}",
                 iteration, sum_delta_potential
             );
         }
     }
 
+    /// Get potential profile
+    ///
+    /// # Arguments
+    ///
+    /// - `&self` (`undefined`) - The immutable reference to the `PoissonSolver` instance.
+    ///
+    /// # Returns
+    ///
+    /// - `Vec<(f64, f64)>` - A vector of tuples representing the depth and potential values of the potential profile.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = get_potential_profile();
+    /// ```
     pub fn get_potential_profile(&self) -> Vec<(f64, f64)> {
         self.potential
             .depth
@@ -100,7 +170,7 @@ impl PoissonSolver {
             _ => 0.0,
         };
 
-        let electron_density = BoltzmannApproximation {}.electron_density(
+        let electron_density = self.electron_density_model.electron_density(
             self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
             self.mesh_structure.mass_electron[idx],
             self.temperature,
