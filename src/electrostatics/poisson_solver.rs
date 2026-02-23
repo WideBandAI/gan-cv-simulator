@@ -137,7 +137,8 @@ impl PoissonSolver {
             .depth
             .iter()
             .zip(self.potential.potential.iter())
-            .map(|(d, p)| (*d, *p))
+            .zip(self.mesh_structure.delta_conduction_band.iter())
+            .map(|((d, p), dcb)| (*d, *p + *dcb))
             .collect()
     }
 
