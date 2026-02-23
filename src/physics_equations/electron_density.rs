@@ -22,8 +22,9 @@ pub trait ElectronDensity: Debug {
     ///
     /// let _ = electron_density();
     /// ```
-    fn set_temperature(&mut self, temperature: f64);
     fn electron_density(&self, potential: f64, mass_electron: f64) -> f64;
+    fn set_temperature(&mut self, temperature: f64);
+    fn get_temperature(&self) -> f64;
 }
 
 #[derive(Debug)]
@@ -45,6 +46,9 @@ impl ElectronDensity for BoltzmannApproximation {
     fn set_temperature(&mut self, temperature: f64) {
         self.temperature = temperature;
         self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
+    }
+    fn get_temperature(&self) -> f64 {
+        self.temperature
     }
     fn electron_density(&self, potential: f64, mass_electron: f64) -> f64 {
         let nc = conduction_band_density(mass_electron, self.temperature);
