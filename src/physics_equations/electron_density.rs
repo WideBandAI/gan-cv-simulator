@@ -10,7 +10,6 @@ pub trait ElectronDensity: Debug {
     /// - `&self` (`undefined`)
     /// - `potential` (`f64`) - (Ec - Ef) in eV.
     /// - `mass_electron` (`f64`) - The effective mass of the electron, which is a measure of how the electron behaves in a material.
-    /// - `temperature` (`f64`) - The temperature of the system, which affects the distribution of electrons and their energy levels.
     ///
     /// # Returns
     ///
@@ -23,16 +22,33 @@ pub trait ElectronDensity: Debug {
     ///
     /// let _ = electron_density();
     /// ```
-    fn electron_density(&self, potential: f64, mass_electron: f64, temperature: f64) -> f64;
+    fn set_temperature(&mut self, temperature: f64);
+    fn electron_density(&self, potential: f64, mass_electron: f64) -> f64;
 }
 
 #[derive(Debug)]
-pub struct BoltzmannApproximation {}
+pub struct BoltzmannApproximation {
+    temperature: f64,
+    q_per_kbt: f64,
+}
+
+impl BoltzmannApproximation {
+    pub fn new(temperature: f64) -> Self {
+        Self {
+            temperature,
+            q_per_kbt: Q_ELECTRON / (K_BOLTZMANN * temperature),
+        }
+    }
+}
 
 impl ElectronDensity for BoltzmannApproximation {
-    fn electron_density(&self, potential: f64, mass_electron: f64, temperature: f64) -> f64 {
-        let nc = conduction_band_density(mass_electron, temperature);
-        let n = nc * (-potential * Q_ELECTRON / (K_BOLTZMANN * temperature)).exp();
+    fn set_temperature(&mut self, temperature: f64) {
+        self.temperature = temperature;
+        self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
+    }
+    fn electron_density(&self, potential: f64, mass_electron: f64) -> f64 {
+        let nc = conduction_band_density(mass_electron, self.temperature);
+        let n = nc * (-potential * self.q_per_kbt).exp();
         n
     }
 }
@@ -52,11 +68,9 @@ mod tests {
         temperature: f64,
         expected_electron_density: f64,
     ) {
-        let electron_density = BoltzmannApproximation {}.electron_density(
-            potential,
-            effective_mass_coefficient * M_ELECTRON,
-            temperature,
-        );
+        let model = BoltzmannApproximation::new(temperature);
+        let electron_density =
+            model.electron_density(potential, effective_mass_coefficient * M_ELECTRON);
         assert!(relative_eq!(
             electron_density,
             expected_electron_density,
