@@ -219,6 +219,7 @@ mod tests {
     use crate::cli::fixcharge::{BulkFixedCharge, InterfaceFixedCharge};
     use crate::cli::measurement::{Measurement, Stress, Temperature, Time, Voltage};
     use crate::cli::mesh::MeshParams;
+    use crate::cli::sim_settings::SimSettings;
     use crate::cli::structure::{DeviceStructure, MaterialType};
     use approx::relative_eq;
 
@@ -274,6 +275,11 @@ mod tests {
             boundary_conditions: BoundaryConditions {
                 barrier_height: 1.0,
                 ec_ef_bottom: 0.1,
+            },
+            sim_settings: SimSettings {
+                sor_relaxation_factor: 1.9,
+                convergence_criterion: 1e-6,
+                max_iterations: 500000,
             },
         }
     }

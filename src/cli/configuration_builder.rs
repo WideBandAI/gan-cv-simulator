@@ -8,6 +8,8 @@ use crate::cli::measurement::define_measurement;
 use crate::cli::measurement::Measurement;
 use crate::cli::mesh::define_mesh_params;
 use crate::cli::mesh::MeshParams;
+use crate::cli::sim_settings::define_sim_settings;
+use crate::cli::sim_settings::SimSettings;
 use crate::cli::structure::define_structure;
 use crate::cli::structure::DeviceStructure;
 
@@ -19,6 +21,7 @@ pub struct Configuration {
     pub interface_fixed_charge: InterfaceFixedCharge,
     pub mesh_params: MeshParams,
     pub boundary_conditions: BoundaryConditions,
+    pub sim_settings: SimSettings,
 }
 
 #[derive(Debug)]
@@ -40,6 +43,7 @@ impl ConfigurationBuilder {
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
         let mesh_params = define_mesh_params(&device_structure);
         let boundary_conditions = define_boundary_conditions(&device_structure, &measurement);
+        let sim_settings = define_sim_settings();
 
         let configuration = Configuration {
             measurement,
@@ -48,6 +52,7 @@ impl ConfigurationBuilder {
             interface_fixed_charge,
             mesh_params,
             boundary_conditions,
+            sim_settings,
         };
 
         Self { configuration }
