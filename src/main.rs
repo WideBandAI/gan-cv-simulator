@@ -5,6 +5,8 @@ pub mod mesh_builder;
 pub mod physics_equations;
 pub mod utils;
 
+use crate::constants::simulation::INITIAL_POTENTIAL;
+
 use crate::cli::configuration_builder::ConfigurationBuilder;
 use crate::electrostatics::poisson_solver::PoissonSolver;
 use crate::mesh_builder::mesh_builder as mb;
@@ -17,11 +19,11 @@ fn main() {
     println!("{:#?}", mesh_structure);
     let mut solver = PoissonSolver::new(
         mesh_structure,
-        1.0,
+        INITIAL_POTENTIAL,
         config.measurement.temperature.temperature,
-        1.9,
-        1e-6,
-        500000,
+        config.sim_settings.sor_relaxation_factor,
+        config.sim_settings.convergence_criterion,
+        config.sim_settings.max_iterations,
     );
     solver.set_boundary_conditions(
         config.measurement.voltage.start,
