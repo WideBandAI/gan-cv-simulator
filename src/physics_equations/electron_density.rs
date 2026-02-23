@@ -1,5 +1,5 @@
 use crate::constants::physics::*;
-use crate::physics_equations::band_density::conduction_band_density;
+use crate::physics_equations::band_density::ConductionBandDensity;
 use std::fmt::Debug;
 
 pub trait ElectronDensity: Debug {
@@ -31,6 +31,7 @@ pub trait ElectronDensity: Debug {
 pub struct BoltzmannApproximation {
     temperature: f64,
     q_per_kbt: f64,
+    conduction_band_density: ConductionBandDensity,
 }
 
 impl BoltzmannApproximation {
@@ -38,6 +39,7 @@ impl BoltzmannApproximation {
         Self {
             temperature,
             q_per_kbt: Q_ELECTRON / (K_BOLTZMANN * temperature),
+            conduction_band_density: ConductionBandDensity::new(temperature),
         }
     }
 }
@@ -46,12 +48,15 @@ impl ElectronDensity for BoltzmannApproximation {
     fn set_temperature(&mut self, temperature: f64) {
         self.temperature = temperature;
         self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
+        self.conduction_band_density.set_temperature(temperature);
     }
     fn get_temperature(&self) -> f64 {
         self.temperature
     }
     fn electron_density(&self, potential: f64, mass_electron: f64) -> f64 {
-        let nc = conduction_band_density(mass_electron, self.temperature);
+        let nc = self
+            .conduction_band_density
+            .conduction_band_density(mass_electron);
         let n = nc * (-potential * self.q_per_kbt).exp();
         n
     }

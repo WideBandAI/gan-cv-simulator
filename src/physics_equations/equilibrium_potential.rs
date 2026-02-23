@@ -1,5 +1,5 @@
 use crate::constants::physics::*;
-use crate::physics_equations::band_density::conduction_band_density;
+use crate::physics_equations::band_density::ConductionBandDensity;
 /// Calculate the equilibrium potential for n-type semiconductor.
 ///
 /// # Arguments
@@ -16,13 +16,14 @@ pub fn equilibrium_potential_n_type(
     donor_concentration: f64,
     temperature: f64,
 ) -> f64 {
-    let nc = conduction_band_density(mass_electron, temperature);
+    let nc = ConductionBandDensity::new(temperature).conduction_band_density(mass_electron);
     (K_BOLTZMANN * temperature / Q_ELECTRON) * (nc / donor_concentration).ln()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::constants::physics::M_ELECTRON;
     use approx::relative_eq;
     use test_case::test_case;
 
