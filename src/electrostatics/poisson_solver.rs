@@ -209,3 +209,360 @@ impl PoissonSolver {
         delta_potential
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
+    use approx::relative_eq;
+
+    // -----------------------------------------------------------------------
+    // Helper: 最小限の MeshStructure を手動で組み立てる
+    //
+    // ノード構成:
+    //   [0] Surface    depth=0.0
+    //   [1] Bulk(0)    depth=1e-9
+    //   [2] Bulk(0)    depth=2e-9
+    //   [3] Bottom     depth=3e-9
+    // -----------------------------------------------------------------------
+    fn make_simple_mesh(
+        mass_electron: f64,
+        permittivity: f64,
+        donor_concentration: f64,
+        bulk_fixcharge: f64,
+    ) -> MeshStructure {
+        let n = 4;
+        MeshStructure {
+            id: vec![IDX::Surface, IDX::Bulk(0), IDX::Bulk(0), IDX::Bottom],
+            depth: vec![0.0, 1e-9, 2e-9, 3e-9],
+            mass_electron: vec![0.0, mass_electron, mass_electron, 0.0],
+            permittivity: vec![0.0, permittivity, permittivity, 0.0],
+            delta_conduction_band: vec![0.0; n],
+            donor_concentration: vec![0.0, donor_concentration, donor_concentration, 0.0],
+            energy_level_donor: vec![0.0, 0.05, 0.05, 0.0],
+            fixcharge_density: vec![
+                FixChargeDensity::Bulk(0.0),
+                FixChargeDensity::Bulk(bulk_fixcharge),
+                FixChargeDensity::Bulk(bulk_fixcharge),
+                FixChargeDensity::Bulk(0.0),
+            ],
+        }
+    }
+
+    // ノード構成 (Interface 含む):
+    //   [0] Surface      depth=0.0
+    //   [1] Bulk(0)      depth=1e-9
+    //   [2] Interface(0) depth=2e-9
+    //   [3] Bulk(1)      depth=3e-9
+    //   [4] Bottom       depth=4e-9
+    fn make_interface_mesh(permittivity: f64, interface_fixcharge: f64) -> MeshStructure {
+        let n = 5;
+        MeshStructure {
+            id: vec![
+                IDX::Surface,
+                IDX::Bulk(0),
+                IDX::Interface(0),
+                IDX::Bulk(1),
+                IDX::Bottom,
+            ],
+            depth: vec![0.0, 1e-9, 2e-9, 3e-9, 4e-9],
+            mass_electron: vec![0.0, 0.2, 0.0, 0.2, 0.0],
+            permittivity: vec![0.0, permittivity, 0.0, permittivity, 0.0],
+            delta_conduction_band: vec![0.0; n],
+            donor_concentration: vec![0.0, 1e22, 0.0, 1e22, 0.0],
+            energy_level_donor: vec![0.0, 0.05, 0.0, 0.05, 0.0],
+            fixcharge_density: vec![
+                FixChargeDensity::Bulk(0.0),
+                FixChargeDensity::Bulk(0.0),
+                FixChargeDensity::Interface(interface_fixcharge),
+                FixChargeDensity::Bulk(0.0),
+                FixChargeDensity::Bulk(0.0),
+            ],
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // new()
+    // -----------------------------------------------------------------------
+
+    /// new() を呼んだとき、potential が initial_potential で初期化されること
+    #[test]
+    fn test_new_initializes_potential_with_initial_value() {
+        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
+        let initial_potential = 0.5;
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+
+        assert_eq!(solver.potential.potential.len(), 4);
+        for &p in &solver.potential.potential {
+            assert!(
+                relative_eq!(p, initial_potential, epsilon = 1e-15),
+                "initial potential mismatch: {} != {}",
+                p,
+                initial_potential
+            );
+        }
+    }
+
+    /// new() の depth が mesh_structure.depth と一致すること
+    #[test]
+    fn test_new_copies_depth_from_mesh() {
+        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
+        let expected_depth = mesh.depth.clone();
+        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
+
+        assert_eq!(solver.potential.depth, expected_depth);
+    }
+
+    // -----------------------------------------------------------------------
+    // set_boundary_conditions()
+    // -----------------------------------------------------------------------
+
+    /// 表面ポテンシャル = -Vg + barrier_height - delta_Ec[0]
+    #[test]
+    fn test_set_boundary_conditions_surface() {
+        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
+        let delta_ec_0 = mesh.delta_conduction_band[0]; // 0.0
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
+
+        let gate_voltage = 1.0;
+        let barrier_height = 0.8;
+        let ec_ef_bottom = 0.1;
+        solver.set_boundary_conditions(gate_voltage, barrier_height, ec_ef_bottom);
+
+        let expected_surface = -gate_voltage + barrier_height - delta_ec_0;
+        assert!(
+            relative_eq!(
+                solver.potential.potential[0],
+                expected_surface,
+                epsilon = 1e-15
+            ),
+            "surface potential: {} != {}",
+            solver.potential.potential[0],
+            expected_surface
+        );
+    }
+
+    /// 底面ポテンシャル = ec_ef_bottom
+    #[test]
+    fn test_set_boundary_conditions_bottom() {
+        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
+        let n = mesh.id.len();
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
+
+        let ec_ef_bottom = 0.3;
+        solver.set_boundary_conditions(0.0, 0.0, ec_ef_bottom);
+
+        assert!(
+            relative_eq!(
+                solver.potential.potential[n - 1],
+                ec_ef_bottom,
+                epsilon = 1e-15
+            ),
+            "bottom potential: {} != {}",
+            solver.potential.potential[n - 1],
+            ec_ef_bottom
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // get_potential_profile()
+    // -----------------------------------------------------------------------
+
+    /// get_potential_profile() が (depth, potential) のペアを正しく返すこと
+    #[test]
+    fn test_get_potential_profile_returns_depth_potential_pairs() {
+        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
+        let initial_potential = 0.5;
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+
+        let profile = solver.get_potential_profile();
+
+        let expected_depths = vec![0.0, 1e-9, 2e-9, 3e-9];
+        assert_eq!(profile.len(), expected_depths.len());
+        for (i, (depth, potential)) in profile.iter().enumerate() {
+            assert!(
+                relative_eq!(*depth, expected_depths[i], epsilon = 1e-20),
+                "depth[{}]: {} != {}",
+                i,
+                depth,
+                expected_depths[i]
+            );
+            assert!(
+                relative_eq!(*potential, initial_potential, epsilon = 1e-15),
+                "potential[{}]: {} != {}",
+                i,
+                potential,
+                initial_potential
+            );
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // solve_poisson() — 収束テスト
+    // -----------------------------------------------------------------------
+
+    /// ドナー濃度・固定電荷がゼロの場合、収束後のポテンシャルは線形補間になること
+    ///
+    /// mass_electron=0.0 とすることで有効状態密度 Nc=0 → electron_density=0 が保証される。
+    #[test]
+    fn test_solve_poisson_converges_with_zero_charge() {
+        // mass_electron=0 → Nc=0 → electron_density=0
+        // donor_concentration=0 → ionized_donor=0
+        // fixcharge=0 → rho=0 完全にゼロ電荷
+        let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 100_000);
+        solver.set_boundary_conditions(0.0, 0.5, 0.1); // surface=0.5, bottom=0.1
+
+        solver.solve_poisson(); // panic しないこと
+
+        // 境界条件が変わっていないこと
+        assert!(
+            relative_eq!(solver.potential.potential[0], 0.5, epsilon = 1e-12),
+            "surface BC changed"
+        );
+        assert!(
+            relative_eq!(solver.potential.potential[3], 0.1, epsilon = 1e-12),
+            "bottom BC changed"
+        );
+
+        // 電荷ゼロ・均一メッシュ → 内部は線形補間に収束
+        // depth: 0, 1, 2, 3 nm → potential: 0.5, 0.5-0.4/3, 0.5-0.8/3, 0.1
+        let expected_1 = 0.5 - 0.4 / 3.0;
+        let expected_2 = 0.5 - 0.8 / 3.0;
+        assert!(
+            relative_eq!(
+                solver.potential.potential[1],
+                expected_1,
+                max_relative = 1e-4
+            ),
+            "potential[1] = {} (expected {})",
+            solver.potential.potential[1],
+            expected_1
+        );
+        assert!(
+            relative_eq!(
+                solver.potential.potential[2],
+                expected_2,
+                max_relative = 1e-4
+            ),
+            "potential[2] = {} (expected {})",
+            solver.potential.potential[2],
+            expected_2
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // solve_interface() — インターフェースノードの delta_potential
+    // -----------------------------------------------------------------------
+
+    /// 固定電荷ゼロのとき、solve_interface の delta_potential を検証する。
+    ///
+    /// solve_interface の実装では:
+    ///   c_upper = permittivity[idx-1] / upper_mesh_length  (上の Bulk ノードの誘電率)
+    ///   c_lower = permittivity[idx]   / lower_mesh_length  (Interface ノード自身の誘電率 = 0)
+    /// Interface ノードの permittivity は 0.0 なので c_lower = 0 となる。
+    /// このとき delta = c_upper * potential[idx-1] / c_upper − potential[idx]
+    ///              = potential[idx-1] − potential[idx] = 0.2 − 0.0 = 0.2
+    #[test]
+    fn test_solve_interface_zero_fixcharge_gives_average() {
+        let eps = 10.0 * EPSILON_0;
+        let mesh = make_interface_mesh(eps, 0.0);
+
+        // potential: Surface=0.0, Bulk=0.2, Interface=0.0, Bulk=0.4, Bottom=0.0
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1);
+        solver.potential.potential[0] = 0.0;
+        solver.potential.potential[1] = 0.2;
+        solver.potential.potential[2] = 0.0; // interface の現在値
+        solver.potential.potential[3] = 0.4;
+        solver.potential.potential[4] = 0.0;
+
+        // c_lower = permittivity[2] / lower_mesh_length = 0 / 1e-9 = 0
+        // → delta = potential[1] − potential[2] = 0.2 − 0.0 = 0.2
+        let delta = solver.solve_interface(2);
+        assert!(
+            relative_eq!(delta, 0.2, epsilon = 1e-12),
+            "interface delta_potential = {} (expected 0.2)",
+            delta
+        );
+    }
+
+    /// 正の固定電荷があるとき、delta_potential が電荷なしより小さくなること
+    #[test]
+    fn test_solve_interface_positive_fixcharge_reduces_potential() {
+        let eps = 10.0 * EPSILON_0;
+        let mesh_no_charge = make_interface_mesh(eps, 0.0);
+        let mesh_with_charge = make_interface_mesh(eps, 1e12); // 1e12 C/m^2
+
+        let set_potentials = |s: &mut PoissonSolver| {
+            s.potential.potential[0] = 0.0;
+            s.potential.potential[1] = 0.2;
+            s.potential.potential[2] = 0.0;
+            s.potential.potential[3] = 0.4;
+            s.potential.potential[4] = 0.0;
+        };
+
+        let mut s0 = PoissonSolver::new(mesh_no_charge, 0.0, 300.0, 1.0, 1e-6, 1);
+        set_potentials(&mut s0);
+        let delta_no_charge = s0.solve_interface(2);
+
+        let mut s1 = PoissonSolver::new(mesh_with_charge, 0.0, 300.0, 1.0, 1e-6, 1);
+        set_potentials(&mut s1);
+        let delta_with_charge = s1.solve_interface(2);
+
+        // Q_ELECTRON * q > 0 → 分子が小さくなる → delta が小さい
+        assert!(
+            delta_with_charge < delta_no_charge,
+            "positive fixcharge should reduce delta_potential: {} vs {}",
+            delta_with_charge,
+            delta_no_charge
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // solve_bulk() — バルクノードの delta_potential
+    // -----------------------------------------------------------------------
+
+    /// 均一ポテンシャル・ゼロ電荷では delta_potential ≒ 0 になること
+    #[test]
+    fn test_solve_bulk_uniform_potential_gives_zero_delta() {
+        let eps = 10.0 * EPSILON_0;
+        let uniform_pot = 5.0; // 高いポテンシャル → electron_density ≈ 0
+        let mesh = make_simple_mesh(0.2, eps, 0.0, 0.0);
+
+        let mut solver = PoissonSolver::new(mesh, uniform_pot, 300.0, 1.0, 1e-6, 1);
+        // 全ノードを同じ値に揃える
+        for p in solver.potential.potential.iter_mut() {
+            *p = uniform_pot;
+        }
+
+        let delta = solver.solve_bulk(1);
+
+        assert!(
+            delta.abs() < 1e-6,
+            "uniform potential should give ~0 delta: {}",
+            delta
+        );
+    }
+
+    /// 等間隔メッシュ・ゼロ電荷では、solve_bulk の delta ≒ 両隣平均 − 現在値 になること
+    #[test]
+    fn test_solve_bulk_zero_charge_approaches_average() {
+        let eps = 10.0 * EPSILON_0;
+        // donor_concentration=0 → ionized_donor ≈ 0, electron_density ≈ 0 (高ポテンシャル时)
+        let mesh = make_simple_mesh(0.2, eps, 0.0, 0.0);
+
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1);
+        solver.potential.potential[0] = 0.0;
+        solver.potential.potential[1] = 5.0; // 高いポテンシャル → rho≈0
+        solver.potential.potential[2] = 1.0;
+        solver.potential.potential[3] = 0.0;
+
+        // rho≈0 のとき delta ≈ (0.0 + 1.0)/2 − 5.0 = -4.5
+        let delta = solver.solve_bulk(1);
+        assert!(
+            relative_eq!(delta, -4.5, max_relative = 1e-4),
+            "bulk delta should approach average: {} (expected -4.5)",
+            delta
+        );
+    }
+}
