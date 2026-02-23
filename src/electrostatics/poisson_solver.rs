@@ -70,7 +70,6 @@ impl PoissonSolver {
     ///
     /// # Arguments
     ///
-    /// - `&mut self` (`undefined`) - The mutable reference to the `PoissonSolver` instance.
     /// - `gate_voltage` (`f64`) - The voltage applied to the gate.
     /// - `barrier_height` (`f64`) - The barrier height at the gate, which is the energy difference between the gate material and the surface material.
     /// - `ec_ef_bottom` (`f64`) - The energy difference between the conduction band and Fermi level at the bottom of the structure.
@@ -95,10 +94,6 @@ impl PoissonSolver {
 
     /// Solve poisson equation
     ///
-    /// # Arguments
-    ///
-    /// - `&mut self` (`undefined`) - The mutable reference to the `PoissonSolver` instance.
-    ///
     /// # Examples
     ///
     /// ```
@@ -107,23 +102,24 @@ impl PoissonSolver {
     /// let _ = solve_poisson();
     /// ```
     pub fn solve_poisson(&mut self) {
-        let mut iteration = 0;
-        let mut sum_delta_potential = self.solve_poisson_with_sor();
-        while sum_delta_potential > self.convergence_threshold && iteration < self.max_iterations {
+        let mut sum_delta_potential = 0.0;
+        for iteration in 1..=self.max_iterations {
             sum_delta_potential = self.solve_poisson_with_sor();
-            iteration += 1;
+            if sum_delta_potential <= self.convergence_threshold {
+                println!(
+                    "Converged at iteration {}: Sum of Delta Potential: {:e}",
+                    iteration, sum_delta_potential
+                );
+                return;
+            }
         }
         println!(
-            "Iteration: {}, Sum of Delta Potential: {:e}",
-            iteration, sum_delta_potential
+            "Did not converge after {} iterations. Final Sum of Delta Potential: {:e}",
+            self.max_iterations, sum_delta_potential
         );
     }
 
     /// Get potential profile
-    ///
-    /// # Arguments
-    ///
-    /// - `&self` (`undefined`) - The immutable reference to the `PoissonSolver` instance.
     ///
     /// # Returns
     ///
