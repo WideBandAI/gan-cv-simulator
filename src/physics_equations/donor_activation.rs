@@ -22,7 +22,7 @@ impl DonorActivation {
     /// # Arguments
     ///
     /// - `donor_concentration` (`f64`) - The total donor density in the material.
-    /// - `potential` (`f64`) - Ed - Ef in eV. Ed is the donor energy level and Ef is the Fermi level.
+    /// - `donor_concentration` (`f64`) - The total donor density in the material.
     ///
     /// # Returns
     ///
