@@ -1,7 +1,9 @@
 use crate::constants::physics::*;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
-use crate::physics_equations::donor_activation::ionized_donor_concentration;
+use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
+use indicatif::{ProgressBar, ProgressStyle};
+use std::time;
 
 #[derive(Debug)]
 pub struct Potential {
@@ -18,6 +20,7 @@ pub struct PoissonSolver {
     pub convergence_threshold: f64,
     pub max_iterations: usize,
     pub electron_density_model: Box<dyn ElectronDensity>,
+    pub donor_activation_model: DonorActivation,
 }
 
 /// Poisson equation solver using Successive Over-Relaxation (SOR) method.
@@ -30,6 +33,8 @@ pub struct PoissonSolver {
 /// - `sor_relaxation_factor` (`f64`) - The relaxation factor for the SOR method, which controls how much of the new value is used in updating the potential.
 /// - `convergence_threshold` (`f64`) - The threshold for convergence, which determines when the iterative process stops.
 /// - `max_iterations` (`usize`) - The maximum number of iterations allowed before stopping the iterative process.
+/// - `electron_density_model` (`Box<dyn ElectronDensity>`) - The electron density model to use for calculating the electron density.
+/// - `donor_activation_model` (`DonorActivation`) - The donor activation model to use for calculating the donor activation.
 ///
 /// # Returns
 ///
@@ -62,7 +67,8 @@ impl PoissonSolver {
             sor_relaxation_factor,
             convergence_threshold,
             max_iterations,
-            electron_density_model: Box::new(BoltzmannApproximation {}),
+            electron_density_model: Box::new(BoltzmannApproximation::new(temperature)),
+            donor_activation_model: DonorActivation::new(temperature),
         }
     }
 
@@ -92,6 +98,25 @@ impl PoissonSolver {
         self.potential.potential[self.mesh_structure.id.len() - 1] = ec_ef_bottom;
     }
 
+    /// Set temperature
+    ///
+    /// # Arguments
+    ///
+    /// - `temperature` (`f64`) - The temperature of the system.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = set_temperature();
+    /// ```
+    pub fn set_temperature(&mut self, temperature: f64) {
+        self.temperature = temperature;
+        self.donor_activation_model.set_temperature(temperature);
+        self.electron_density_model.set_temperature(temperature);
+    }
+
     /// Solve poisson equation
     ///
     /// # Examples
@@ -102,9 +127,16 @@ impl PoissonSolver {
     /// let _ = solve_poisson();
     /// ```
     pub fn solve_poisson(&mut self) {
+        let start = time::Instant::now();
+        let pb = ProgressBar::new(self.max_iterations as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {msg}")
+            .unwrap());
+
         let mut sum_delta_potential = 0.0;
         for iteration in 1..=self.max_iterations {
             sum_delta_potential = self.solve_poisson_with_sor();
+            pb.inc(1);
             if sum_delta_potential <= self.convergence_threshold {
                 println!(
                     "Converged at iteration {}: Sum of Delta Potential: {:e}",
@@ -117,6 +149,9 @@ impl PoissonSolver {
             "Did not converge after {} iterations. Final Sum of Delta Potential: {:e}",
             self.max_iterations, sum_delta_potential
         );
+
+        let duration = start.elapsed();
+        println!("Time elapsed in solve_poisson: {} ms", duration.as_millis());
     }
 
     /// Get potential profile
@@ -137,7 +172,8 @@ impl PoissonSolver {
             .depth
             .iter()
             .zip(self.potential.potential.iter())
-            .map(|(d, p)| (*d, *p))
+            .zip(self.mesh_structure.delta_conduction_band.iter())
+            .map(|((d, p), dcb)| (*d, *p + *dcb))
             .collect()
     }
 
@@ -169,12 +205,10 @@ impl PoissonSolver {
         let electron_density = self.electron_density_model.electron_density(
             self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
             self.mesh_structure.mass_electron[idx],
-            self.temperature,
         );
 
-        let ionized_donor = ionized_donor_concentration(
+        let ionized_donor = self.donor_activation_model.ionized_donor_concentration(
             self.mesh_structure.donor_concentration[idx],
-            self.temperature,
             self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
                 - self.mesh_structure.energy_level_donor[idx],
         );

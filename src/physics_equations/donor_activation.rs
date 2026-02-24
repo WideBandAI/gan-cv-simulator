@@ -1,32 +1,49 @@
 use crate::constants::physics::*;
 
-/// Ionized donor density
-///
-/// # Arguments
-///
-/// - `donor_concentration` (`f64`) - The total donor density in the material.
-/// - `temperature` (`f64`) - The temperature of the material in Kelvin.
-/// - `potential` (`f64`) - Ed - Ef in eV. Ed is the donor energy level and Ef is the Fermi level.
-///
-/// # Returns
-///
-/// - `f64` - The ionized donor density in the material.
-///
-/// # Examples
-///
-/// ```
-/// crate::physics_equations::donor_activation::ionized_donor_density;
-///
-/// let _ = ionized_donor_concentration();
-/// ```
-pub fn ionized_donor_concentration(
-    donor_concentration: f64,
+#[derive(Debug)]
+pub struct DonorActivation {
     temperature: f64,
-    potential: f64,
-) -> f64 {
-    let ion_nd = donor_concentration
-        / (1.0 + 2.0 * (-potential * Q_ELECTRON / (K_BOLTZMANN * temperature)).exp());
-    ion_nd
+    q_per_kbt: f64,
+}
+
+impl DonorActivation {
+    pub fn new(temperature: f64) -> Self {
+        Self {
+            temperature,
+            q_per_kbt: Q_ELECTRON / (K_BOLTZMANN * temperature),
+        }
+    }
+
+    pub fn set_temperature(&mut self, temperature: f64) {
+        self.temperature = temperature;
+        self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
+    }
+
+    pub fn get_temperature(&self) -> f64 {
+        self.temperature
+    }
+    /// Ionized donor density
+    ///
+    /// # Arguments
+    ///
+    /// - `donor_concentration` (`f64`) - The total donor density in the material.
+    /// - `potential` (`f64`) - Ed - Ef in eV. Ed is the donor energy level and Ef is the Fermi level.
+    ///
+    /// # Returns
+    ///
+    /// - `f64` - The ionized donor density in the material.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::physics_equations::donor_activation;
+    ///
+    /// let _ = donor_activation::ionized_donor_concentration();
+    /// ```
+    pub fn ionized_donor_concentration(&self, donor_concentration: f64, potential: f64) -> f64 {
+        let ion_nd = donor_concentration / (1.0 + 2.0 * (-potential * self.q_per_kbt).exp());
+        ion_nd
+    }
 }
 
 #[cfg(test)]
@@ -44,8 +61,9 @@ mod tests {
         potential: f64,
         expected_ionized_donor_concentration: f64,
     ) {
+        let donor_activation = DonorActivation::new(temperature);
         let ionized_donor_concentration =
-            ionized_donor_concentration(donor_concentration, temperature, potential);
+            donor_activation.ionized_donor_concentration(donor_concentration, potential);
         assert!(relative_eq!(
             ionized_donor_concentration,
             expected_ionized_donor_concentration,
