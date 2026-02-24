@@ -14,6 +14,11 @@ impl DonorActivation {
         }
     }
 
+    pub fn set_temperature(&mut self, temperature: f64) {
+        self.temperature = temperature;
+        self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
+    }
+
     pub fn get_temperature(&self) -> f64 {
         self.temperature
     }

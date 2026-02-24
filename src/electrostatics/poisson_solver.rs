@@ -113,7 +113,8 @@ impl PoissonSolver {
     /// ```
     pub fn set_temperature(&mut self, temperature: f64) {
         self.temperature = temperature;
-        self.donor_activation_model = DonorActivation::new(temperature);
+        self.donor_activation_model.set_temperature(temperature);
+        self.electron_density_model.set_temperature(temperature);
     }
 
     /// Solve poisson equation
