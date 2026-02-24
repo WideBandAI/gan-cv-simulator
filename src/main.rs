@@ -16,7 +16,6 @@ fn main() {
     let config = ConfigurationBuilder::from_interactive().build();
     println!("{:#?}", config);
     let mesh_structure = mb::build(&config);
-    println!("{:#?}", mesh_structure);
     let mut solver = PoissonSolver::new(
         mesh_structure,
         INITIAL_POTENTIAL,
@@ -30,7 +29,6 @@ fn main() {
         config.boundary_conditions.barrier_height,
         config.boundary_conditions.ec_ef_bottom,
     );
-    println!("{:#?}", solver);
     solver.solve_poisson();
     println!("Simulation complete.");
     let potential_profile = solver.get_potential_profile();

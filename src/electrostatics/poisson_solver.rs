@@ -3,7 +3,6 @@ use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 use indicatif::{ProgressBar, ProgressStyle};
-use std::time;
 
 #[derive(Debug)]
 pub struct Potential {
@@ -127,7 +126,6 @@ impl PoissonSolver {
     /// let _ = solve_poisson();
     /// ```
     pub fn solve_poisson(&mut self) {
-        let start = time::Instant::now();
         let pb = ProgressBar::new(self.max_iterations as u64);
         pb.set_style(ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {msg}")
@@ -149,9 +147,6 @@ impl PoissonSolver {
             "Did not converge after {} iterations. Final Sum of Delta Potential: {:e}",
             self.max_iterations, sum_delta_potential
         );
-
-        let duration = start.elapsed();
-        println!("Time elapsed in solve_poisson: {} ms", duration.as_millis());
     }
 
     /// Get potential profile
