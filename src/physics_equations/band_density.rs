@@ -30,7 +30,7 @@ impl ConductionBandDensity {
     /// # Arguments
     ///
     /// - `mass_electron` (`f64`) - The effective mass of electron in kg.
-    /// - `temperature` (`f64`) - The temperature in Kelvin.
+    /// - `mass_electron` (`f64`) - The effective mass of electron in kg.
     ///
     /// # Returns
     ///
