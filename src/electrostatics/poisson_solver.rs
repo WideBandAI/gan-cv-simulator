@@ -2,6 +2,7 @@ use crate::constants::physics::*;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
+use indicatif::{ProgressBar, ProgressStyle};
 use std::time;
 
 #[derive(Debug)]
@@ -126,10 +127,15 @@ impl PoissonSolver {
     /// ```
     pub fn solve_poisson(&mut self) {
         let start = time::Instant::now();
+        let pb = ProgressBar::new(self.max_iterations as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {msg}")
+            .unwrap());
 
         let mut sum_delta_potential = 0.0;
         for iteration in 1..=self.max_iterations {
             sum_delta_potential = self.solve_poisson_with_sor();
+            pb.inc(1);
             if sum_delta_potential <= self.convergence_threshold {
                 println!(
                     "Converged at iteration {}: Sum of Delta Potential: {:e}",
