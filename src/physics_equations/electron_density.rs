@@ -53,6 +53,25 @@ impl ElectronDensity for BoltzmannApproximation {
     fn get_temperature(&self) -> f64 {
         self.temperature
     }
+
+    /// Electron density
+    ///
+    /// # Arguments
+    ///
+    /// - `potential` (`f64`) - The potential difference (Ec - Ef) in eV.
+    /// - `mass_electron` (`f64`) - The effective mass of the electron in kg.
+    ///
+    /// # Returns
+    ///
+    /// - `f64` - The electron density in the conduction band.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = electron_density();
+    /// ```
     fn electron_density(&self, potential: f64, mass_electron: f64) -> f64 {
         let nc = self
             .conduction_band_density
