@@ -87,7 +87,8 @@ mod tests {
             contents.starts_with("depth,potential,electron_density,ionized_donor_concentration")
         );
         assert!(contents.contains("0,1,2,3"));
-        assert!(contents.contains("2.5,-0.5,4.0,5.0"));
+        // f64 formatting drops trailing .0; expect minimal representation
+        assert!(contents.contains("2.5,-0.5,4,5"));
 
         // cleanup
         let _ = fs::remove_file(path_str);
