@@ -43,12 +43,22 @@ pub fn get_parsed_input_with_default<T: FromStr + Clone>(prompt: &str, default: 
 /// # Arguments
 ///
 /// * `path` - filesystem path for the CSV output
-/// * `profile` - slice of `(depth, potential)` tuples
-pub fn write_potential_profile_csv(path: &str, profile: &[(f64, f64)]) -> std::io::Result<()> {
+/// * `profile` - slice of `(depth, potential, electron_density, ionized_donor_concentration)` tuples
+pub fn write_potential_profile_csv(
+    path: &str,
+    profile: &[(f64, f64, f64, f64)],
+) -> std::io::Result<()> {
     let mut file = std::fs::File::create(path)?;
-    writeln!(file, "depth,potential")?;
-    for &(depth, pot) in profile {
-        writeln!(file, "{},{}", depth, pot)?;
+    writeln!(
+        file,
+        "depth,potential,electron_density,ionized_donor_concentration"
+    )?;
+    for &(depth, pot, electron_density, ionized_donor_concentration) in profile {
+        writeln!(
+            file,
+            "{},{},{},{}",
+            depth, pot, electron_density, ionized_donor_concentration
+        )?;
     }
     Ok(())
 }
