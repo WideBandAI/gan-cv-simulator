@@ -151,7 +151,17 @@ impl PoissonSolver {
         }
 
         pb.set_position(iter_count as u64);
-        pb.finish();
+        if iter_count >= self.max_iterations {
+            pb.finish_with_message(format!(
+                "Δ φ={:.3e}. Reached max iterations without convergence.",
+                sum_delta_potential
+            ));
+        } else {
+            pb.abandon_with_message(format!(
+                "Δ φ={:.3e}. Reached convergence criterion.",
+                sum_delta_potential
+            ));
+        }
 
         println!("Final Sum of Delta Potential: {:e}", sum_delta_potential);
         iter_count
