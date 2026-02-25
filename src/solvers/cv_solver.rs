@@ -22,6 +22,10 @@ impl CVSolver {
         }
     }
 
+    pub fn set_temperature(&mut self, temperature: f64) {
+        self.poisson_solver.temperature = temperature;
+    }
+
     pub fn run(&mut self) {
         for gate_voltage in (self.measurement.voltage.start as i64
             ..=self.measurement.voltage.end as i64)
@@ -50,10 +54,6 @@ impl CVSolver {
             / (2.0 * self.measurement.ac_voltage);
 
         capacitance
-    }
-
-    pub fn set_temperature(&mut self, temperature: f64) {
-        self.poisson_solver.temperature = temperature;
     }
 
     fn electron_density_at_vg(&mut self, gate_voltage: f64) -> f64 {
