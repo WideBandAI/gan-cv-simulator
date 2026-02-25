@@ -68,10 +68,16 @@ impl CVSolver {
         self.set_gate_voltage(gate_voltage);
         self.poisson_solver.solve_poisson();
         let potential_at_vg = self.poisson_solver.get_potential_profile();
-        potential_at_vg
-            .iter()
-            .map(|(_, _, electron_density, _)| *electron_density)
-            .sum()
+        let mut total_electron_density = 0.0; // in m2
+        for idx in 0..potential_at_vg.depth.len() {
+            if potential_at_vg.electron_density[idx] > 0.0 {
+                let upper_mesh_length = potential_at_vg.depth[idx] - potential_at_vg.depth[idx - 1];
+                let lower_mesh_length = potential_at_vg.depth[idx + 1] - potential_at_vg.depth[idx];
+                let mesh_length = (upper_mesh_length + lower_mesh_length) / 2.0;
+                total_electron_density += potential_at_vg.electron_density[idx] * mesh_length;
+            }
+        }
+        total_electron_density
     }
 
     fn set_gate_voltage(&mut self, gate_voltage: f64) {

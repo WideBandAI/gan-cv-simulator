@@ -4,7 +4,7 @@ use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 use indicatif::{ProgressBar, ProgressStyle};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Potential {
     pub depth: Vec<f64>,
     pub potential: Vec<f64>,
@@ -178,27 +178,10 @@ impl PoissonSolver {
     ///
     /// let _ = get_potential_profile();
     /// ```
-    pub fn get_potential_profile(&mut self) -> Vec<(f64, f64, f64, f64)> {
+    pub fn get_potential_profile(&mut self) -> Potential {
         self.calculate_electron_density();
         self.calculate_ionized_donor_concentration();
-        self.potential
-            .depth
-            .iter()
-            .zip(self.potential.potential.iter())
-            .zip(self.potential.electron_density.iter())
-            .zip(self.potential.ionized_donor_concentration.iter())
-            .zip(self.mesh_structure.delta_conduction_band.iter())
-            .map(
-                |((((depth, potential), electron_density), ionized_donor), delta_ec)| {
-                    (
-                        *depth,
-                        *potential + *delta_ec,
-                        *electron_density,
-                        *ionized_donor,
-                    )
-                },
-            )
-            .collect()
+        self.potential.clone()
     }
 
     fn calculate_electron_density(&mut self) {
