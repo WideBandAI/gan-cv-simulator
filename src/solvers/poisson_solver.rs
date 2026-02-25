@@ -79,9 +79,9 @@ impl PoissonSolver {
     ///
     /// # Arguments
     ///
-    /// - `gate_voltage` (`f64`) - The voltage applied to the gate.
-    /// - `barrier_height` (`f64`) - The barrier height at the gate, which is the energy difference between the gate material and the surface material.
-    /// - `ec_ef_bottom` (`f64`) - The energy difference between the conduction band and Fermi level at the bottom of the structure.
+    /// - `surface_potential` (`f64`) - The potential at the surface Ec- Ef in eV (gate side).
+    /// - `bottom_potential` (`f64`) - The potential at the bottom Ec- Ef in eV (barrier side).
+    ///
     ///
     /// # Examples
     ///
@@ -90,15 +90,11 @@ impl PoissonSolver {
     ///
     /// let _ = set_boundary_conditions();
     /// ```
-    pub fn set_boundary_conditions(
-        &mut self,
-        gate_voltage: f64,
-        barrier_height: f64,
-        ec_ef_bottom: f64,
-    ) {
+    pub fn set_boundary_conditions(&mut self, surface_potential: f64, bottom_potential: f64) {
         self.potential.potential[0] =
-            -gate_voltage + barrier_height - self.mesh_structure.delta_conduction_band[0];
-        self.potential.potential[self.mesh_structure.id.len() - 1] = ec_ef_bottom;
+            surface_potential - self.mesh_structure.delta_conduction_band[0];
+        self.potential.potential[self.mesh_structure.id.len() - 1] = bottom_potential
+            - self.mesh_structure.delta_conduction_band[self.mesh_structure.id.len() - 1];
     }
 
     /// Set temperature
