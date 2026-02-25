@@ -11,6 +11,22 @@ pub struct CVSolver {
     pub boundary_conditions: BoundaryConditions,
 }
 
+/// C-V solver
+///
+/// # Arguments
+///
+/// - `poisson_solver` (`PoissonSolver`) - Poisson solver
+/// - `measurement` (`Measurement`) - Measurement parameters
+/// - `boundary_conditions` (`BoundaryConditions`) - Boundary conditions for the solver
+///
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let _ = new();
+/// ```
 impl CVSolver {
     pub fn new(
         poisson_solver: PoissonSolver,
@@ -28,6 +44,18 @@ impl CVSolver {
         self.poisson_solver.temperature = temperature;
     }
 
+    /// Run the C-V calculation
+    ///
+    /// # Arguments
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = run();
+    /// ```
     pub fn run(&mut self) {
         // perform basic validation of the step size before iterating
         let start = self.measurement.voltage.start;
@@ -66,6 +94,26 @@ impl CVSolver {
         capacitance
     }
 
+    /// Get electron density (/m^2) at gate voltage
+    ///
+    /// This fuction calculates the electron density (/m^3) to electron density (/m^2) at the gate voltage.
+    /// electron density (/m^3) * mesh length (m) = electron density (/m^2)
+    ///
+    /// # Arguments
+    ///
+    /// - `gate_voltage` (`f64`) - Gate voltage in volts.
+    ///
+    /// # Returns
+    ///
+    /// - `f64` - Electron density in m^-2.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = electron_density_at_vg();
+    /// ```
     fn electron_density_at_vg(&mut self, gate_voltage: f64) -> f64 {
         self.set_gate_voltage(gate_voltage);
         self.poisson_solver.solve_poisson();
