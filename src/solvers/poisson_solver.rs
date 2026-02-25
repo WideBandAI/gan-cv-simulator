@@ -138,6 +138,8 @@ impl PoissonSolver {
         let mut sum_delta_potential = 0.0;
         for iteration in 1..=self.max_iterations {
             sum_delta_potential = self.solve_poisson_with_sor();
+            // update progress bar message with current sum of delta potential
+            pb.set_message(format!("Δ φ={:.3e}", sum_delta_potential));
             pb.inc(1);
             if sum_delta_potential <= self.convergence_threshold {
                 println!(
