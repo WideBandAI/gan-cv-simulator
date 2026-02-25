@@ -1,4 +1,4 @@
-pub mod cli;
+pub mod config;
 pub mod constants;
 pub mod mesh_builder;
 pub mod physics_equations;
@@ -7,7 +7,7 @@ pub mod utils;
 
 use crate::constants::simulation::INITIAL_POTENTIAL;
 
-use crate::cli::configuration_builder::ConfigurationBuilder;
+use crate::config::configuration_builder::ConfigurationBuilder;
 use crate::mesh_builder::mesh_builder as mb;
 use crate::solvers::poisson_solver::PoissonSolver;
 

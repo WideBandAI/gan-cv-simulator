@@ -1,4 +1,4 @@
-use crate::cli::structure::DeviceStructure;
+use crate::config::structure::DeviceStructure;
 use crate::constants::units::{CM2_TO_M2, CM3_TO_M3};
 use crate::utils::get_parsed_input;
 

@@ -1,4 +1,4 @@
-use crate::cli::structure::DeviceStructure;
+use crate::config::structure::DeviceStructure;
 use crate::constants::units::{MEV_TO_EV, M_TO_NM, NM_TO_M};
 use crate::utils::{get_parsed_input, get_parsed_input_with_default};
 

@@ -1,5 +1,5 @@
-use crate::cli::measurement::Measurement;
-use crate::cli::structure::{DeviceStructure, MaterialType};
+use crate::config::measurement::Measurement;
+use crate::config::structure::{DeviceStructure, MaterialType};
 use crate::physics_equations::equilibrium_potential::equilibrium_potential_n_type;
 use crate::utils::{get_parsed_input, get_parsed_input_with_default};
 
