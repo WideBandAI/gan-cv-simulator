@@ -44,7 +44,7 @@ impl CVSolver {
         while (forward && gate_voltage <= end) || (!forward && gate_voltage >= end) {
             let capacitance = self.solve_cv(gate_voltage);
             println!(
-                "Gate Voltage: {} V, Capacitance: {:.3e} F",
+                "Gate Voltage: {:<10.3} V, Capacitance: {:.3e} F\n",
                 gate_voltage, capacitance
             );
             gate_voltage += step;
@@ -52,10 +52,6 @@ impl CVSolver {
     }
 
     fn solve_cv(&mut self, gate_voltage: f64) -> f64 {
-        println!(
-            "Solving C-V characteristics for gate voltage {} V and AC voltage {} V",
-            gate_voltage, self.measurement.ac_voltage
-        );
         self.electron_density_at_vg(gate_voltage);
         let electron_density_vg_plus_ac =
             self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage);
