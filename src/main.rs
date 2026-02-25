@@ -1,15 +1,15 @@
 pub mod cli;
 pub mod constants;
-pub mod electrostatics;
 pub mod mesh_builder;
 pub mod physics_equations;
+pub mod solvers;
 pub mod utils;
 
 use crate::constants::simulation::INITIAL_POTENTIAL;
 
 use crate::cli::configuration_builder::ConfigurationBuilder;
-use crate::electrostatics::poisson_solver::PoissonSolver;
 use crate::mesh_builder::mesh_builder as mb;
+use crate::solvers::poisson_solver::PoissonSolver;
 
 fn main() {
     println!("Starting C-V simulation with the following parameters:");

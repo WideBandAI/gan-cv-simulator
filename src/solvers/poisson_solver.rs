@@ -8,6 +8,8 @@ use indicatif::{ProgressBar, ProgressStyle};
 pub struct Potential {
     pub depth: Vec<f64>,
     pub potential: Vec<f64>,
+    pub electron_density: Vec<f64>,
+    pub ionized_donor_concentration: Vec<f64>,
 }
 
 #[derive(Debug)]
@@ -58,6 +60,8 @@ impl PoissonSolver {
         let potential = Potential {
             depth: mesh_structure.depth.clone(),
             potential: vec![initial_potential; mesh_structure.id.len()],
+            electron_density: vec![0.0; mesh_structure.id.len()],
+            ionized_donor_concentration: vec![0.0; mesh_structure.id.len()],
         };
         Self {
             potential,
@@ -162,7 +166,9 @@ impl PoissonSolver {
     ///
     /// let _ = get_potential_profile();
     /// ```
-    pub fn get_potential_profile(&self) -> Vec<(f64, f64)> {
+    pub fn get_potential_profile(&mut self) -> Vec<(f64, f64)> {
+        self.calculate_electron_density();
+        self.calculate_ionized_donor_concentration();
         self.potential
             .depth
             .iter()
@@ -170,6 +176,26 @@ impl PoissonSolver {
             .zip(self.mesh_structure.delta_conduction_band.iter())
             .map(|((d, p), dcb)| (*d, *p + *dcb))
             .collect()
+    }
+
+    fn calculate_electron_density(&mut self) {
+        for idx in 0..self.mesh_structure.id.len() {
+            self.potential.electron_density[idx] = self.electron_density_model.electron_density(
+                self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
+                self.mesh_structure.mass_electron[idx],
+            );
+        }
+    }
+
+    fn calculate_ionized_donor_concentration(&mut self) {
+        for idx in 0..self.mesh_structure.id.len() {
+            self.potential.ionized_donor_concentration[idx] =
+                self.donor_activation_model.ionized_donor_concentration(
+                    self.mesh_structure.donor_concentration[idx],
+                    self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
+                        - self.mesh_structure.energy_level_donor[idx],
+                );
+        }
     }
 
     fn solve_poisson_with_sor(&mut self) -> f64 {
