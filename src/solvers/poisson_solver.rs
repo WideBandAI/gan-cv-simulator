@@ -162,8 +162,6 @@ impl PoissonSolver {
                 sum_delta_potential
             ));
         }
-
-        println!("Final Sum of Delta Potential: {:e}", sum_delta_potential);
         iter_count
     }
 
