@@ -27,15 +27,26 @@ impl CVSolver {
     }
 
     pub fn run(&mut self) {
-        for gate_voltage in (self.measurement.voltage.start as i64
-            ..=self.measurement.voltage.end as i64)
-            .step_by(self.measurement.voltage.step as usize)
-        {
-            let capacitance = self.solve_cv(gate_voltage as f64);
+        // perform basic validation of the step size before iterating
+        let start = self.measurement.voltage.start;
+        let end = self.measurement.voltage.end;
+        let step = self.measurement.voltage.step;
+
+        if step == 0.0 {
+            panic!("voltage step cannot be zero");
+        }
+
+        // determine loop direction based on sign of step
+        let mut gate_voltage = start;
+        let forward = step > 0.0;
+
+        while (forward && gate_voltage <= end) || (!forward && gate_voltage >= end) {
+            let capacitance = self.solve_cv(gate_voltage);
             println!(
                 "Gate Voltage: {} V, Capacitance: {} F",
                 gate_voltage, capacitance
             );
+            gate_voltage += step;
         }
     }
 
