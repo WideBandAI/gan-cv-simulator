@@ -50,6 +50,7 @@ impl ElectronDensity for BoltzmannApproximation {
         self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
         self.conduction_band_density.set_temperature(temperature);
     }
+
     fn get_temperature(&self) -> f64 {
         self.temperature
     }
