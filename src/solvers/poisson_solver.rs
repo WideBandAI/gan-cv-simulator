@@ -129,23 +129,49 @@ impl PoissonSolver {
     ///
     /// let _ = solve_poisson();
     /// ```
-    pub fn solve_poisson(&mut self) {
+    /// Solve the Poisson equation and display progress.
+    ///
+    /// The method returns the number of iterations that were actually
+    /// performed; if the solver converges before reaching
+    /// `self.max_iterations` the returned value will be smaller.  The
+    /// progress bar is finished at the iteration where execution stops
+    /// so that the user does not see e.g. "9982/10000" when only that
+    /// many iterations were needed.
+    pub fn solve_poisson(&mut self) -> usize {
         let pb = ProgressBar::new(self.max_iterations as u64);
-        pb.set_style(ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {msg}")
-            .unwrap());
+        pb.set_style(
+            ProgressStyle::default_bar()
+                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {msg}")
+                .unwrap(),
+        );
 
         let mut sum_delta_potential = 0.0;
-        for _ in 1..=self.max_iterations {
+        let mut iter_count: usize = 0;
+
+        for i in 1..=self.max_iterations {
+            iter_count = i;
             sum_delta_potential = self.solve_poisson_with_sor();
+
             // update progress bar message with current sum of delta potential
             pb.set_message(format!("Δ φ={:.3e}", sum_delta_potential));
             pb.inc(1);
+
+            // break early if convergence criterion satisfied
             if sum_delta_potential <= self.convergence_threshold {
                 break;
             }
         }
+
+        // ensure the progress bar is finished at the actual number of
+        // iterations; if we broke early the displayed position should match
+        // the number of steps actually taken.  `finish_at` is not available
+        // in our version of indicatif, so we manually adjust the position
+        // before calling `finish`.
+        pb.set_position(iter_count as u64);
+        pb.finish();
+
         println!("Final Sum of Delta Potential: {:e}", sum_delta_potential);
+        iter_count
     }
 
     /// Get potential profile
@@ -423,7 +449,7 @@ mod tests {
     fn test_get_potential_profile_returns_depth_potential_pairs() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let initial_potential = 0.5;
-        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+        let mut solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
 
         let profile = solver.get_potential_profile();
 
@@ -463,7 +489,11 @@ mod tests {
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 100_000);
         solver.set_boundary_conditions(0.0, 0.5, 0.1); // surface=0.5, bottom=0.1
 
-        solver.solve_poisson(); // panic しないこと
+        let iters = solver.solve_poisson(); // panic しないこと
+        assert!(
+            iters <= solver.max_iterations,
+            "iterations should not exceed max"
+        );
 
         // 境界条件が変わっていないこと
         assert!(
@@ -499,6 +529,33 @@ mod tests {
             solver.potential.potential[2],
             expected_2
         );
+    }
+
+    /// 閾値を非常に大きくすると、1回目のイテレーションで収束判定が
+    /// 真となり返り値が 1 になること
+    #[test]
+    fn test_solve_poisson_returns_one_iteration_if_threshold_large() {
+        let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, f64::MAX, 1000);
+        solver.set_boundary_conditions(0.0, 0.5, 0.1);
+
+        let iters = solver.solve_poisson();
+        assert_eq!(
+            iters, 1,
+            "solver should stop after first iteration with huge threshold"
+        );
+    }
+
+    /// 負の閾値を与えると収束判定が絶対に成立せず、
+    /// `max_iterations` 全部が実行されること
+    #[test]
+    fn test_solve_poisson_runs_full_iterations_if_threshold_negative() {
+        let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, -1.0, 123);
+        solver.set_boundary_conditions(0.0, 0.5, 0.1);
+
+        let iters = solver.solve_poisson();
+        assert_eq!(iters, solver.max_iterations);
     }
 
     // -----------------------------------------------------------------------
