@@ -4,6 +4,9 @@ pub const CM3_TO_M3: f64 = 1.0e6;
 /// [cm^-2] → [m^-2]
 pub const CM2_TO_M2: f64 = 1.0e4;
 
+/// [m^-2] → [cm^-2]
+pub const M2_TO_CM2: f64 = 1.0e-4;
+
 /// [cm] → [m]
 pub const CM_TO_M: f64 = 1.0e-2;
 
@@ -18,3 +21,6 @@ pub const MEV_TO_EV: f64 = 1.0e-3;
 
 /// [mV] → [V]
 pub const MV_TO_V: f64 = 1.0e-3;
+
+/// [F] → [nF]
+pub const F_TO_NF: f64 = 1.0e9;

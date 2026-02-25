@@ -1,6 +1,7 @@
 use crate::config::boundary_conditions::BoundaryConditions;
 use crate::config::measurement::Measurement;
 use crate::constants::physics::Q_ELECTRON;
+use crate::constants::units::{F_TO_NF, M2_TO_CM2};
 use crate::solvers::poisson_solver::PoissonSolver;
 
 #[derive(Debug)]
@@ -44,8 +45,9 @@ impl CVSolver {
         while (forward && gate_voltage <= end) || (!forward && gate_voltage >= end) {
             let capacitance = self.solve_cv(gate_voltage);
             println!(
-                "Gate Voltage: {:<10.3} V, Capacitance: {:.3e} F\n",
-                gate_voltage, capacitance
+                "Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
+                gate_voltage,
+                capacitance * F_TO_NF * M2_TO_CM2
             );
             gate_voltage += step;
         }
