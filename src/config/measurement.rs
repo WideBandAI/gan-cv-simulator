@@ -25,7 +25,7 @@ pub struct Temperature {
 #[derive(Debug)]
 pub struct Voltage {
     pub start: f64,
-    pub stop: f64,
+    pub end: f64,
     pub step: f64,
 }
 
@@ -46,7 +46,7 @@ pub fn define_measurement() -> Measurement {
         }
     };
     let voltage_start: f64 = get_parsed_input("Enter the starting voltage (in V): ");
-    let voltage_stop: f64 = get_parsed_input("Enter the stopping voltage (in V): ");
+    let voltage_end: f64 = get_parsed_input("Enter the end voltage (in V): ");
     let voltage_step = loop {
         let voltage_step: f64 = get_parsed_input("Enter the voltage step (in V): ");
         if voltage_step == 0.0 {
@@ -72,7 +72,7 @@ pub fn define_measurement() -> Measurement {
         temperature: Temperature { temperature },
         voltage: Voltage {
             start: voltage_start,
-            stop: voltage_stop,
+            end: voltage_end,
             step: voltage_step,
         },
         ac_voltage: ac_voltage * MV_TO_V,

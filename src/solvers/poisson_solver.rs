@@ -161,7 +161,7 @@ impl PoissonSolver {
     ///
     /// # Returns
     ///
-    /// - `Vec<(f64, f64)>` - A vector of tuples representing the depth and potential values of the potential profile.
+    /// - `Vec<(f64, f64, f64, f64)>` - A vector of tuples containing depth, potential, electron density, and ionized donor concentration at each mesh point.
     ///
     /// # Examples
     ///
@@ -397,7 +397,7 @@ mod tests {
         let gate_voltage = 1.0;
         let barrier_height = 0.8;
         let ec_ef_bottom = 0.1;
-        solver.set_boundary_conditions(gate_voltage, barrier_height, ec_ef_bottom);
+        solver.set_boundary_conditions(-gate_voltage + barrier_height, ec_ef_bottom);
 
         let expected_surface = -gate_voltage + barrier_height - delta_ec_0;
         assert!(
@@ -420,7 +420,7 @@ mod tests {
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
 
         let ec_ef_bottom = 0.3;
-        solver.set_boundary_conditions(0.0, 0.0, ec_ef_bottom);
+        solver.set_boundary_conditions(0.0, ec_ef_bottom);
 
         assert!(
             relative_eq!(
@@ -449,7 +449,7 @@ mod tests {
 
         let expected_depths = vec![0.0, 1e-9, 2e-9, 3e-9];
         assert_eq!(profile.len(), expected_depths.len());
-        for (i, (depth, potential)) in profile.iter().enumerate() {
+        for (i, (depth, potential, _, _)) in profile.iter().enumerate() {
             assert!(
                 relative_eq!(*depth, expected_depths[i], epsilon = 1e-20),
                 "depth[{}]: {} != {}",
@@ -481,7 +481,7 @@ mod tests {
         // fixcharge=0 → rho=0 完全にゼロ電荷
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 100_000);
-        solver.set_boundary_conditions(0.0, 0.5, 0.1); // surface=0.5, bottom=0.1
+        solver.set_boundary_conditions(0.5, 0.1); // surface=0.5, bottom=0.1
 
         let iters = solver.solve_poisson(); // panic しないこと
         assert!(
@@ -531,7 +531,7 @@ mod tests {
     fn test_solve_poisson_returns_one_iteration_if_threshold_large() {
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, f64::MAX, 1000);
-        solver.set_boundary_conditions(0.0, 0.5, 0.1);
+        solver.set_boundary_conditions(0.0, 0.2);
 
         let iters = solver.solve_poisson();
         assert_eq!(
@@ -546,7 +546,7 @@ mod tests {
     fn test_solve_poisson_runs_full_iterations_if_threshold_negative() {
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, -1.0, 123);
-        solver.set_boundary_conditions(0.0, 0.5, 0.1);
+        solver.set_boundary_conditions(0.0, 0.5);
 
         let iters = solver.solve_poisson();
         assert_eq!(iters, solver.max_iterations);

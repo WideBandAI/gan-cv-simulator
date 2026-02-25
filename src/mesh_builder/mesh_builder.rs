@@ -234,9 +234,10 @@ mod tests {
                 temperature: Temperature { temperature: 300.0 },
                 voltage: Voltage {
                     start: 0.0,
-                    stop: 1.0,
+                    end: 1.0,
                     step: 0.1,
                 },
+                ac_voltage: 0.02,
                 time: Time {
                     measurement_time: 100.0,
                 },

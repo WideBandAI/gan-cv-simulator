@@ -25,8 +25,7 @@ fn main() {
         config.sim_settings.max_iterations,
     );
     solver.set_boundary_conditions(
-        config.measurement.voltage.start,
-        config.boundary_conditions.barrier_height,
+        -config.measurement.voltage.start + config.boundary_conditions.barrier_height,
         config.boundary_conditions.ec_ef_bottom,
     );
     solver.solve_poisson();

@@ -74,7 +74,7 @@ mod tests {
         let tmp_dir = std::env::temp_dir();
         let mut file_path = PathBuf::from(&tmp_dir);
         file_path.push("test_profile.csv");
-        let profile = vec![(0.0, 1.0), (2.5, -0.5)];
+        let profile = vec![(0.0, 1.0, 2.0, 3.0), (2.5, -0.5, 4.0, 5.0)];
         let path_str = file_path.to_str().unwrap();
 
         // ensure previous file is removed
@@ -83,9 +83,11 @@ mod tests {
         write_potential_profile_csv(path_str, &profile).expect("failed to write csv");
 
         let contents = fs::read_to_string(path_str).expect("failed to read csv");
-        assert!(contents.starts_with("depth,potential"));
-        assert!(contents.contains("0,1"));
-        assert!(contents.contains("2.5,-0.5"));
+        assert!(
+            contents.starts_with("depth,potential,electron_density,ionized_donor_concentration")
+        );
+        assert!(contents.contains("0,1,2,3"));
+        assert!(contents.contains("2.5,-0.5,4.0,5.0"));
 
         // cleanup
         let _ = fs::remove_file(path_str);
