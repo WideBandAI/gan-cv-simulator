@@ -129,14 +129,6 @@ impl PoissonSolver {
     ///
     /// let _ = solve_poisson();
     /// ```
-    /// Solve the Poisson equation and display progress.
-    ///
-    /// The method returns the number of iterations that were actually
-    /// performed; if the solver converges before reaching
-    /// `self.max_iterations` the returned value will be smaller.  The
-    /// progress bar is finished at the iteration where execution stops
-    /// so that the user does not see e.g. "9982/10000" when only that
-    /// many iterations were needed.
     pub fn solve_poisson(&mut self) -> usize {
         let pb = ProgressBar::new(self.max_iterations as u64);
         pb.set_style(
@@ -162,11 +154,6 @@ impl PoissonSolver {
             }
         }
 
-        // ensure the progress bar is finished at the actual number of
-        // iterations; if we broke early the displayed position should match
-        // the number of steps actually taken.  `finish_at` is not available
-        // in our version of indicatif, so we manually adjust the position
-        // before calling `finish`.
         pb.set_position(iter_count as u64);
         pb.finish();
 
