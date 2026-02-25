@@ -15,3 +15,6 @@ pub const M_TO_NM: f64 = 1.0e9;
 
 /// [meV] → [eV]
 pub const MEV_TO_EV: f64 = 1.0e-3;
+
+/// [mV] → [V]
+pub const MV_TO_V: f64 = 1.0e-3;

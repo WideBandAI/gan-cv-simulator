@@ -1,9 +1,11 @@
+use crate::constants::units::MV_TO_V;
 use crate::utils::{get_parsed_input, get_parsed_input_with_default};
 
 #[derive(Debug)]
 pub struct Measurement {
     pub temperature: Temperature,
     pub voltage: Voltage,
+    pub ac_voltage: f64,
     pub time: Time,
     pub stress: Stress,
 }
@@ -53,6 +55,10 @@ pub fn define_measurement() -> Measurement {
             break voltage_step;
         }
     };
+    let ac_voltage: f64 = get_parsed_input_with_default(
+        "Enter the AC voltage amplitude (in mV): default is 20 mV ",
+        20.0,
+    );
     let measurement_time: f64 =
         get_parsed_input_with_default("Enter the measurement time (in s): default is 100 ", 100.0);
     let voltage_stress: f64 =
@@ -69,6 +75,7 @@ pub fn define_measurement() -> Measurement {
             stop: voltage_stop,
             step: voltage_step,
         },
+        ac_voltage: ac_voltage * MV_TO_V,
         time: Time { measurement_time },
         stress: Stress {
             stress_voltage: voltage_stress,
