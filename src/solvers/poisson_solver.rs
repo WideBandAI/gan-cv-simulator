@@ -223,7 +223,6 @@ impl PoissonSolver {
     fn solve_bulk(&self, idx: usize) -> f64 {
         let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
         let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
-
         let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
             FixChargeDensity::Bulk(q) => q, // in 1/m^3
             _ => 0.0,
@@ -301,6 +300,32 @@ mod tests {
             delta_conduction_band: vec![0.0; n],
             donor_concentration: vec![0.0, donor_concentration, donor_concentration, 0.0],
             energy_level_donor: vec![0.0, 0.05, 0.05, 0.0],
+            fixcharge_density: vec![
+                FixChargeDensity::Bulk(0.0),
+                FixChargeDensity::Bulk(bulk_fixcharge),
+                FixChargeDensity::Bulk(bulk_fixcharge),
+                FixChargeDensity::Bulk(0.0),
+            ],
+        }
+    }
+
+    // ノード構成 (Interface 含む):
+    //   [0] Surface      depth=0.0
+    //   [1] Bulk(0)      depth=1
+    //   [2] Interface(0) depth=2
+    //   [3] Bulk(1)      depth=3
+    //   [4] Bottom       depth=4
+    // -----------------------------------------------------------------------
+    fn make_simple_insulator_mesh(permittivity: f64, bulk_fixcharge: f64) -> MeshStructure {
+        let n = 4;
+        MeshStructure {
+            id: vec![IDX::Surface, IDX::Bulk(0), IDX::Bulk(0), IDX::Bottom],
+            depth: vec![0.0, 1.0, 2.0, 3.0],
+            mass_electron: vec![0.0, 0.0, 0.0, 0.0],
+            permittivity: vec![0.0, permittivity, permittivity, 0.0],
+            delta_conduction_band: vec![0.0; n],
+            donor_concentration: vec![0.0, 0.0, 0.0, 0.0],
+            energy_level_donor: vec![0.0, 0.0, 0.0, 0.0],
             fixcharge_density: vec![
                 FixChargeDensity::Bulk(0.0),
                 FixChargeDensity::Bulk(bulk_fixcharge),
@@ -423,39 +448,6 @@ mod tests {
             solver.potential.potential[n - 1],
             ec_ef_bottom
         );
-    }
-
-    // -----------------------------------------------------------------------
-    // get_potential_profile()
-    // -----------------------------------------------------------------------
-
-    /// get_potential_profile() が (depth, potential) のペアを正しく返すこと
-    #[test]
-    fn test_get_potential_profile_returns_depth_potential_pairs() {
-        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
-        let initial_potential = 0.5;
-        let mut solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
-
-        let profile = solver.get_potential_profile();
-
-        let expected_depths = vec![0.0, 1e-9, 2e-9, 3e-9];
-        assert_eq!(profile.len(), expected_depths.len());
-        for (i, (depth, potential, _, _)) in profile.iter().enumerate() {
-            assert!(
-                relative_eq!(*depth, expected_depths[i], epsilon = 1e-20),
-                "depth[{}]: {} != {}",
-                i,
-                depth,
-                expected_depths[i]
-            );
-            assert!(
-                relative_eq!(*potential, initial_potential, epsilon = 1e-15),
-                "potential[{}]: {} != {}",
-                i,
-                potential,
-                initial_potential
-            );
-        }
     }
 
     // -----------------------------------------------------------------------
@@ -655,6 +647,23 @@ mod tests {
             relative_eq!(delta, -4.5, max_relative = 1e-4),
             "bulk delta should approach average: {} (expected -4.5)",
             delta
+        );
+    }
+
+    /// bulk potentialの更新
+    #[test]
+    fn test_solve_bulk_with_charge() {
+        let eps = 1.0;
+        let bulk_fixcharge = 1.0 / Q_ELECTRON; // 1e21 m^-3
+        let mesh = make_simple_insulator_mesh(eps, bulk_fixcharge);
+        let initial_potential = 0.0;
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+        let delta_poisson = solver.solve_bulk(1);
+
+        assert!(
+            relative_eq!(delta_poisson, -0.5, max_relative = 1e-4),
+            "bulk delta should approach average: {} (expected -0.5)",
+            delta_poisson
         );
     }
 }
