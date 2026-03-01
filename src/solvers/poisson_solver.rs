@@ -254,7 +254,7 @@ impl PoissonSolver {
         let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
         let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
         let c_upper = self.mesh_structure.permittivity[idx - 1] / upper_mesh_length;
-        let c_lower = self.mesh_structure.permittivity[idx] / lower_mesh_length;
+        let c_lower = self.mesh_structure.permittivity[idx + 1] / lower_mesh_length;
 
         let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
             FixChargeDensity::Interface(q) => q, // in 1/m^2
@@ -351,7 +351,7 @@ mod tests {
                 IDX::Bulk(1),
                 IDX::Bottom,
             ],
-            depth: vec![0.0, 1e-9, 2e-9, 3e-9, 4e-9],
+            depth: vec![0.0, 1.0, 2.0, 3.0, 4.0],
             mass_electron: vec![0.0, 0.2, 0.0, 0.2, 0.0],
             permittivity: vec![0.0, permittivity, 0.0, permittivity, 0.0],
             delta_conduction_band: vec![0.0; n],
@@ -654,7 +654,7 @@ mod tests {
     #[test]
     fn test_solve_bulk_with_charge() {
         let eps = 1.0;
-        let bulk_fixcharge = 1.0 / Q_ELECTRON; // 1e21 m^-3
+        let bulk_fixcharge = 1.0 / Q_ELECTRON;
         let mesh = make_simple_insulator_mesh(eps, bulk_fixcharge);
         let initial_potential = 0.0;
         let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
@@ -663,6 +663,23 @@ mod tests {
         assert!(
             relative_eq!(delta_poisson, -0.5, max_relative = 1e-4),
             "bulk delta should approach average: {} (expected -0.5)",
+            delta_poisson
+        );
+    }
+
+    //interface potentialの更新
+    #[test]
+    fn test_solve_interface_with_charge() {
+        let eps = 1.0;
+        let interface_fixcharge = 1.0 / Q_ELECTRON;
+        let mesh = make_interface_mesh(eps, interface_fixcharge);
+        let initial_potential = 1.0;
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+        let delta_poisson = solver.solve_interface(2);
+
+        assert!(
+            relative_eq!(delta_poisson, 0.5, max_relative = 1e-6),
+            "interface delta should be affected by fixcharge: {} (expected 0.5)",
             delta_poisson
         );
     }
