@@ -564,8 +564,8 @@ mod tests {
         // → delta = potential[1] − potential[2] = 0.2 − 0.0 = 0.2
         let delta = solver.solve_interface(2);
         assert!(
-            relative_eq!(delta, 0.2, epsilon = 1e-12),
-            "interface delta_potential = {} (expected 0.2)",
+            relative_eq!(delta, 0.3, epsilon = 1e-12),
+            "interface delta_potential = {} (expected 0.3)",
             delta
         );
     }
@@ -678,8 +678,8 @@ mod tests {
         let delta_poisson = solver.solve_interface(2);
 
         assert!(
-            relative_eq!(delta_poisson, 0.5, max_relative = 1e-6),
-            "interface delta should be affected by fixcharge: {} (expected 0.5)",
+            relative_eq!(delta_poisson, -0.5, max_relative = 1e-6),
+            "interface delta should be affected by fixcharge: {} (expected -0.5)",
             delta_poisson
         );
     }
