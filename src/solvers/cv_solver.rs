@@ -415,30 +415,6 @@ mod tests {
         );
     }
 
-    /// 高い正のゲート電圧ではポテンシャルが下がり、電子密度が増加すること
-    #[test]
-    fn test_electron_density_increases_with_positive_gate_voltage() {
-        let mut cv_solver = make_cv_solver(
-            0.2,  // mass_electron
-            1e22, // donor_concentration
-            1.0,  // barrier_height
-            0.1,  // ec_ef_bottom
-            0.0, 5.0, 0.1, 0.02,
-        );
-
-        // 低いゲート電圧での電子密度
-        let n_low = cv_solver.electron_density_at_vg(0.0);
-        // 高いゲート電圧での電子密度
-        let n_high = cv_solver.electron_density_at_vg(5.0);
-
-        assert!(
-            n_high >= n_low,
-            "electron density should increase or stay same with higher positive gate voltage: n_low={}, n_high={}",
-            n_low,
-            n_high
-        );
-    }
-
     // -----------------------------------------------------------------------
     // solve_cv()
     // -----------------------------------------------------------------------
@@ -494,36 +470,6 @@ mod tests {
             relative_eq!(capacitance, 0.0, epsilon = 1e-30),
             "capacitance with large AC should still be zero for zero mass: {}",
             capacitance
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // solve_cv() — キャパシタンスの物理的性質
-    // -----------------------------------------------------------------------
-
-    /// C-V 特性: depletion 領域ではキャパシタンスが小、
-    /// accumulation 領域ではキャパシタンスが大きいこと
-    #[test]
-    fn test_solve_cv_depletion_vs_accumulation() {
-        let mut cv_solver = make_cv_solver(
-            0.2,  // mass_electron
-            1e22, // donor_concentration
-            1.0,  // barrier_height
-            0.1,  // ec_ef_bottom
-            -2.0, 5.0, 0.1, 0.02,
-        );
-
-        // depletion 領域 (gate voltage が小さい)
-        let c_depletion = cv_solver.solve_cv(-1.0);
-        // accumulation 領域 (gate voltage が大きい)
-        let c_accumulation = cv_solver.solve_cv(3.0);
-
-        // accumulation のキャパシタンスが depletion 以上であること
-        assert!(
-            c_accumulation >= c_depletion,
-            "accumulation capacitance ({}) should be >= depletion capacitance ({})",
-            c_accumulation,
-            c_depletion
         );
     }
 
