@@ -1,4 +1,4 @@
-use crate::cli::configuration_builder::Configuration;
+use crate::config::configuration_builder::Configuration;
 
 #[derive(Debug)]
 pub enum IDX {
@@ -156,7 +156,7 @@ impl MeshStructure {
 ///
 /// ```
 /// use crate::mesh_builder;
-/// use crate::cli::configuration_builder::ConfigurationBuilder;
+/// use crate::config::configuration_builder::ConfigurationBuilder;
 ///
 /// let config = ConfigurationBuilder::from_interactive().build();
 /// let mesh_structure = mesh_builder::build(&config);
@@ -215,12 +215,12 @@ pub fn build(configuration: &Configuration) -> MeshStructure {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cli::boundary_conditions::BoundaryConditions;
-    use crate::cli::fixcharge::{BulkFixedCharge, InterfaceFixedCharge};
-    use crate::cli::measurement::{Measurement, Stress, Temperature, Time, Voltage};
-    use crate::cli::mesh::MeshParams;
-    use crate::cli::sim_settings::SimSettings;
-    use crate::cli::structure::{DeviceStructure, MaterialType};
+    use crate::config::boundary_conditions::BoundaryConditions;
+    use crate::config::fixcharge::{BulkFixedCharge, InterfaceFixedCharge};
+    use crate::config::measurement::{Measurement, Stress, Temperature, Time, Voltage};
+    use crate::config::mesh::MeshParams;
+    use crate::config::sim_settings::SimSettings;
+    use crate::config::structure::{DeviceStructure, MaterialType};
     use approx::relative_eq;
 
     fn create_dummy_configuration(
@@ -234,9 +234,10 @@ mod tests {
                 temperature: Temperature { temperature: 300.0 },
                 voltage: Voltage {
                     start: 0.0,
-                    stop: 1.0,
+                    end: 1.0,
                     step: 0.1,
                 },
+                ac_voltage: 0.02,
                 time: Time {
                     measurement_time: 100.0,
                 },

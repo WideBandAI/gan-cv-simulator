@@ -3,12 +3,13 @@ use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 use indicatif::{ProgressBar, ProgressStyle};
-use std::time;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Potential {
     pub depth: Vec<f64>,
     pub potential: Vec<f64>,
+    pub electron_density: Vec<f64>,
+    pub ionized_donor_concentration: Vec<f64>,
 }
 
 #[derive(Debug)]
@@ -59,6 +60,8 @@ impl PoissonSolver {
         let potential = Potential {
             depth: mesh_structure.depth.clone(),
             potential: vec![initial_potential; mesh_structure.id.len()],
+            electron_density: vec![0.0; mesh_structure.id.len()],
+            ionized_donor_concentration: vec![0.0; mesh_structure.id.len()],
         };
         Self {
             potential,
@@ -76,9 +79,9 @@ impl PoissonSolver {
     ///
     /// # Arguments
     ///
-    /// - `gate_voltage` (`f64`) - The voltage applied to the gate.
-    /// - `barrier_height` (`f64`) - The barrier height at the gate, which is the energy difference between the gate material and the surface material.
-    /// - `ec_ef_bottom` (`f64`) - The energy difference between the conduction band and Fermi level at the bottom of the structure.
+    /// - `surface_potential` (`f64`) - The potential at the surface Ec- Ef in eV (gate side).
+    /// - `bottom_potential` (`f64`) - The potential at the bottom Ec- Ef in eV (barrier side).
+    ///
     ///
     /// # Examples
     ///
@@ -87,15 +90,11 @@ impl PoissonSolver {
     ///
     /// let _ = set_boundary_conditions();
     /// ```
-    pub fn set_boundary_conditions(
-        &mut self,
-        gate_voltage: f64,
-        barrier_height: f64,
-        ec_ef_bottom: f64,
-    ) {
+    pub fn set_boundary_conditions(&mut self, surface_potential: f64, bottom_potential: f64) {
         self.potential.potential[0] =
-            -gate_voltage + barrier_height - self.mesh_structure.delta_conduction_band[0];
-        self.potential.potential[self.mesh_structure.id.len() - 1] = ec_ef_bottom;
+            surface_potential - self.mesh_structure.delta_conduction_band[0];
+        self.potential.potential[self.mesh_structure.id.len() - 1] = bottom_potential
+            - self.mesh_structure.delta_conduction_band[self.mesh_structure.id.len() - 1];
     }
 
     /// Set temperature
@@ -126,39 +125,51 @@ impl PoissonSolver {
     ///
     /// let _ = solve_poisson();
     /// ```
-    pub fn solve_poisson(&mut self) {
-        let start = time::Instant::now();
+    pub fn solve_poisson(&mut self) -> usize {
         let pb = ProgressBar::new(self.max_iterations as u64);
-        pb.set_style(ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {msg}")
-            .unwrap());
-
-        let mut sum_delta_potential = 0.0;
-        for iteration in 1..=self.max_iterations {
-            sum_delta_potential = self.solve_poisson_with_sor();
-            pb.inc(1);
-            if sum_delta_potential <= self.convergence_threshold {
-                println!(
-                    "Converged at iteration {}: Sum of Delta Potential: {:e}",
-                    iteration, sum_delta_potential
-                );
-                return;
-            }
-        }
-        println!(
-            "Did not converge after {} iterations. Final Sum of Delta Potential: {:e}",
-            self.max_iterations, sum_delta_potential
+        pb.set_style(
+            ProgressStyle::default_bar()
+                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {msg}")
+                .unwrap(),
         );
 
-        let duration = start.elapsed();
-        println!("Time elapsed in solve_poisson: {} ms", duration.as_millis());
+        let mut sum_delta_potential = 0.0;
+        let mut iter_count: usize = 0;
+
+        for i in 1..=self.max_iterations {
+            iter_count = i;
+            sum_delta_potential = self.solve_poisson_with_sor();
+
+            // update progress bar message with current sum of delta potential
+            pb.set_message(format!("Δ φ={:.3e}", sum_delta_potential));
+            pb.inc(1);
+
+            // break early if convergence criterion satisfied
+            if sum_delta_potential <= self.convergence_threshold {
+                break;
+            }
+        }
+
+        pb.set_position(iter_count as u64);
+        if iter_count >= self.max_iterations {
+            pb.finish_with_message(format!(
+                "Δ φ={:.3e}. Reached max iterations without convergence.",
+                sum_delta_potential
+            ));
+        } else {
+            pb.abandon_with_message(format!(
+                "Δ φ={:.3e}. Reached convergence criterion.",
+                sum_delta_potential
+            ));
+        }
+        iter_count
     }
 
     /// Get potential profile
     ///
     /// # Returns
     ///
-    /// - `Vec<(f64, f64)>` - A vector of tuples representing the depth and potential values of the potential profile.
+    /// - `Vec<(f64, f64, f64, f64)>` - A vector of tuples containing depth, potential, electron density, and ionized donor concentration at each mesh point.
     ///
     /// # Examples
     ///
@@ -167,14 +178,30 @@ impl PoissonSolver {
     ///
     /// let _ = get_potential_profile();
     /// ```
-    pub fn get_potential_profile(&self) -> Vec<(f64, f64)> {
-        self.potential
-            .depth
-            .iter()
-            .zip(self.potential.potential.iter())
-            .zip(self.mesh_structure.delta_conduction_band.iter())
-            .map(|((d, p), dcb)| (*d, *p + *dcb))
-            .collect()
+    pub fn get_potential_profile(&mut self) -> Potential {
+        self.calculate_electron_density();
+        self.calculate_ionized_donor_concentration();
+        self.potential.clone()
+    }
+
+    fn calculate_electron_density(&mut self) {
+        for idx in 0..self.mesh_structure.id.len() {
+            self.potential.electron_density[idx] = self.electron_density_model.electron_density(
+                self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
+                self.mesh_structure.mass_electron[idx],
+            );
+        }
+    }
+
+    fn calculate_ionized_donor_concentration(&mut self) {
+        for idx in 0..self.mesh_structure.id.len() {
+            self.potential.ionized_donor_concentration[idx] =
+                self.donor_activation_model.ionized_donor_concentration(
+                    self.mesh_structure.donor_concentration[idx],
+                    self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
+                        - self.mesh_structure.energy_level_donor[idx],
+                );
+        }
     }
 
     fn solve_poisson_with_sor(&mut self) -> f64 {
@@ -196,7 +223,6 @@ impl PoissonSolver {
     fn solve_bulk(&self, idx: usize) -> f64 {
         let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
         let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
-
         let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
             FixChargeDensity::Bulk(q) => q, // in 1/m^3
             _ => 0.0,
@@ -228,7 +254,7 @@ impl PoissonSolver {
         let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
         let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
         let c_upper = self.mesh_structure.permittivity[idx - 1] / upper_mesh_length;
-        let c_lower = self.mesh_structure.permittivity[idx] / lower_mesh_length;
+        let c_lower = self.mesh_structure.permittivity[idx + 1] / lower_mesh_length;
 
         let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
             FixChargeDensity::Interface(q) => q, // in 1/m^2
@@ -285,6 +311,32 @@ mod tests {
 
     // ノード構成 (Interface 含む):
     //   [0] Surface      depth=0.0
+    //   [1] Bulk(0)      depth=1
+    //   [2] Interface(0) depth=2
+    //   [3] Bulk(1)      depth=3
+    //   [4] Bottom       depth=4
+    // -----------------------------------------------------------------------
+    fn make_simple_insulator_mesh(permittivity: f64, bulk_fixcharge: f64) -> MeshStructure {
+        let n = 4;
+        MeshStructure {
+            id: vec![IDX::Surface, IDX::Bulk(0), IDX::Bulk(0), IDX::Bottom],
+            depth: vec![0.0, 1.0, 2.0, 3.0],
+            mass_electron: vec![0.0, 0.0, 0.0, 0.0],
+            permittivity: vec![0.0, permittivity, permittivity, 0.0],
+            delta_conduction_band: vec![0.0; n],
+            donor_concentration: vec![0.0, 0.0, 0.0, 0.0],
+            energy_level_donor: vec![0.0, 0.0, 0.0, 0.0],
+            fixcharge_density: vec![
+                FixChargeDensity::Bulk(0.0),
+                FixChargeDensity::Bulk(bulk_fixcharge),
+                FixChargeDensity::Bulk(bulk_fixcharge),
+                FixChargeDensity::Bulk(0.0),
+            ],
+        }
+    }
+
+    // ノード構成 (Interface 含む):
+    //   [0] Surface      depth=0.0
     //   [1] Bulk(0)      depth=1e-9
     //   [2] Interface(0) depth=2e-9
     //   [3] Bulk(1)      depth=3e-9
@@ -299,7 +351,7 @@ mod tests {
                 IDX::Bulk(1),
                 IDX::Bottom,
             ],
-            depth: vec![0.0, 1e-9, 2e-9, 3e-9, 4e-9],
+            depth: vec![0.0, 1.0, 2.0, 3.0, 4.0],
             mass_electron: vec![0.0, 0.2, 0.0, 0.2, 0.0],
             permittivity: vec![0.0, permittivity, 0.0, permittivity, 0.0],
             delta_conduction_band: vec![0.0; n],
@@ -361,7 +413,7 @@ mod tests {
         let gate_voltage = 1.0;
         let barrier_height = 0.8;
         let ec_ef_bottom = 0.1;
-        solver.set_boundary_conditions(gate_voltage, barrier_height, ec_ef_bottom);
+        solver.set_boundary_conditions(-gate_voltage + barrier_height, ec_ef_bottom);
 
         let expected_surface = -gate_voltage + barrier_height - delta_ec_0;
         assert!(
@@ -384,7 +436,7 @@ mod tests {
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
 
         let ec_ef_bottom = 0.3;
-        solver.set_boundary_conditions(0.0, 0.0, ec_ef_bottom);
+        solver.set_boundary_conditions(0.0, ec_ef_bottom);
 
         assert!(
             relative_eq!(
@@ -396,39 +448,6 @@ mod tests {
             solver.potential.potential[n - 1],
             ec_ef_bottom
         );
-    }
-
-    // -----------------------------------------------------------------------
-    // get_potential_profile()
-    // -----------------------------------------------------------------------
-
-    /// get_potential_profile() が (depth, potential) のペアを正しく返すこと
-    #[test]
-    fn test_get_potential_profile_returns_depth_potential_pairs() {
-        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
-        let initial_potential = 0.5;
-        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
-
-        let profile = solver.get_potential_profile();
-
-        let expected_depths = vec![0.0, 1e-9, 2e-9, 3e-9];
-        assert_eq!(profile.len(), expected_depths.len());
-        for (i, (depth, potential)) in profile.iter().enumerate() {
-            assert!(
-                relative_eq!(*depth, expected_depths[i], epsilon = 1e-20),
-                "depth[{}]: {} != {}",
-                i,
-                depth,
-                expected_depths[i]
-            );
-            assert!(
-                relative_eq!(*potential, initial_potential, epsilon = 1e-15),
-                "potential[{}]: {} != {}",
-                i,
-                potential,
-                initial_potential
-            );
-        }
     }
 
     // -----------------------------------------------------------------------
@@ -445,9 +464,13 @@ mod tests {
         // fixcharge=0 → rho=0 完全にゼロ電荷
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 100_000);
-        solver.set_boundary_conditions(0.0, 0.5, 0.1); // surface=0.5, bottom=0.1
+        solver.set_boundary_conditions(0.5, 0.1); // surface=0.5, bottom=0.1
 
-        solver.solve_poisson(); // panic しないこと
+        let iters = solver.solve_poisson(); // panic しないこと
+        assert!(
+            iters <= solver.max_iterations,
+            "iterations should not exceed max"
+        );
 
         // 境界条件が変わっていないこと
         assert!(
@@ -485,6 +508,33 @@ mod tests {
         );
     }
 
+    /// 閾値を非常に大きくすると、1回目のイテレーションで収束判定が
+    /// 真となり返り値が 1 になること
+    #[test]
+    fn test_solve_poisson_returns_one_iteration_if_threshold_large() {
+        let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, f64::MAX, 1000);
+        solver.set_boundary_conditions(0.0, 0.2);
+
+        let iters = solver.solve_poisson();
+        assert_eq!(
+            iters, 1,
+            "solver should stop after first iteration with huge threshold"
+        );
+    }
+
+    /// 負の閾値を与えると収束判定が絶対に成立せず、
+    /// `max_iterations` 全部が実行されること
+    #[test]
+    fn test_solve_poisson_runs_full_iterations_if_threshold_negative() {
+        let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, -1.0, 123);
+        solver.set_boundary_conditions(0.0, 0.5);
+
+        let iters = solver.solve_poisson();
+        assert_eq!(iters, solver.max_iterations);
+    }
+
     // -----------------------------------------------------------------------
     // solve_interface() — インターフェースノードの delta_potential
     // -----------------------------------------------------------------------
@@ -514,8 +564,8 @@ mod tests {
         // → delta = potential[1] − potential[2] = 0.2 − 0.0 = 0.2
         let delta = solver.solve_interface(2);
         assert!(
-            relative_eq!(delta, 0.2, epsilon = 1e-12),
-            "interface delta_potential = {} (expected 0.2)",
+            relative_eq!(delta, 0.3, epsilon = 1e-12),
+            "interface delta_potential = {} (expected 0.3)",
             delta
         );
     }
@@ -597,6 +647,40 @@ mod tests {
             relative_eq!(delta, -4.5, max_relative = 1e-4),
             "bulk delta should approach average: {} (expected -4.5)",
             delta
+        );
+    }
+
+    /// bulk potentialの更新
+    #[test]
+    fn test_solve_bulk_with_charge() {
+        let eps = 1.0;
+        let bulk_fixcharge = 1.0 / Q_ELECTRON;
+        let mesh = make_simple_insulator_mesh(eps, bulk_fixcharge);
+        let initial_potential = 0.0;
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+        let delta_poisson = solver.solve_bulk(1);
+
+        assert!(
+            relative_eq!(delta_poisson, -0.5, max_relative = 1e-4),
+            "bulk delta should approach average: {} (expected -0.5)",
+            delta_poisson
+        );
+    }
+
+    //interface potentialの更新
+    #[test]
+    fn test_solve_interface_with_charge() {
+        let eps = 1.0;
+        let interface_fixcharge = 1.0 / Q_ELECTRON;
+        let mesh = make_interface_mesh(eps, interface_fixcharge);
+        let initial_potential = 1.0;
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+        let delta_poisson = solver.solve_interface(2);
+
+        assert!(
+            relative_eq!(delta_poisson, -0.5, max_relative = 1e-6),
+            "interface delta should be affected by fixcharge: {} (expected -0.5)",
+            delta_poisson
         );
     }
 }

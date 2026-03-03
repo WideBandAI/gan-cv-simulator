@@ -1,6 +1,6 @@
-use crate::cli::structure::DeviceStructure;
+use crate::config::structure::DeviceStructure;
 use crate::constants::units::{CM2_TO_M2, CM3_TO_M3};
-use crate::utils::get_parsed_input;
+use crate::utils::get_parsed_input_with_default;
 
 #[derive(Debug)]
 pub struct BulkFixedCharge {
@@ -42,10 +42,13 @@ pub fn define_bulk_fixed_charge(device_structure: &DeviceStructure) -> BulkFixed
 
     for i in 0..num_layers {
         println!("Layer {} (Name: {})", i, device_structure.name[i]);
-        let charge_density: f64 = get_parsed_input(&format!(
-            "Enter fixed charge density (C/cm^3) for layer {}: ",
-            device_structure.id[i]
-        ));
+        let charge_density: f64 = get_parsed_input_with_default(
+            &format!(
+                "Enter fixed charge density (C/cm^3) for layer {}: default is 0 ",
+                device_structure.id[i]
+            ),
+            0.0,
+        );
         bulkfixedcharge.layer_id.push(device_structure.id[i]);
         bulkfixedcharge
             .charge_density
@@ -89,10 +92,13 @@ pub fn define_interface_fixed_charge(device_structure: &DeviceStructure) -> Inte
             device_structure.id[i + 1],
             device_structure.name[i + 1]
         );
-        let charge_density: f64 = get_parsed_input(&format!(
-            "Enter fixed charge density (C/cm^2) for interface {}: ",
-            i
-        ));
+        let charge_density: f64 = get_parsed_input_with_default(
+            &format!(
+                "Enter fixed charge density (C/cm^2) for interface {}: default is 0 ",
+                i
+            ),
+            0.0,
+        );
         interfacefixedcharge.interface_id.push(i as u32);
         interfacefixedcharge
             .charge_density

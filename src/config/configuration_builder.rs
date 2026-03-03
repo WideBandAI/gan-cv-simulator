@@ -1,17 +1,17 @@
-use crate::cli::boundary_conditions::define_boundary_conditions;
-use crate::cli::boundary_conditions::BoundaryConditions;
-use crate::cli::fixcharge::define_bulk_fixed_charge;
-use crate::cli::fixcharge::define_interface_fixed_charge;
-use crate::cli::fixcharge::BulkFixedCharge;
-use crate::cli::fixcharge::InterfaceFixedCharge;
-use crate::cli::measurement::define_measurement;
-use crate::cli::measurement::Measurement;
-use crate::cli::mesh::define_mesh_params;
-use crate::cli::mesh::MeshParams;
-use crate::cli::sim_settings::define_sim_settings;
-use crate::cli::sim_settings::SimSettings;
-use crate::cli::structure::define_structure;
-use crate::cli::structure::DeviceStructure;
+use crate::config::boundary_conditions::define_boundary_conditions;
+use crate::config::boundary_conditions::BoundaryConditions;
+use crate::config::fixcharge::define_bulk_fixed_charge;
+use crate::config::fixcharge::define_interface_fixed_charge;
+use crate::config::fixcharge::BulkFixedCharge;
+use crate::config::fixcharge::InterfaceFixedCharge;
+use crate::config::measurement::define_measurement;
+use crate::config::measurement::Measurement;
+use crate::config::mesh::define_mesh_params;
+use crate::config::mesh::MeshParams;
+use crate::config::sim_settings::define_sim_settings;
+use crate::config::sim_settings::SimSettings;
+use crate::config::structure::define_structure;
+use crate::config::structure::DeviceStructure;
 
 #[derive(Debug)]
 pub struct Configuration {

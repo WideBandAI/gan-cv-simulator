@@ -43,12 +43,22 @@ pub fn get_parsed_input_with_default<T: FromStr + Clone>(prompt: &str, default: 
 /// # Arguments
 ///
 /// * `path` - filesystem path for the CSV output
-/// * `profile` - slice of `(depth, potential)` tuples
-pub fn write_potential_profile_csv(path: &str, profile: &[(f64, f64)]) -> std::io::Result<()> {
+/// * `profile` - slice of `(depth, potential, electron_density, ionized_donor_concentration)` tuples
+pub fn write_potential_profile_csv(
+    path: &str,
+    profile: &[(f64, f64, f64, f64)],
+) -> std::io::Result<()> {
     let mut file = std::fs::File::create(path)?;
-    writeln!(file, "depth,potential")?;
-    for &(depth, pot) in profile {
-        writeln!(file, "{},{}", depth, pot)?;
+    writeln!(
+        file,
+        "depth,potential,electron_density,ionized_donor_concentration"
+    )?;
+    for &(depth, pot, electron_density, ionized_donor_concentration) in profile {
+        writeln!(
+            file,
+            "{},{},{},{}",
+            depth, pot, electron_density, ionized_donor_concentration
+        )?;
     }
     Ok(())
 }
@@ -64,7 +74,7 @@ mod tests {
         let tmp_dir = std::env::temp_dir();
         let mut file_path = PathBuf::from(&tmp_dir);
         file_path.push("test_profile.csv");
-        let profile = vec![(0.0, 1.0), (2.5, -0.5)];
+        let profile = vec![(0.0, 1.0, 2.0, 3.0), (2.5, -0.5, 4.0, 5.0)];
         let path_str = file_path.to_str().unwrap();
 
         // ensure previous file is removed
@@ -73,9 +83,12 @@ mod tests {
         write_potential_profile_csv(path_str, &profile).expect("failed to write csv");
 
         let contents = fs::read_to_string(path_str).expect("failed to read csv");
-        assert!(contents.starts_with("depth,potential"));
-        assert!(contents.contains("0,1"));
-        assert!(contents.contains("2.5,-0.5"));
+        assert!(
+            contents.starts_with("depth,potential,electron_density,ionized_donor_concentration")
+        );
+        assert!(contents.contains("0,1,2,3"));
+        // f64 formatting drops trailing .0; expect minimal representation
+        assert!(contents.contains("2.5,-0.5,4,5"));
 
         // cleanup
         let _ = fs::remove_file(path_str);

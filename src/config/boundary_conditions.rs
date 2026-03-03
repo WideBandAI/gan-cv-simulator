@@ -1,8 +1,25 @@
-use crate::cli::measurement::Measurement;
-use crate::cli::structure::{DeviceStructure, MaterialType};
+use crate::config::measurement::Measurement;
+use crate::config::structure::{DeviceStructure, MaterialType};
 use crate::physics_equations::equilibrium_potential::equilibrium_potential_n_type;
 use crate::utils::{get_parsed_input, get_parsed_input_with_default};
 
+/// Boundary conditions for the potential solver.
+///
+/// # Fields
+///
+/// - `barrier_height` (`f64`) - The barrier height in eV.
+/// - `ec_ef_bottom` (`f64`) - The potential difference between the bottom layer's conduction band and fermi level in eV.
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let s = BoundaryConditions {
+///     barrier_height: value,
+///     ec_ef_bottom: value,
+/// };
+/// ```
 #[derive(Debug)]
 pub struct BoundaryConditions {
     pub barrier_height: f64,
