@@ -118,7 +118,7 @@ impl CVSolver {
         self.poisson_solver.solve_poisson();
         let potential_at_vg = self.poisson_solver.get_potential_profile();
         let mut total_electron_density = 0.0; // in m2
-        for idx in 0..potential_at_vg.depth.len() {
+        for idx in 1..potential_at_vg.depth.len() - 1 {
             if potential_at_vg.electron_density[idx] > 0.0 {
                 let upper_mesh_length = potential_at_vg.depth[idx] - potential_at_vg.depth[idx - 1];
                 let lower_mesh_length = potential_at_vg.depth[idx + 1] - potential_at_vg.depth[idx];
