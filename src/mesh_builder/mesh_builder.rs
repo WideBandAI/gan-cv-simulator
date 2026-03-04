@@ -278,7 +278,7 @@ mod tests {
                 ec_ef_bottom: 0.1,
             },
             sim_settings: SimSettings {
-                sor_relaxation_factor: 1.9,
+                damping_factor: 1.0,
                 convergence_criterion: 1e-6,
                 max_iterations: 500000,
             },

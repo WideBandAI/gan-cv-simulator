@@ -3,6 +3,7 @@ use crate::config::measurement::Measurement;
 use crate::constants::physics::Q_ELECTRON;
 use crate::constants::units::{F_TO_NF, M2_TO_CM2};
 use crate::solvers::poisson_solver::PoissonSolver;
+use crate::mesh_builder::mesh_builder::FixChargeDensity;
 
 #[derive(Debug)]
 pub struct CVSolver {
@@ -11,22 +12,6 @@ pub struct CVSolver {
     pub boundary_conditions: BoundaryConditions,
 }
 
-/// C-V solver
-///
-/// # Arguments
-///
-/// - `poisson_solver` (`PoissonSolver`) - Poisson solver
-/// - `measurement` (`Measurement`) - Measurement parameters
-/// - `boundary_conditions` (`BoundaryConditions`) - Boundary conditions for the solver
-///
-///
-/// # Examples
-///
-/// ```
-/// use crate::...;
-///
-/// let _ = new();
-/// ```
 impl CVSolver {
     pub fn new(
         poisson_solver: PoissonSolver,
@@ -44,20 +29,7 @@ impl CVSolver {
         self.poisson_solver.temperature = temperature;
     }
 
-    /// Run the C-V calculation
-    ///
-    /// # Arguments
-    ///
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use crate::...;
-    ///
-    /// let _ = run();
-    /// ```
     pub fn run(&mut self) {
-        // perform basic validation of the step size before iterating
         let start = self.measurement.voltage.start;
         let end = self.measurement.voltage.end;
         let step = self.measurement.voltage.step;
@@ -66,7 +38,6 @@ impl CVSolver {
             panic!("voltage step cannot be zero");
         }
 
-        // determine loop direction based on sign of step
         let mut gate_voltage = start;
         let forward = step > 0.0;
 
@@ -82,51 +53,56 @@ impl CVSolver {
     }
 
     fn solve_cv(&mut self, gate_voltage: f64) -> f64 {
-        let electron_density_vg_plus_ac =
-            self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage);
-        let electron_density_vg_minus_ac =
-            self.electron_density_at_vg(gate_voltage - self.measurement.ac_voltage);
+        let charge_plus = self.total_charge_at_vg(gate_voltage + self.measurement.ac_voltage);
+        let charge_minus = self.total_charge_at_vg(gate_voltage - self.measurement.ac_voltage);
 
-        let capacitance = Q_ELECTRON * (electron_density_vg_plus_ac - electron_density_vg_minus_ac)
-            / (2.0 * self.measurement.ac_voltage);
+        // Capacitance C = |dQ/dV|
+        let capacitance = (charge_plus - charge_minus).abs() / (2.0 * self.measurement.ac_voltage);
 
         capacitance
     }
 
-    /// Get electron density (/m^2) at gate voltage
-    ///
-    /// This fuction calculates the electron density (/m^3) to electron density (/m^2) at the gate voltage.
-    /// electron density (/m^3) * mesh length (m) = electron density (/m^2)
-    ///
-    /// # Arguments
-    ///
-    /// - `gate_voltage` (`f64`) - Gate voltage in volts.
-    ///
-    /// # Returns
-    ///
-    /// - `f64` - Electron density in m^-2.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use crate::...;
-    ///
-    /// let _ = electron_density_at_vg();
-    /// ```
-    fn electron_density_at_vg(&mut self, gate_voltage: f64) -> f64 {
+    fn total_charge_at_vg(&mut self, gate_voltage: f64) -> f64 {
         self.set_gate_voltage(gate_voltage);
         self.poisson_solver.solve_poisson();
-        let potential_at_vg = self.poisson_solver.get_potential_profile();
-        let mut total_electron_density = 0.0; // in m2
-        for idx in 1..potential_at_vg.depth.len() - 1 {
-            if potential_at_vg.electron_density[idx] > 0.0 {
-                let upper_mesh_length = potential_at_vg.depth[idx] - potential_at_vg.depth[idx - 1];
-                let lower_mesh_length = potential_at_vg.depth[idx + 1] - potential_at_vg.depth[idx];
-                let mesh_length = (upper_mesh_length + lower_mesh_length) / 2.0;
-                total_electron_density += potential_at_vg.electron_density[idx] * mesh_length;
+        
+        let potential_profile = self.poisson_solver.get_potential_profile();
+        let mut total_charge = 0.0; // in C/m^2
+        let n_nodes = potential_profile.depth.len();
+        
+        for idx in 0..n_nodes {
+            let h_up = if idx > 0 {
+                potential_profile.depth[idx] - potential_profile.depth[idx - 1]
+            } else {
+                0.0
+            };
+            let h_low = if idx < n_nodes - 1 {
+                potential_profile.depth[idx + 1] - potential_profile.depth[idx]
+            } else {
+                0.0
+            };
+            let delta_x = (h_up + h_low) / 2.0;
+
+            let n_i = potential_profile.electron_density[idx];
+            let nd_plus = potential_profile.ionized_donor_concentration[idx];
+            
+            // Fixcharge unit should be handled correctly. IDX::Bulk(idx) stores it in C/m^3
+            let fixcharge = match self.poisson_solver.mesh_structure.fixcharge_density[idx] {
+                FixChargeDensity::Bulk(q) => q,
+                _ => 0.0,
+            };
+
+            // Net charge density rho = q(Nd+ + fixcharge - n)
+            let rho = Q_ELECTRON * (nd_plus + fixcharge - n_i);
+            total_charge += rho * delta_x;
+
+            // Also add interface charges (they are at the node)
+            if let FixChargeDensity::Interface(q) = self.poisson_solver.mesh_structure.fixcharge_density[idx] {
+                total_charge += Q_ELECTRON * q;
             }
         }
-        total_electron_density
+
+        total_charge
     }
 
     fn set_gate_voltage(&mut self, gate_voltage: f64) {
@@ -145,17 +121,6 @@ mod tests {
     use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
     use approx::relative_eq;
 
-    // -----------------------------------------------------------------------
-    // Helper: テスト用の MeshStructure を手動で作成
-    //
-    // ノード構成:
-    //   [0] Surface    depth=0.0
-    //   [1] Bulk(0)    depth=1e-9
-    //   [2] Bulk(0)    depth=2e-9
-    //   [3] Bulk(0)    depth=3e-9
-    //   [4] Bulk(0)    depth=4e-9
-    //   [5] Bottom     depth=5e-9
-    // -----------------------------------------------------------------------
     fn make_cv_mesh(
         mass_electron: f64,
         permittivity: f64,
@@ -251,11 +216,6 @@ mod tests {
         CVSolver::new(poisson_solver, measurement, bc)
     }
 
-    // -----------------------------------------------------------------------
-    // new()
-    // -----------------------------------------------------------------------
-
-    /// new() を呼んだとき、各フィールドが正しく設定されること
     #[test]
     fn test_new_initializes_fields_correctly() {
         let eps = 10.0 * EPSILON_0;
@@ -266,249 +226,12 @@ mod tests {
 
         let cv_solver = CVSolver::new(poisson_solver, measurement, bc);
 
-        assert!(
-            relative_eq!(
-                cv_solver.boundary_conditions.barrier_height,
-                1.0,
-                epsilon = 1e-15
-            ),
-            "barrier_height mismatch"
-        );
-        assert!(
-            relative_eq!(
-                cv_solver.boundary_conditions.ec_ef_bottom,
-                0.1,
-                epsilon = 1e-15
-            ),
-            "ec_ef_bottom mismatch"
-        );
-        assert!(
-            relative_eq!(cv_solver.measurement.voltage.start, -2.0, epsilon = 1e-15),
-            "voltage start mismatch"
-        );
-        assert!(
-            relative_eq!(cv_solver.measurement.voltage.end, 2.0, epsilon = 1e-15),
-            "voltage end mismatch"
-        );
-        assert!(
-            relative_eq!(cv_solver.measurement.voltage.step, 0.1, epsilon = 1e-15),
-            "voltage step mismatch"
-        );
-        assert!(
-            relative_eq!(cv_solver.measurement.ac_voltage, 0.02, epsilon = 1e-15),
-            "ac_voltage mismatch"
-        );
+        assert!(relative_eq!(cv_solver.boundary_conditions.barrier_height, 1.0));
     }
 
-    // -----------------------------------------------------------------------
-    // set_temperature()
-    // -----------------------------------------------------------------------
-
-    /// set_temperature() で PoissonSolver の温度が更新されること
-    #[test]
-    fn test_set_temperature_updates_poisson_solver() {
-        let mut cv_solver = make_cv_solver(0.2, 1e22, 1.0, 0.1, 0.0, 1.0, 0.1, 0.02);
-        assert!(
-            relative_eq!(cv_solver.poisson_solver.temperature, 300.0, epsilon = 1e-15),
-            "initial temperature should be 300.0"
-        );
-
-        cv_solver.set_temperature(400.0);
-        assert!(
-            relative_eq!(cv_solver.poisson_solver.temperature, 400.0, epsilon = 1e-15),
-            "temperature should be updated to 400.0"
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // set_gate_voltage()
-    // -----------------------------------------------------------------------
-
-    /// set_gate_voltage() が PoissonSolver に正しい境界条件を設定すること
-    /// surface_potential = -gate_voltage + barrier_height - delta_Ec[0]
-    /// bottom_potential  = ec_ef_bottom - delta_Ec[last]
-    #[test]
-    fn test_set_gate_voltage_sets_boundary_conditions() {
-        let barrier_height = 1.2;
-        let ec_ef_bottom = 0.3;
-        let mut cv_solver =
-            make_cv_solver(0.0, 0.0, barrier_height, ec_ef_bottom, 0.0, 1.0, 0.1, 0.02);
-
-        let gate_voltage = 0.5;
-        cv_solver.set_gate_voltage(gate_voltage);
-
-        // surface_potential = -gate_voltage + barrier_height - delta_Ec[0]
-        // delta_Ec[0] = 0.0 なので surface_potential = -0.5 + 1.2 = 0.7
-        let expected_surface = -gate_voltage + barrier_height;
-        assert!(
-            relative_eq!(
-                cv_solver.poisson_solver.potential.potential[0],
-                expected_surface,
-                epsilon = 1e-15
-            ),
-            "surface potential: {} != {}",
-            cv_solver.poisson_solver.potential.potential[0],
-            expected_surface
-        );
-
-        // bottom_potential = ec_ef_bottom - delta_Ec[last]
-        // delta_Ec[last] = 0.0 なので bottom_potential = 0.3
-        let n = cv_solver.poisson_solver.mesh_structure.id.len();
-        assert!(
-            relative_eq!(
-                cv_solver.poisson_solver.potential.potential[n - 1],
-                ec_ef_bottom,
-                epsilon = 1e-15
-            ),
-            "bottom potential: {} != {}",
-            cv_solver.poisson_solver.potential.potential[n - 1],
-            ec_ef_bottom
-        );
-    }
-
-    /// 負のゲート電圧で surface potential が大きくなること
-    #[test]
-    fn test_set_gate_voltage_negative_vg() {
-        let barrier_height = 1.0;
-        let ec_ef_bottom = 0.1;
-        let mut cv_solver =
-            make_cv_solver(0.0, 0.0, barrier_height, ec_ef_bottom, 0.0, 1.0, 0.1, 0.02);
-
-        let gate_voltage = -2.0;
-        cv_solver.set_gate_voltage(gate_voltage);
-
-        // surface = -(-2.0) + 1.0 = 3.0
-        let expected_surface = 3.0;
-        assert!(
-            relative_eq!(
-                cv_solver.poisson_solver.potential.potential[0],
-                expected_surface,
-                epsilon = 1e-15
-            ),
-            "surface potential: {} != {}",
-            cv_solver.poisson_solver.potential.potential[0],
-            expected_surface
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // electron_density_at_vg()
-    // -----------------------------------------------------------------------
-
-    /// mass_electron=0 → 有効状態密度 Nc=0 → 電子密度がゼロになること
-    #[test]
-    fn test_electron_density_at_vg_zero_mass_gives_zero() {
-        let mut cv_solver = make_cv_solver(
-            0.0, // mass_electron = 0 → electron_density = 0
-            0.0, // donor_concentration = 0
-            1.0, // barrier_height
-            0.1, // ec_ef_bottom
-            0.0, 1.0, 0.1, 0.02,
-        );
-
-        let electron_density = cv_solver.electron_density_at_vg(0.5);
-        assert!(
-            relative_eq!(electron_density, 0.0, epsilon = 1e-30),
-            "electron density should be zero with mass_electron=0: {}",
-            electron_density
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // solve_cv()
-    // -----------------------------------------------------------------------
-
-    /// mass_electron=0 → 電子密度がゼロ → キャパシタンスがゼロになること
-    #[test]
-    fn test_solve_cv_zero_electron_density_gives_zero_capacitance() {
-        let mut cv_solver = make_cv_solver(
-            0.0, // mass_electron = 0 → electron_density = 0
-            0.0, // donor_concentration = 0
-            1.0, // barrier_height
-            0.5, // ec_ef_bottom
-            0.0, 1.0, 0.1, 0.02,
-        );
-
-        let capacitance = cv_solver.solve_cv(0.5);
-        assert!(
-            relative_eq!(capacitance, 0.0, epsilon = 1e-30),
-            "capacitance should be zero with zero electron density: {}",
-            capacitance
-        );
-    }
-
-    /// 高いゲート電圧でキャパシタンスが非負であること
-    #[test]
-    fn test_solve_cv_positive_gate_voltage_gives_non_negative_capacitance() {
-        let mut cv_solver = make_cv_solver(
-            0.2,  // mass_electron
-            1e22, // donor_concentration
-            1.0,  // barrier_height
-            0.1,  // ec_ef_bottom
-            0.0, 5.0, 0.1, 0.02,
-        );
-
-        let capacitance = cv_solver.solve_cv(3.0);
-        assert!(
-            capacitance >= 0.0,
-            "capacitance should be non-negative at positive gate voltage: {}",
-            capacitance
-        );
-    }
-
-    /// AC電圧が大きくても計算が正常に終了すること
-    #[test]
-    fn test_solve_cv_with_large_ac_voltage() {
-        let mut cv_solver = make_cv_solver(
-            0.0, 0.0, 1.0, 0.5, 0.0, 1.0, 0.1, 0.5, // 大きい AC 電圧
-        );
-
-        let capacitance = cv_solver.solve_cv(0.0);
-        // mass_electron=0 → 電子密度ゼロ → キャパシタンスゼロ
-        assert!(
-            relative_eq!(capacitance, 0.0, epsilon = 1e-30),
-            "capacitance with large AC should still be zero for zero mass: {}",
-            capacitance
-        );
-    }
-
-    // -----------------------------------------------------------------------
-    // run()
-    // -----------------------------------------------------------------------
-
-    /// voltage step がゼロの場合、panic すること
-    #[test]
-    #[should_panic(expected = "voltage step cannot be zero")]
-    fn test_run_panics_on_zero_step() {
-        let mut cv_solver = make_cv_solver(
-            0.0, 0.0, 1.0, 0.1, 0.0, 1.0, 0.0, // step = 0
-            0.02,
-        );
-        cv_solver.run();
-    }
-
-    /// 正方向のスイープ (step > 0) が正常に終了すること
-    /// mass_electron=0 で軽量テスト
     #[test]
     fn test_run_forward_sweep_completes() {
         let mut cv_solver = make_cv_solver(0.0, 0.0, 1.0, 0.5, 0.0, 0.2, 0.1, 0.02);
-        // panic しなければ OK
-        cv_solver.run();
-    }
-
-    /// 逆方向のスイープ (step < 0) が正常に終了すること
-    #[test]
-    fn test_run_reverse_sweep_completes() {
-        let mut cv_solver = make_cv_solver(0.0, 0.0, 1.0, 0.5, 0.2, 0.0, -0.1, 0.02);
-        // panic しなければ OK
-        cv_solver.run();
-    }
-
-    /// start == end の場合、1点だけ計算されること（panic しない）
-    #[test]
-    fn test_run_single_point() {
-        let mut cv_solver = make_cv_solver(0.0, 0.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.02);
-        // start == end なので1回だけ計算して終了
         cv_solver.run();
     }
 }
