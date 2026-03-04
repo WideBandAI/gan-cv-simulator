@@ -3,6 +3,7 @@ use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 use indicatif::{ProgressBar, ProgressStyle};
+use rayon::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct Potential {
@@ -205,19 +206,42 @@ impl PoissonSolver {
     }
 
     fn solve_poisson_with_sor(&mut self) -> f64 {
+        let n = self.mesh_structure.id.len();
         let mut sum_delta_potential = 0.0;
-        for idx in 1..self.mesh_structure.id.len() - 1 {
-            let delta_potential = match self.mesh_structure.id[idx] {
-                IDX::Bulk(_) => self.solve_bulk(idx),
-                IDX::Interface(_) => self.solve_interface(idx),
-                IDX::Surface | IDX::Bottom => {
-                    panic!("Boundary conditions should not be updated in SOR loop.")
-                }
-            };
-            self.potential.potential[idx] += self.sor_relaxation_factor * delta_potential;
-            sum_delta_potential += delta_potential.abs();
+
+        // Red phase (odd indices: 1, 3, 5, ...)
+        let red_indices: Vec<usize> = (1..n - 1).filter(|i| i % 2 == 1).collect();
+        let red_deltas: Vec<f64> = red_indices
+            .par_iter()
+            .map(|&idx| self.compute_delta(idx))
+            .collect();
+        for (i, &idx) in red_indices.iter().enumerate() {
+            self.potential.potential[idx] += self.sor_relaxation_factor * red_deltas[i];
+            sum_delta_potential += red_deltas[i].abs();
         }
+
+        // Black phase (even indices: 2, 4, 6, ...)
+        let black_indices: Vec<usize> = (1..n - 1).filter(|i| i % 2 == 0).collect();
+        let black_deltas: Vec<f64> = black_indices
+            .par_iter()
+            .map(|&idx| self.compute_delta(idx))
+            .collect();
+        for (i, &idx) in black_indices.iter().enumerate() {
+            self.potential.potential[idx] += self.sor_relaxation_factor * black_deltas[i];
+            sum_delta_potential += black_deltas[i].abs();
+        }
+
         sum_delta_potential
+    }
+
+    fn compute_delta(&self, idx: usize) -> f64 {
+        match self.mesh_structure.id[idx] {
+            IDX::Bulk(_) => self.solve_bulk(idx),
+            IDX::Interface(_) => self.solve_interface(idx),
+            IDX::Surface | IDX::Bottom => {
+                panic!("Boundary conditions should not be updated in SOR loop.")
+            }
+        }
     }
 
     fn solve_bulk(&self, idx: usize) -> f64 {
