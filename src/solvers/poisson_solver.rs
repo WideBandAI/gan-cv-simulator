@@ -8,23 +8,23 @@ use rayon::prelude::*;
 #[derive(Debug, Clone)]
 pub struct Potential {
     pub depth: Vec<f64>,
-    pub potential: Vec<f64>,
+    potential: Vec<f64>,
     pub electron_density: Vec<f64>,
-    pub ionized_donor_concentration: Vec<f64>,
+    ionized_donor_concentration: Vec<f64>,
 }
 
 #[derive(Debug)]
 pub struct PoissonSolver {
-    pub potential: Potential,
-    pub mesh_structure: MeshStructure,
+    potential: Potential,
+    mesh_structure: MeshStructure,
     pub temperature: f64,
-    pub sor_relaxation_factor: f64,
-    pub red_indices: Vec<usize>,
-    pub black_indices: Vec<usize>,
-    pub convergence_threshold: f64,
-    pub max_iterations: usize,
-    pub electron_density_model: Box<dyn ElectronDensity>,
-    pub donor_activation_model: DonorActivation,
+    sor_relaxation_factor: f64,
+    red_indices: Vec<usize>,
+    black_indices: Vec<usize>,
+    convergence_threshold: f64,
+    max_iterations: usize,
+    electron_density_model: Box<dyn ElectronDensity>,
+    donor_activation_model: DonorActivation,
 }
 
 /// Poisson equation solver using Successive Over-Relaxation (SOR) method.
