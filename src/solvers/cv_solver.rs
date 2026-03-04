@@ -6,7 +6,7 @@ use crate::solvers::poisson_solver::PoissonSolver;
 
 #[derive(Debug)]
 pub struct CVSolver {
-    poisson_solver: PoissonSolver,
+    pub poisson_solver: PoissonSolver,
     measurement: Measurement,
     boundary_conditions: BoundaryConditions,
 }

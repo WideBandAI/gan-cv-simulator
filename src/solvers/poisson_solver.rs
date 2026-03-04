@@ -8,15 +8,15 @@ use rayon::prelude::*;
 #[derive(Debug, Clone)]
 pub struct Potential {
     pub depth: Vec<f64>,
-    potential: Vec<f64>,
+    pub potential: Vec<f64>,
     pub electron_density: Vec<f64>,
     ionized_donor_concentration: Vec<f64>,
 }
 
 #[derive(Debug)]
 pub struct PoissonSolver {
-    potential: Potential,
-    mesh_structure: MeshStructure,
+    pub potential: Potential,
+    pub mesh_structure: MeshStructure,
     pub temperature: f64,
     sor_relaxation_factor: f64,
     red_indices: Vec<usize>,
