@@ -27,6 +27,30 @@ pub struct PoissonSolver {
     pub donor_activation_model: DonorActivation,
 }
 
+/// Poisson equation solver using Successive Over-Relaxation (SOR) method.
+///
+/// # Arguments
+///
+/// - `mesh_structure` (`MeshStructure`) - mesh structure containing depth, permittivity, charge densities, etc.
+/// - `initial_potential` (`f64`) - The initial potential value for all mesh points.
+/// - `temperature` (`f64`) - The temperature of the system, which affects the distribution of electrons and their energy levels.
+/// - `sor_relaxation_factor` (`f64`) - The relaxation factor for the SOR method, which controls how much of the new value is used in updating the potential.
+/// - `convergence_threshold` (`f64`) - The threshold for convergence, which determines when the iterative process stops.
+/// - `max_iterations` (`usize`) - The maximum number of iterations allowed before stopping the iterative process.
+/// - `electron_density_model` (`Box<dyn ElectronDensity>`) - The electron density model to use for calculating the electron density.
+/// - `donor_activation_model` (`DonorActivation`) - The donor activation model to use for calculating the donor activation.
+///
+/// # Returns
+///
+/// - `Self` - An instance of `PoissonSolver` initialized with the provided parameters.
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let _ = new();
+/// ```
 impl PoissonSolver {
     pub fn new(
         mesh_structure: MeshStructure,
@@ -62,6 +86,21 @@ impl PoissonSolver {
         }
     }
 
+    /// Setting the boundary conditions
+    ///
+    /// # Arguments
+    ///
+    /// - `surface_potential` (`f64`) - The potential at the surface Ec- Ef in eV (gate side).
+    /// - `bottom_potential` (`f64`) - The potential at the bottom Ec- Ef in eV (barrier side).
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = set_boundary_conditions();
+    /// ```
     pub fn set_boundary_conditions(&mut self, surface_potential: f64, bottom_potential: f64) {
         self.potential.potential[0] =
             surface_potential - self.mesh_structure.delta_conduction_band[0];
@@ -69,12 +108,34 @@ impl PoissonSolver {
             - self.mesh_structure.delta_conduction_band[self.mesh_structure.id.len() - 1];
     }
 
+    /// Set temperature
+    ///
+    /// # Arguments
+    ///
+    /// - `temperature` (`f64`) - The temperature of the system.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = set_temperature();
+    /// ```
     pub fn set_temperature(&mut self, temperature: f64) {
         self.temperature = temperature;
         self.donor_activation_model.set_temperature(temperature);
         self.electron_density_model.set_temperature(temperature);
     }
 
+    /// Solve poisson equation
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = solve_poisson();
+    /// ```
     pub fn solve_poisson(&mut self) -> usize {
         let pb = ProgressBar::new(self.max_iterations as u64);
         pb.set_style(
@@ -113,6 +174,19 @@ impl PoissonSolver {
         iter_count
     }
 
+    /// Get potential profile
+    ///
+    /// # Returns
+    ///
+    /// - `Vec<(f64, f64, f64, f64)>` - A vector of tuples containing depth, potential, electron density, and ionized donor concentration at each mesh point.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = get_potential_profile();
+    /// ```
     pub fn get_potential_profile(&mut self) -> Potential {
         self.calculate_electron_density();
         self.calculate_ionized_donor_concentration();

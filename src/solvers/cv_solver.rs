@@ -11,6 +11,22 @@ pub struct CVSolver {
     pub boundary_conditions: BoundaryConditions,
 }
 
+/// C-V solver
+///
+/// # Arguments
+///
+/// - `poisson_solver` (`PoissonSolver`) - Poisson solver
+/// - `measurement` (`Measurement`) - Measurement parameters
+/// - `boundary_conditions` (`BoundaryConditions`) - Boundary conditions for the solver
+///
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let _ = new();
+/// ```
 impl CVSolver {
     pub fn new(
         poisson_solver: PoissonSolver,
@@ -28,6 +44,18 @@ impl CVSolver {
         self.poisson_solver.temperature = temperature;
     }
 
+    /// Run the C-V calculation
+    ///
+    /// # Arguments
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = run();
+    /// ```
     pub fn run(&mut self) {
         let start = self.measurement.voltage.start;
         let end = self.measurement.voltage.end;
@@ -62,6 +90,23 @@ impl CVSolver {
         capacitance
     }
 
+    /// Total Q*n_s at VG
+    ///
+    /// # Arguments
+    ///
+    /// - `gate_voltage` (`f64`) - Gate voltage in V.
+    ///
+    /// # Returns
+    ///
+    /// - `f64` - Total charge density in C/m^2.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = total_charge_at_vg();
+    /// ```
     fn total_charge_at_vg(&mut self, gate_voltage: f64) -> f64 {
         self.set_gate_voltage(gate_voltage);
         self.poisson_solver.solve_poisson();
