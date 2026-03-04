@@ -433,7 +433,7 @@ mod tests {
     fn test_new_initializes_potential_with_initial_value() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let initial_potential = 0.5;
-        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false);
 
         assert_eq!(solver.potential.potential.len(), 4);
         for &p in &solver.potential.potential {
@@ -451,7 +451,7 @@ mod tests {
     fn test_new_copies_depth_from_mesh() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let expected_depth = mesh.depth.clone();
-        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
+        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
 
         assert_eq!(solver.potential.depth, expected_depth);
     }
@@ -465,7 +465,7 @@ mod tests {
     fn test_set_boundary_conditions_surface() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let delta_ec_0 = mesh.delta_conduction_band[0]; // 0.0
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
 
         let gate_voltage = 1.0;
         let barrier_height = 0.8;
@@ -490,7 +490,7 @@ mod tests {
     fn test_set_boundary_conditions_bottom() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let n = mesh.id.len();
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
 
         let ec_ef_bottom = 0.3;
         solver.set_boundary_conditions(0.0, ec_ef_bottom);
@@ -520,7 +520,7 @@ mod tests {
         // donor_concentration=0 → ionized_donor=0
         // fixcharge=0 → rho=0 完全にゼロ電荷
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 100_000);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 100_000, false);
         solver.set_boundary_conditions(0.5, 0.1); // surface=0.5, bottom=0.1
 
         let iters = solver.solve_poisson(); // panic しないこと
@@ -570,7 +570,7 @@ mod tests {
     #[test]
     fn test_solve_poisson_returns_one_iteration_if_threshold_large() {
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, f64::MAX, 1000);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, f64::MAX, 1000, false);
         solver.set_boundary_conditions(0.0, 0.2);
 
         let iters = solver.solve_poisson();
@@ -585,7 +585,7 @@ mod tests {
     #[test]
     fn test_solve_poisson_runs_full_iterations_if_threshold_negative() {
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, -1.0, 123);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, -1.0, 123, false);
         solver.set_boundary_conditions(0.0, 0.5);
 
         let iters = solver.solve_poisson();
@@ -610,7 +610,7 @@ mod tests {
         let mesh = make_interface_mesh(eps, 0.0);
 
         // potential: Surface=0.0, Bulk=0.2, Interface=0.0, Bulk=0.4, Bottom=0.0
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1, false);
         solver.potential.potential[0] = 0.0;
         solver.potential.potential[1] = 0.2;
         solver.potential.potential[2] = 0.0; // interface の現在値
@@ -642,11 +642,11 @@ mod tests {
             s.potential.potential[4] = 0.0;
         };
 
-        let mut s0 = PoissonSolver::new(mesh_no_charge, 0.0, 300.0, 1.0, 1e-6, 1);
+        let mut s0 = PoissonSolver::new(mesh_no_charge, 0.0, 300.0, 1.0, 1e-6, 1, false);
         set_potentials(&mut s0);
         let delta_no_charge = s0.solve_interface(2);
 
-        let mut s1 = PoissonSolver::new(mesh_with_charge, 0.0, 300.0, 1.0, 1e-6, 1);
+        let mut s1 = PoissonSolver::new(mesh_with_charge, 0.0, 300.0, 1.0, 1e-6, 1, false);
         set_potentials(&mut s1);
         let delta_with_charge = s1.solve_interface(2);
 
@@ -670,7 +670,7 @@ mod tests {
         let uniform_pot = 5.0; // 高いポテンシャル → electron_density ≈ 0
         let mesh = make_simple_mesh(0.2, eps, 0.0, 0.0);
 
-        let mut solver = PoissonSolver::new(mesh, uniform_pot, 300.0, 1.0, 1e-6, 1);
+        let mut solver = PoissonSolver::new(mesh, uniform_pot, 300.0, 1.0, 1e-6, 1, false);
         // 全ノードを同じ値に揃える
         for p in solver.potential.potential.iter_mut() {
             *p = uniform_pot;
@@ -692,7 +692,7 @@ mod tests {
         // donor_concentration=0 → ionized_donor ≈ 0, electron_density ≈ 0 (高ポテンシャル时)
         let mesh = make_simple_mesh(0.2, eps, 0.0, 0.0);
 
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1, false);
         solver.potential.potential[0] = 0.0;
         solver.potential.potential[1] = 5.0; // 高いポテンシャル → rho≈0
         solver.potential.potential[2] = 1.0;
@@ -714,7 +714,7 @@ mod tests {
         let bulk_fixcharge = 1.0 / Q_ELECTRON;
         let mesh = make_simple_insulator_mesh(eps, bulk_fixcharge);
         let initial_potential = 0.0;
-        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false);
         let delta_poisson = solver.solve_bulk(1);
 
         assert!(
@@ -731,7 +731,7 @@ mod tests {
         let interface_fixcharge = 1.0 / Q_ELECTRON;
         let mesh = make_interface_mesh(eps, interface_fixcharge);
         let initial_potential = 1.0;
-        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false);
         let delta_poisson = solver.solve_interface(2);
 
         assert!(

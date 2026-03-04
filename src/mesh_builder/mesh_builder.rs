@@ -281,6 +281,7 @@ mod tests {
                 sor_relaxation_factor: 1.9,
                 convergence_criterion: 1e-6,
                 max_iterations: 500000,
+                parallel_use: false,
             },
         }
     }
