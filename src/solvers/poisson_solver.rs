@@ -235,9 +235,9 @@ impl PoissonSolver {
             .par_iter()
             .map(|&idx| self.compute_delta(idx))
             .collect();
-        for (i, &idx) in self.black_indices.iter().enumerate() {
-            self.potential.potential[idx] += self.sor_relaxation_factor * black_deltas[i];
-            sum_delta_potential += black_deltas[i].abs();
+        for (&idx, &delta) in self.black_indices.iter().zip(&black_deltas) {
+            self.potential.potential[idx] += self.sor_relaxation_factor * delta;
+            sum_delta_potential += delta.abs();
         }
 
         sum_delta_potential
