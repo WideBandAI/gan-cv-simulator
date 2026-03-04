@@ -3,7 +3,6 @@ use crate::config::measurement::Measurement;
 use crate::constants::physics::Q_ELECTRON;
 use crate::constants::units::{F_TO_NF, M2_TO_CM2};
 use crate::solvers::poisson_solver::PoissonSolver;
-use crate::mesh_builder::mesh_builder::FixChargeDensity;
 
 #[derive(Debug)]
 pub struct CVSolver {
@@ -53,6 +52,7 @@ impl CVSolver {
     }
 
     fn solve_cv(&mut self, gate_voltage: f64) -> f64 {
+        _ = self.total_charge_at_vg(gate_voltage); // Update the potential profile for the given gate voltage
         let charge_plus = self.total_charge_at_vg(gate_voltage + self.measurement.ac_voltage);
         let charge_minus = self.total_charge_at_vg(gate_voltage - self.measurement.ac_voltage);
 
@@ -65,11 +65,11 @@ impl CVSolver {
     fn total_charge_at_vg(&mut self, gate_voltage: f64) -> f64 {
         self.set_gate_voltage(gate_voltage);
         self.poisson_solver.solve_poisson();
-        
+
         let potential_profile = self.poisson_solver.get_potential_profile();
         let mut total_charge = 0.0; // in C/m^2
         let n_nodes = potential_profile.depth.len();
-        
+
         for idx in 0..n_nodes {
             let h_up = if idx > 0 {
                 potential_profile.depth[idx] - potential_profile.depth[idx - 1]
@@ -83,23 +83,10 @@ impl CVSolver {
             };
             let delta_x = (h_up + h_low) / 2.0;
 
-            let n_i = potential_profile.electron_density[idx];
-            let nd_plus = potential_profile.ionized_donor_concentration[idx];
-            
-            // Fixcharge unit should be handled correctly. IDX::Bulk(idx) stores it in C/m^3
-            let fixcharge = match self.poisson_solver.mesh_structure.fixcharge_density[idx] {
-                FixChargeDensity::Bulk(q) => q,
-                _ => 0.0,
-            };
+            let n_s = potential_profile.electron_density[idx];
 
-            // Net charge density rho = q(Nd+ + fixcharge - n)
-            let rho = Q_ELECTRON * (nd_plus + fixcharge - n_i);
+            let rho = Q_ELECTRON * (-n_s);
             total_charge += rho * delta_x;
-
-            // Also add interface charges (they are at the node)
-            if let FixChargeDensity::Interface(q) = self.poisson_solver.mesh_structure.fixcharge_density[idx] {
-                total_charge += Q_ELECTRON * q;
-            }
         }
 
         total_charge
@@ -226,7 +213,10 @@ mod tests {
 
         let cv_solver = CVSolver::new(poisson_solver, measurement, bc);
 
-        assert!(relative_eq!(cv_solver.boundary_conditions.barrier_height, 1.0));
+        assert!(relative_eq!(
+            cv_solver.boundary_conditions.barrier_height,
+            1.0
+        ));
     }
 
     #[test]
