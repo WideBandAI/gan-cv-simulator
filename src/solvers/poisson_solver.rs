@@ -3,6 +3,7 @@ use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 use indicatif::{ProgressBar, ProgressStyle};
+use rayon::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct Potential {
@@ -31,7 +32,7 @@ impl PoissonSolver {
         mesh_structure: MeshStructure,
         initial_potential: f64,
         temperature: f64,
-        damping_factor: f64,
+        sor_relaxation_factor: f64,
         convergence_threshold: f64,
         max_iterations: usize,
     ) -> Self {
@@ -87,7 +88,7 @@ impl PoissonSolver {
 
         for i in 1..=self.max_iterations {
             iter_count = i;
-            sum_delta_potential = self.solve_poisson_with_newton();
+            sum_delta_potential = self.solve_poisson_with_sor();
 
             pb.set_message(format!("Δ φ={:.3e}", sum_delta_potential));
             pb.inc(1);
@@ -184,92 +185,45 @@ impl PoissonSolver {
             _ => 0.0,
         };
 
-                    let rho = Q_ELECTRON * (nd_plus + fixcharge - n_i);
-                    let f_i = c_up * (self.potential.potential[i - 1] - self.potential.potential[i])
-                            + c_low * (self.potential.potential[i + 1] - self.potential.potential[i])
-                            - delta_x * rho;
+        let electron_density = self.electron_density_model.electron_density(
+            self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
+            self.mesh_structure.mass_electron[idx],
+        );
 
-                    let dn_dphi = -n_i * q_per_kbt;
-                    
-                    let v = (pot_total - self.mesh_structure.energy_level_donor[i]) * q_per_kbt;
-                    let exp_v_neg = (-v).exp();
-                    let dndplus_dphi = if self.mesh_structure.donor_concentration[i] > 0.0 {
-                        let factor = 2.0 * exp_v_neg / (1.0 + 2.0 * exp_v_neg);
-                        nd_plus * factor * q_per_kbt
-                    } else {
-                        0.0
-                    };
+        let ionized_donor = self.donor_activation_model.ionized_donor_concentration(
+            self.mesh_structure.donor_concentration[idx],
+            self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
+                - self.mesh_structure.energy_level_donor[idx],
+        );
 
-                    let drho_dphi = Q_ELECTRON * (dndplus_dphi - dn_dphi);
+        let rho = -Q_ELECTRON * (fixcharge_density + ionized_donor - electron_density);
+        let delta_potential = (1.0 / (upper_mesh_length + lower_mesh_length))
+            * (lower_mesh_length * self.potential.potential[idx - 1]
+                + upper_mesh_length * self.potential.potential[idx + 1])
+            + (lower_mesh_length * upper_mesh_length * rho
+                / (2.0 * self.mesh_structure.permittivity[idx]))
+            - self.potential.potential[idx];
 
-                    a[i] = c_up;
-                    b[i] = -(c_up + c_low) - delta_x * drho_dphi;
-                    c[i] = c_low;
-                    d[i] = -f_i;
-                }
-                IDX::Interface(_) => {
-                    let c_up = self.mesh_structure.permittivity[i - 1] / h_up;
-                    let c_low = self.mesh_structure.permittivity[i + 1] / h_low;
-                    let fixcharge = match self.mesh_structure.fixcharge_density[i] {
-                        FixChargeDensity::Interface(q) => q,
-                        _ => 0.0,
-                    };
-
-                    let f_i = c_up * (self.potential.potential[i - 1] - self.potential.potential[i])
-                            + c_low * (self.potential.potential[i + 1] - self.potential.potential[i])
-                            + Q_ELECTRON * fixcharge;
-
-                    a[i] = c_up;
-                    b[i] = -(c_up + c_low);
-                    c[i] = c_low;
-                    d[i] = -f_i;
-                }
-                _ => unreachable!(),
-            }
-        }
-
-        b[n - 1] = 1.0;
-        d[n - 1] = 0.0;
-
-        let delta_phi = self.solve_tridiagonal(a, b, c, d);
-        let mut max_delta = 0.0;
-        
-        let limit = 2.0 * vt;
-
-        for i in 0..n {
-            let mut step = delta_phi[i] * self.damping_factor;
-            if step.abs() > limit {
-                step = limit * step.signum();
-            }
-            self.potential.potential[i] += step;
-            if step.abs() > max_delta {
-                max_delta = step.abs();
-            }
-        }
-        max_delta
+        delta_potential
     }
-    fn solve_tridiagonal(&self, a: Vec<f64>, b: Vec<f64>, c: Vec<f64>, mut d: Vec<f64>) -> Vec<f64> {
-        let n = b.len();
-        let mut c_prime = vec![0.0; n];
-        
-        c_prime[0] = c[0] / b[0];
-        d[0] = d[0] / b[0];
 
-        for i in 1..n {
-            let denom = b[i] - a[i] * c_prime[i - 1];
-            let m = 1.0 / denom;
-            if i < n - 1 {
-                c_prime[i] = c[i] * m;
-            }
-            d[i] = (d[i] - a[i] * d[i - 1]) * m;
-        }
+    fn solve_interface(&self, idx: usize) -> f64 {
+        let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
+        let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
+        let c_upper = self.mesh_structure.permittivity[idx - 1] / upper_mesh_length;
+        let c_lower = self.mesh_structure.permittivity[idx + 1] / lower_mesh_length;
 
-        let mut x = vec![0.0; n];
-        x[n - 1] = d[n - 1];
-        for i in (0..n - 1).rev() {
-            x[i] = d[i] - c_prime[i] * x[i + 1];
-        }
-        x
+        let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
+            FixChargeDensity::Interface(q) => q, // in 1/m^2
+            _ => 0.0,
+        };
+
+        let delta_potential = (c_upper * self.potential.potential[idx - 1]
+            + c_lower * self.potential.potential[idx + 1]
+            - Q_ELECTRON * fixcharge_density)
+            / (c_upper + c_lower)
+            - self.potential.potential[idx];
+        delta_potential
     }
 }
 
@@ -311,9 +265,7 @@ mod tests {
 
         assert_eq!(solver.potential.potential.len(), 4);
         for &p in &solver.potential.potential {
-            assert!(
-                relative_eq!(p, initial_potential, epsilon = 1e-15),
-            );
+            assert!(relative_eq!(p, initial_potential, epsilon = 1e-15),);
         }
     }
 
@@ -328,7 +280,15 @@ mod tests {
 
         let expected_1 = 0.5 - 0.4 / 3.0;
         let expected_2 = 0.5 - 0.8 / 3.0;
-        assert!(relative_eq!(solver.potential.potential[1], expected_1, max_relative = 1e-6));
-        assert!(relative_eq!(solver.potential.potential[2], expected_2, max_relative = 1e-6));
+        assert!(relative_eq!(
+            solver.potential.potential[1],
+            expected_1,
+            max_relative = 1e-6
+        ));
+        assert!(relative_eq!(
+            solver.potential.potential[2],
+            expected_2,
+            max_relative = 1e-6
+        ));
     }
 }
