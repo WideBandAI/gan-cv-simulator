@@ -224,9 +224,9 @@ impl PoissonSolver {
             .par_iter()
             .map(|&idx| self.compute_delta(idx))
             .collect();
-        for (i, &idx) in self.red_indices.iter().enumerate() {
-            self.potential.potential[idx] += self.sor_relaxation_factor * red_deltas[i];
-            sum_delta_potential += red_deltas[i].abs();
+        for (&idx, &delta) in self.red_indices.iter().zip(&red_deltas) {
+            self.potential.potential[idx] += self.sor_relaxation_factor * delta;
+            sum_delta_potential += delta.abs();
         }
 
         // Black phase (even indices: 2, 4, 6, ...)
