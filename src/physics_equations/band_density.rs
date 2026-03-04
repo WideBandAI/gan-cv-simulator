@@ -1,6 +1,6 @@
 use crate::constants::physics::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct ConductionBandDensity {
     temperature: f64,
     kbt: f64,

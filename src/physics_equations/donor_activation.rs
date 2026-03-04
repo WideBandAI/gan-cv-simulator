@@ -1,6 +1,6 @@
 use crate::constants::physics::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct DonorActivation {
     temperature: f64,
     q_per_kbt: f64,
