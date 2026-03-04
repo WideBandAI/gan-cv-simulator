@@ -2,7 +2,7 @@ use crate::constants::physics::*;
 use crate::physics_equations::band_density::ConductionBandDensity;
 use std::fmt::Debug;
 
-pub trait ElectronDensity: Debug {
+pub trait ElectronDensity: Debug + Send + Sync {
     /// Electron density
     ///
     /// # Arguments

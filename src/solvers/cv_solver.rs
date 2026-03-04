@@ -7,8 +7,8 @@ use crate::solvers::poisson_solver::PoissonSolver;
 #[derive(Debug)]
 pub struct CVSolver {
     pub poisson_solver: PoissonSolver,
-    pub measurement: Measurement,
-    pub boundary_conditions: BoundaryConditions,
+    measurement: Measurement,
+    boundary_conditions: BoundaryConditions,
 }
 
 /// C-V solver
@@ -82,6 +82,10 @@ impl CVSolver {
     }
 
     fn solve_cv(&mut self, gate_voltage: f64) -> f64 {
+        // set potential profile at gate voltage
+        self.set_gate_voltage(gate_voltage);
+        self.poisson_solver.solve_poisson();
+
         let electron_density_vg_plus_ac =
             self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage);
         let electron_density_vg_minus_ac =
