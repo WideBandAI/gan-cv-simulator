@@ -135,6 +135,9 @@ impl PoissonSolver {
         let mut c = vec![0.0; n];
         let mut d = vec![0.0; n];
 
+        let vt = K_BOLTZMANN * self.temperature / Q_ELECTRON;
+        let q_per_kbt = 1.0 / vt;
+
         // Boundary conditions
         b[0] = 1.0;
         d[0] = 0.0;
@@ -162,23 +165,23 @@ impl PoissonSolver {
                         _ => 0.0,
                     };
 
-                    let rho_code = Q_ELECTRON * (n_i - nd_plus - fixcharge);
+                    let rho = Q_ELECTRON * (nd_plus + fixcharge - n_i);
                     let f_i = c_up * (self.potential.potential[i - 1] - self.potential.potential[i])
                             + c_low * (self.potential.potential[i + 1] - self.potential.potential[i])
-                            - delta_x * rho_code;
+                            - delta_x * rho;
 
-                    let q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * self.temperature);
-                    let dn_dphi = n_i * (-q_per_kbt);
+                    let dn_dphi = -n_i * q_per_kbt;
                     
-                    let u = -q_per_kbt * (pot_total - self.mesh_structure.energy_level_donor[i]);
+                    let v = (pot_total - self.mesh_structure.energy_level_donor[i]) * q_per_kbt;
+                    let exp_v_neg = (-v).exp();
                     let dndplus_dphi = if self.mesh_structure.donor_concentration[i] > 0.0 {
-                        let denom = 1.0 + 2.0 * u.exp();
-                        (2.0 * self.mesh_structure.donor_concentration[i] * u.exp() / (denom * denom)) * (-q_per_kbt)
+                        let factor = 2.0 * exp_v_neg / (1.0 + 2.0 * exp_v_neg);
+                        nd_plus * factor * q_per_kbt
                     } else {
                         0.0
                     };
 
-                    let drho_dphi = Q_ELECTRON * (dn_dphi - dndplus_dphi);
+                    let drho_dphi = Q_ELECTRON * (dndplus_dphi - dn_dphi);
 
                     a[i] = c_up;
                     b[i] = -(c_up + c_low) - delta_x * drho_dphi;
@@ -195,7 +198,7 @@ impl PoissonSolver {
 
                     let f_i = c_up * (self.potential.potential[i - 1] - self.potential.potential[i])
                             + c_low * (self.potential.potential[i + 1] - self.potential.potential[i])
-                            - Q_ELECTRON * fixcharge;
+                            + Q_ELECTRON * fixcharge;
 
                     a[i] = c_up;
                     b[i] = -(c_up + c_low);
@@ -211,16 +214,21 @@ impl PoissonSolver {
 
         let delta_phi = self.solve_tridiagonal(a, b, c, d);
         let mut max_delta = 0.0;
+        
+        let limit = 2.0 * vt;
+
         for i in 0..n {
-            let update = delta_phi[i] * self.damping_factor;
-            self.potential.potential[i] += update;
-            if update.abs() > max_delta {
-                max_delta = update.abs();
+            let mut step = delta_phi[i] * self.damping_factor;
+            if step.abs() > limit {
+                step = limit * step.signum();
+            }
+            self.potential.potential[i] += step;
+            if step.abs() > max_delta {
+                max_delta = step.abs();
             }
         }
         max_delta
     }
-
     fn solve_tridiagonal(&self, a: Vec<f64>, b: Vec<f64>, c: Vec<f64>, mut d: Vec<f64>) -> Vec<f64> {
         let n = b.len();
         let mut c_prime = vec![0.0; n];
@@ -229,7 +237,8 @@ impl PoissonSolver {
         d[0] = d[0] / b[0];
 
         for i in 1..n {
-            let m = 1.0 / (b[i] - a[i] * c_prime[i - 1]);
+            let denom = b[i] - a[i] * c_prime[i - 1];
+            let m = 1.0 / denom;
             if i < n - 1 {
                 c_prime[i] = c[i] * m;
             }
