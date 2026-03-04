@@ -21,7 +21,7 @@ fn main() {
         mesh_structure,
         INITIAL_POTENTIAL,
         config.measurement.temperature.temperature,
-        config.sim_settings.sor_relaxation_factor,
+        config.sim_settings.damping_factor,
         config.sim_settings.convergence_criterion,
         config.sim_settings.max_iterations,
     );
