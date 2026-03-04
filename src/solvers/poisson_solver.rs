@@ -25,6 +25,7 @@ pub struct PoissonSolver {
     max_iterations: usize,
     electron_density_model: Box<dyn ElectronDensity>,
     donor_activation_model: DonorActivation,
+    parallel_use: bool,
 }
 
 /// Poisson equation solver using Successive Over-Relaxation (SOR) method.
@@ -59,6 +60,7 @@ impl PoissonSolver {
         sor_relaxation_factor: f64,
         convergence_threshold: f64,
         max_iterations: usize,
+        parallel_use: bool,
     ) -> Self {
         let potential = Potential {
             depth: mesh_structure.depth.clone(),
@@ -83,6 +85,7 @@ impl PoissonSolver {
             max_iterations,
             electron_density_model: Box::new(BoltzmannApproximation::new(temperature)),
             donor_activation_model: DonorActivation::new(temperature),
+            parallel_use,
         }
     }
 
@@ -149,7 +152,7 @@ impl PoissonSolver {
 
         for i in 1..=self.max_iterations {
             iter_count = i;
-            sum_delta_potential = self.solve_poisson_with_sor();
+            sum_delta_potential = self.solve_poisson_with_sor(self.parallel_use);
 
             // update progress bar message with current sum of delta potential
             pb.set_message(format!("Δ φ={:.3e}", sum_delta_potential));
@@ -215,7 +218,28 @@ impl PoissonSolver {
         }
     }
 
-    fn solve_poisson_with_sor(&mut self) -> f64 {
+    fn solve_poisson_with_sor(&mut self, parallel_use: bool) -> f64 {
+        let mut sum_delta_potential = 0.0;
+
+        if parallel_use {
+            sum_delta_potential += self.solve_poisson_with_sor_parallel();
+        } else {
+            sum_delta_potential += self.solve_poisson_with_single_thread();
+        }
+        sum_delta_potential
+    }
+
+    fn solve_poisson_with_single_thread(&mut self) -> f64 {
+        let mut sum_delta_potential = 0.0;
+        for idx in 1..self.mesh_structure.id.len() - 1 {
+            let delta_potential = self.compute_delta(idx);
+            self.potential.potential[idx] += self.sor_relaxation_factor * delta_potential;
+            sum_delta_potential += delta_potential.abs();
+        }
+        sum_delta_potential
+    }
+
+    fn solve_poisson_with_sor_parallel(&mut self) -> f64 {
         let mut sum_delta_potential = 0.0;
 
         // Red phase (odd indices: 1, 3, 5, ...)

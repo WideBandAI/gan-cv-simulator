@@ -1,3 +1,4 @@
+use crate::utils::get_input;
 use crate::utils::get_parsed_input_with_default;
 
 #[derive(Debug)]
@@ -5,6 +6,18 @@ pub struct SimSettings {
     pub sor_relaxation_factor: f64,
     pub convergence_criterion: f64,
     pub max_iterations: usize,
+    pub parallel_use: bool,
+}
+
+fn get_bool_input(prompt: &str) -> bool {
+    loop {
+        let input = get_input(prompt);
+        match input.trim().to_lowercase().as_str() {
+            "y" => return true,
+            "n" => return false,
+            _ => println!("Invalid input. Please enter 'y' or 'n'."),
+        }
+    }
 }
 
 pub fn define_sim_settings() -> SimSettings {
@@ -20,10 +33,13 @@ pub fn define_sim_settings() -> SimSettings {
         "Enter the maximum number of iterations. Default is 10000: ",
         500000,
     );
+    let parallel_use: bool =
+        get_bool_input("Use parallel processing for Poisson solver? (y/n). Default is n: ");
 
     SimSettings {
         sor_relaxation_factor,
         convergence_criterion,
         max_iterations,
+        parallel_use,
     }
 }

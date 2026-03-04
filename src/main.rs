@@ -24,6 +24,7 @@ fn main() {
         config.sim_settings.sor_relaxation_factor,
         config.sim_settings.convergence_criterion,
         config.sim_settings.max_iterations,
+        config.sim_settings.parallel_use,
     );
     let mut cv_solver = CVSolver::new(solver, config.measurement, config.boundary_conditions);
     cv_solver.run();
