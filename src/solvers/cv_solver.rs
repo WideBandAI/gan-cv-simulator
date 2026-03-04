@@ -82,6 +82,7 @@ impl CVSolver {
     }
 
     fn solve_cv(&mut self, gate_voltage: f64) -> f64 {
+        _ = self.electron_density_at_vg(gate_voltage); // set potential profile at gate voltage
         let electron_density_vg_plus_ac =
             self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage);
         let electron_density_vg_minus_ac =
