@@ -19,6 +19,8 @@ pub struct PoissonSolver {
     pub mesh_structure: MeshStructure,
     pub temperature: f64,
     pub sor_relaxation_factor: f64,
+    pub red_indices: Vec<usize>,
+    pub black_indices: Vec<usize>,
     pub convergence_threshold: f64,
     pub max_iterations: usize,
     pub electron_density_model: Box<dyn ElectronDensity>,
@@ -64,11 +66,19 @@ impl PoissonSolver {
             electron_density: vec![0.0; mesh_structure.id.len()],
             ionized_donor_concentration: vec![0.0; mesh_structure.id.len()],
         };
+        let red_indices: Vec<usize> = (1..mesh_structure.id.len() - 1)
+            .filter(|i| i % 2 == 1)
+            .collect();
+        let black_indices: Vec<usize> = (1..mesh_structure.id.len() - 1)
+            .filter(|i| i % 2 == 0)
+            .collect();
         Self {
             potential,
             mesh_structure,
             temperature,
             sor_relaxation_factor,
+            red_indices,
+            black_indices,
             convergence_threshold,
             max_iterations,
             electron_density_model: Box::new(BoltzmannApproximation::new(temperature)),
@@ -206,27 +216,26 @@ impl PoissonSolver {
     }
 
     fn solve_poisson_with_sor(&mut self) -> f64 {
-        let n = self.mesh_structure.id.len();
         let mut sum_delta_potential = 0.0;
 
         // Red phase (odd indices: 1, 3, 5, ...)
-        let red_indices: Vec<usize> = (1..n - 1).filter(|i| i % 2 == 1).collect();
-        let red_deltas: Vec<f64> = red_indices
+        let red_deltas: Vec<f64> = self
+            .red_indices
             .par_iter()
             .map(|&idx| self.compute_delta(idx))
             .collect();
-        for (i, &idx) in red_indices.iter().enumerate() {
+        for (i, &idx) in self.red_indices.iter().enumerate() {
             self.potential.potential[idx] += self.sor_relaxation_factor * red_deltas[i];
             sum_delta_potential += red_deltas[i].abs();
         }
 
         // Black phase (even indices: 2, 4, 6, ...)
-        let black_indices: Vec<usize> = (1..n - 1).filter(|i| i % 2 == 0).collect();
-        let black_deltas: Vec<f64> = black_indices
+        let black_deltas: Vec<f64> = self
+            .black_indices
             .par_iter()
             .map(|&idx| self.compute_delta(idx))
             .collect();
-        for (i, &idx) in black_indices.iter().enumerate() {
+        for (i, &idx) in self.black_indices.iter().enumerate() {
             self.potential.potential[idx] += self.sor_relaxation_factor * black_deltas[i];
             sum_delta_potential += black_deltas[i].abs();
         }

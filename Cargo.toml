@@ -3,9 +3,17 @@ name = "gan-cv-simulator"
 version = "0.1.0"
 edition = "2021"
 
+opt-level = 3        # O3相当の最適化
+lto = true           # リンカ時最適化（Link Time Optimization）
+codegen-units = 1    # 1スレッドでコード生成 → 最適化が効きやすい
+panic = "abort"      # panic時にスタック展開せず即終了
+strip = true         # デバッグ情報を削除してバイナリを軽量化
+
 [dependencies]
 approx = "0.5.1"
 indicatif = "0.18.4"
 serde = { version = "1.0", features = ["derive"] }
 rayon = "1.10"
 test-case = "3.3.1"
+
+
