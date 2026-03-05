@@ -4,6 +4,7 @@ use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
+use std::io::Write;
 
 #[derive(Debug, Clone)]
 pub struct Potential {
@@ -204,7 +205,7 @@ impl PoissonSolver {
         let mut file = std::fs::File::create(filename).unwrap();
         writeln!(
             file,
-            "Name, Depth (nm), Ec (eV), Ev (eV), ns (1/cm^3), Nd+ (1/cm^3), Nd (1/cm^3), me (kg), εr, fix charge (C/cm^3), fix charge (C/cm^2)"
+            "Name, Depth (nm), Ec (eV), Ev (eV), ns (1/cm^3), Nd+ (1/cm^3), Nd (1/cm^3), me (kg), ε, fix charge (C/cm^3), fix charge (C/cm^2)"
         )
         .unwrap();
         for idx in 0..profile.depth.len() {
@@ -215,7 +216,7 @@ impl PoissonSolver {
             let nd_plus = profile.ionized_donor_concentration[idx] * 1e-6; // convert from 1/m^3 to 1/cm^3
             let nd = mesh_structure.donor_concentration[idx] * 1e-6; // convert from 1/m^3 to 1/cm^3
             let me = mesh_structure.mass_electron[idx];
-            let epsilon_r = mesh_structure.permittivity[idx] / EPSILON_0;
+            let epsilon_r = mesh_structure.permittivity[idx];
             let fix_charge_bulk = match mesh_structure.fixcharge_density[idx] {
                 FixChargeDensity::Bulk(q) => q * 1e-6, // convert from C/m^3 to C/cm^3
                 _ => 0.0,

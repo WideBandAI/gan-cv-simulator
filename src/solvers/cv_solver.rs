@@ -211,6 +211,7 @@ mod tests {
                 FixChargeDensity::Bulk(bulk_fixcharge),
                 FixChargeDensity::Bulk(0.0),
             ],
+            bandgap_energy: vec![1.12; n],
         }
     }
 
