@@ -37,13 +37,13 @@ impl ConfigurationBuilder {
 
     /// Build configuration from interactive CLI input
     pub fn from_interactive() -> Self {
+        let sim_settings = define_sim_settings();
         let measurement = define_measurement();
         let device_structure = define_structure();
         let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
         let mesh_params = define_mesh_params(&device_structure);
         let boundary_conditions = define_boundary_conditions(&device_structure, &measurement);
-        let sim_settings = define_sim_settings();
 
         let configuration = Configuration {
             measurement,

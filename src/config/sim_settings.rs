@@ -3,6 +3,7 @@ use crate::utils::get_parsed_input_with_default;
 
 #[derive(Debug)]
 pub struct SimSettings {
+    pub sim_name: String,
     pub sor_relaxation_factor: f64,
     pub convergence_criterion: f64,
     pub max_iterations: usize,
@@ -22,6 +23,7 @@ fn get_bool_input(prompt: &str) -> bool {
 
 pub fn define_sim_settings() -> SimSettings {
     println!("Define simulation settings.");
+    let sim_name: String = get_input("Enter a name for this simulation: ");
 
     let sor_relaxation_factor: f64 =
         get_parsed_input_with_default("Enter the SOR relaxation factor. Default is 1.9: ", 1.9);
@@ -37,6 +39,7 @@ pub fn define_sim_settings() -> SimSettings {
         get_bool_input("Use parallel processing for Poisson solver? (y/n). Default is n: ");
 
     SimSettings {
+        sim_name,
         sor_relaxation_factor,
         convergence_criterion,
         max_iterations,
