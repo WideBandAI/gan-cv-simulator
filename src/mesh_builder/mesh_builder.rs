@@ -45,6 +45,7 @@ pub struct MeshStructure {
     pub donor_concentration: Vec<f64>,
     pub energy_level_donor: Vec<f64>,
     pub fixcharge_density: Vec<FixChargeDensity>,
+    pub bandgap_energy: Vec<f64>,
 }
 
 impl MeshStructure {
@@ -58,6 +59,7 @@ impl MeshStructure {
             donor_concentration: Vec::new(),
             energy_level_donor: Vec::new(),
             fixcharge_density: Vec::new(),
+            bandgap_energy: Vec::new(),
         }
     }
 
@@ -71,6 +73,7 @@ impl MeshStructure {
         donor_concentration: f64,
         energy_level_donor: f64,
         fixcharge_density: FixChargeDensity,
+        bandgap_energy: f64,
     ) {
         self.id.push(id);
         self.depth.push(depth);
@@ -80,6 +83,7 @@ impl MeshStructure {
         self.donor_concentration.push(donor_concentration);
         self.energy_level_donor.push(energy_level_donor);
         self.fixcharge_density.push(fixcharge_density);
+        self.bandgap_energy.push(bandgap_energy);
     }
 
     pub fn add_surface_node(&mut self, depth: f64) {
@@ -92,6 +96,7 @@ impl MeshStructure {
             0.0,
             0.0,
             FixChargeDensity::Interface(0.0),
+            0.0,
         );
     }
 
@@ -112,6 +117,7 @@ impl MeshStructure {
             FixChargeDensity::Interface(
                 configuration.interface_fixed_charge.charge_density[struct_idx],
             ),
+            0.0,
         );
     }
 
@@ -125,6 +131,7 @@ impl MeshStructure {
             configuration.device_structure.donor_concentration[struct_idx],
             configuration.device_structure.energy_level_donor[struct_idx],
             FixChargeDensity::Bulk(configuration.bulk_fixed_charge.charge_density[struct_idx]),
+            configuration.device_structure.bandgap_energy[struct_idx],
         );
     }
 
@@ -138,6 +145,7 @@ impl MeshStructure {
             0.0,
             0.0,
             FixChargeDensity::Interface(0.0),
+            0.0,
         );
     }
 }
@@ -278,6 +286,7 @@ mod tests {
                 ec_ef_bottom: 0.1,
             },
             sim_settings: SimSettings {
+                sim_name: "test_simulation".to_string(),
                 sor_relaxation_factor: 1.9,
                 convergence_criterion: 1e-6,
                 max_iterations: 500000,
