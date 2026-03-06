@@ -155,6 +155,7 @@ mod tests {
     use crate::constants::physics::EPSILON_0;
     use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
     use approx::relative_eq;
+    use tempfile::TempDir;
 
     // -----------------------------------------------------------------------
     // Helper: テスト用の MeshStructure を手動で作成
@@ -268,7 +269,13 @@ mod tests {
         let poisson_solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false);
         let measurement = make_measurement(voltage_start, voltage_end, voltage_step, ac_voltage);
         let bc = make_boundary_conditions(barrier_height, ec_ef_bottom);
-        CVSolver::new(poisson_solver, measurement, bc, "test_outputs".to_string())
+        let temp_dir = TempDir::new().unwrap();
+        CVSolver::new(
+            poisson_solver,
+            measurement,
+            bc,
+            temp_dir.path().to_str().unwrap().to_string(),
+        )
     }
 
     // -----------------------------------------------------------------------
@@ -283,8 +290,13 @@ mod tests {
         let poisson_solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
         let measurement = make_measurement(-2.0, 2.0, 0.1, 0.02);
         let bc = make_boundary_conditions(1.0, 0.1);
-
-        let cv_solver = CVSolver::new(poisson_solver, measurement, bc, "test_outputs".to_string());
+        let temp_dir = TempDir::new().unwrap();
+        let cv_solver = CVSolver::new(
+            poisson_solver,
+            measurement,
+            bc,
+            temp_dir.path().to_str().unwrap().to_string(),
+        );
 
         assert!(
             relative_eq!(

@@ -342,12 +342,40 @@ impl PoissonSolver {
     pub fn save_potential_profile(&mut self, filename: &str) {
         let profile = self.get_potential_profile();
         let mesh_structure = &self.mesh_structure;
-        let mut file = std::fs::File::create(filename).unwrap();
-        writeln!(
+
+        // Ensure any parent directories exist so file creation doesn't fail.
+        if let Some(parent) = std::path::Path::new(filename).parent() {
+            if !parent.exists() {
+                if let Err(e) = std::fs::create_dir_all(parent) {
+                    eprintln!(
+                        "Failed to create directory for potential profile '{}': {}",
+                        filename, e
+                    );
+                    return;
+                }
+            }
+        }
+
+        let mut file = match std::fs::File::create(filename) {
+            Ok(f) => f,
+            Err(e) => {
+                eprintln!(
+                    "Failed to create potential profile file '{}': {}",
+                    filename, e
+                );
+                return;
+            }
+        };
+
+        if writeln!(
             file,
             "Name, Depth (nm), Ec (eV), Ev (eV), ns (1/cm^3), Nd+ (1/cm^3), Nd (1/cm^3), me (kg), ε, fix charge (C/cm^3), fix charge (C/cm^2)"
         )
-        .unwrap();
+        .is_err()
+        {
+            return;
+        }
+
         for idx in 0..profile.depth.len() {
             let layer_name = mesh_structure.name[idx].clone();
             let depth_nm = profile.depth[idx] * 1e9;
@@ -366,7 +394,8 @@ impl PoissonSolver {
                 FixChargeDensity::Interface(q) => q * 1e-4, // convert from C/m^2 to C/cm^2
                 _ => 0.0,
             };
-            writeln!(
+
+            if writeln!(
                 file,
                 "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2e}, {:.2}, {:.3e}, {:.3e}",
                 layer_name,
@@ -381,7 +410,10 @@ impl PoissonSolver {
                 fix_charge_bulk,
                 fix_charge_interface
             )
-            .unwrap();
+            .is_err()
+            {
+                return;
+            }
         }
     }
 }
