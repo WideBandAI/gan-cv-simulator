@@ -38,6 +38,7 @@ pub enum FixChargeDensity {
 #[derive(Debug)]
 pub struct MeshStructure {
     pub id: Vec<IDX>,
+    pub name: Vec<String>,
     pub depth: Vec<f64>,
     pub mass_electron: Vec<f64>,
     pub permittivity: Vec<f64>,
@@ -52,6 +53,7 @@ impl MeshStructure {
     pub fn new() -> Self {
         Self {
             id: Vec::new(),
+            name: Vec::new(),
             depth: Vec::new(),
             mass_electron: Vec::new(),
             permittivity: Vec::new(),
@@ -66,6 +68,7 @@ impl MeshStructure {
     fn push_properties(
         &mut self,
         id: IDX,
+        name: String,
         depth: f64,
         mass_electron: f64,
         permittivity: f64,
@@ -76,6 +79,7 @@ impl MeshStructure {
         bandgap_energy: f64,
     ) {
         self.id.push(id);
+        self.name.push(name);
         self.depth.push(depth);
         self.mass_electron.push(mass_electron);
         self.permittivity.push(permittivity);
@@ -89,6 +93,7 @@ impl MeshStructure {
     pub fn add_surface_node(&mut self, depth: f64) {
         self.push_properties(
             IDX::Surface,
+            "Surface".to_string(),
             depth,
             0.0,
             0.0,
@@ -108,6 +113,11 @@ impl MeshStructure {
     ) {
         self.push_properties(
             IDX::Interface(struct_idx),
+            format!(
+                "Interface_{}-{}",
+                configuration.device_structure.name[struct_idx],
+                configuration.device_structure.name[struct_idx + 1]
+            ),
             depth,
             0.0,
             0.0,
@@ -124,6 +134,7 @@ impl MeshStructure {
     pub fn add_bulk_node(&mut self, depth: f64, struct_idx: usize, configuration: &Configuration) {
         self.push_properties(
             IDX::Bulk(struct_idx),
+            configuration.device_structure.name[struct_idx].clone(),
             depth,
             configuration.device_structure.mass_electron[struct_idx],
             configuration.device_structure.permittivity[struct_idx],
@@ -138,6 +149,7 @@ impl MeshStructure {
     pub fn add_bottom_node(&mut self, depth: f64) {
         self.push_properties(
             IDX::Bottom,
+            "Bottom".to_string(),
             depth,
             0.0,
             0.0,
