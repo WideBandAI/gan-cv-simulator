@@ -17,7 +17,7 @@ fn main() {
     let config = ConfigurationBuilder::from_interactive().build();
     println!("{:#?}", config);
     let mesh_structure = mb::build(&config);
-    let solver = PoissonSolver::new(
+    let poisson_solver = PoissonSolver::new(
         mesh_structure,
         INITIAL_POTENTIAL,
         config.measurement.temperature.temperature,
@@ -26,6 +26,10 @@ fn main() {
         config.sim_settings.max_iterations,
         config.sim_settings.parallel_use,
     );
-    let mut cv_solver = CVSolver::new(solver, config.measurement, config.boundary_conditions);
+    let mut cv_solver = CVSolver::new(
+        poisson_solver,
+        config.measurement,
+        config.boundary_conditions,
+    );
     cv_solver.run();
 }
