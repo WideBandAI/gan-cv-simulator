@@ -307,6 +307,18 @@ impl PoissonSolver {
         self.potential.clone()
     }
 
+    /// Calculate self.potential.electron_density
+    ///
+    /// # Arguments
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = calculate_electron_density();
+    /// ```
     fn calculate_electron_density(&mut self) {
         for idx in 0..self.mesh_structure.id.len() {
             self.potential.electron_density[idx] = self.electron_density_model.electron_density(
