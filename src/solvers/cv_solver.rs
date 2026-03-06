@@ -9,6 +9,7 @@ pub struct CVSolver {
     pub poisson_solver: PoissonSolver,
     measurement: Measurement,
     boundary_conditions: BoundaryConditions,
+    save_dir: String,
 }
 
 /// C-V solver
@@ -32,11 +33,13 @@ impl CVSolver {
         poisson_solver: PoissonSolver,
         measurement: Measurement,
         boundary_conditions: BoundaryConditions,
+        save_dir: String,
     ) -> Self {
         Self {
             poisson_solver,
             measurement,
             boundary_conditions,
+            save_dir,
         }
     }
 
@@ -85,6 +88,10 @@ impl CVSolver {
         // set potential profile at gate voltage
         self.set_gate_voltage(gate_voltage);
         self.poisson_solver.solve_poisson();
+        self.poisson_solver.save_potential_profile(&format!(
+            "{}/potential_{:.3}V.csv",
+            self.save_dir, gate_voltage
+        ));
 
         let electron_density_vg_plus_ac =
             self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage);
@@ -261,7 +268,7 @@ mod tests {
         let poisson_solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false);
         let measurement = make_measurement(voltage_start, voltage_end, voltage_step, ac_voltage);
         let bc = make_boundary_conditions(barrier_height, ec_ef_bottom);
-        CVSolver::new(poisson_solver, measurement, bc)
+        CVSolver::new(poisson_solver, measurement, bc, "test_outputs".to_string())
     }
 
     // -----------------------------------------------------------------------
@@ -277,7 +284,7 @@ mod tests {
         let measurement = make_measurement(-2.0, 2.0, 0.1, 0.02);
         let bc = make_boundary_conditions(1.0, 0.1);
 
-        let cv_solver = CVSolver::new(poisson_solver, measurement, bc);
+        let cv_solver = CVSolver::new(poisson_solver, measurement, bc, "test_outputs".to_string());
 
         assert!(
             relative_eq!(
