@@ -180,90 +180,6 @@ impl PoissonSolver {
         iter_count
     }
 
-    /// Get potential profile
-    ///
-    /// # Returns
-    ///
-    /// - `Vec<(f64, f64, f64, f64)>` - A vector of tuples containing depth, potential, electron density, and ionized donor concentration at each mesh point.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use crate::...;
-    ///
-    /// let _ = get_potential_profile();
-    /// ```
-    pub fn get_potential_profile(&mut self) -> Potential {
-        self.calculate_electron_density();
-        self.calculate_ionized_donor_concentration();
-        self.potential.clone()
-    }
-
-    pub fn save_potential_profile(&mut self, filename: &str) {
-        let profile = self.get_potential_profile();
-        let mesh_structure = &self.mesh_structure;
-        let mut file = std::fs::File::create(filename).unwrap();
-        writeln!(
-            file,
-            "Name, Depth (nm), Ec (eV), Ev (eV), ns (1/cm^3), Nd+ (1/cm^3), Nd (1/cm^3), me (kg), ε, fix charge (C/cm^3), fix charge (C/cm^2)"
-        )
-        .unwrap();
-        for idx in 0..profile.depth.len() {
-            let depth_nm = profile.depth[idx] * 1e9;
-            let ec = profile.potential[idx] + mesh_structure.delta_conduction_band[idx];
-            let ev = ec - mesh_structure.bandgap_energy[idx];
-            let ns = profile.electron_density[idx] * 1e-6; // convert from 1/m^3 to 1/cm^3
-            let nd_plus = profile.ionized_donor_concentration[idx] * 1e-6; // convert from 1/m^3 to 1/cm^3
-            let nd = mesh_structure.donor_concentration[idx] * 1e-6; // convert from 1/m^3 to 1/cm^3
-            let me = mesh_structure.mass_electron[idx];
-            let epsilon_r = mesh_structure.permittivity[idx];
-            let fix_charge_bulk = match mesh_structure.fixcharge_density[idx] {
-                FixChargeDensity::Bulk(q) => q * 1e-6, // convert from C/m^3 to C/cm^3
-                _ => 0.0,
-            };
-            let fix_charge_interface = match mesh_structure.fixcharge_density[idx] {
-                FixChargeDensity::Interface(q) => q * 1e-4, // convert from C/m^2 to C/cm^2
-                _ => 0.0,
-            };
-            writeln!(
-                file,
-                "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2e}, {:.2}, {:.3e}, {:.3e}",
-                "potential_profile",
-                depth_nm,
-                ec,
-                ev,
-                ns,
-                nd_plus,
-                nd,
-                me,
-                epsilon_r,
-                fix_charge_bulk,
-                fix_charge_interface
-            )
-            .unwrap();
-        }
-    }
-
-    fn calculate_electron_density(&mut self) {
-        for idx in 0..self.mesh_structure.id.len() {
-            self.potential.electron_density[idx] = self.electron_density_model.electron_density(
-                self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
-                self.mesh_structure.mass_electron[idx],
-            );
-        }
-    }
-
-    fn calculate_ionized_donor_concentration(&mut self) {
-        for idx in 0..self.mesh_structure.id.len() {
-            self.potential.ionized_donor_concentration[idx] =
-                self.donor_activation_model.ionized_donor_concentration(
-                    self.mesh_structure.donor_concentration[idx],
-                    self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
-                        - self.mesh_structure.energy_level_donor[idx],
-                );
-        }
-    }
-
     fn solve_poisson_with_sor(&mut self, parallel_use: bool) -> f64 {
         let mut sum_delta_potential = 0.0;
 
@@ -371,6 +287,91 @@ impl PoissonSolver {
             - self.potential.potential[idx];
         delta_potential
     }
+
+    /// Get potential profile
+    ///
+    /// # Returns
+    ///
+    /// - `Vec<(f64, f64, f64, f64)>` - A vector of tuples containing depth, potential, electron density, and ionized donor concentration at each mesh point.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = get_potential_profile();
+    /// ```
+    pub fn get_potential_profile(&mut self) -> Potential {
+        self.calculate_electron_density();
+        self.calculate_ionized_donor_concentration();
+        self.potential.clone()
+    }
+
+    fn calculate_electron_density(&mut self) {
+        for idx in 0..self.mesh_structure.id.len() {
+            self.potential.electron_density[idx] = self.electron_density_model.electron_density(
+                self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
+                self.mesh_structure.mass_electron[idx],
+            );
+        }
+    }
+
+    fn calculate_ionized_donor_concentration(&mut self) {
+        for idx in 0..self.mesh_structure.id.len() {
+            self.potential.ionized_donor_concentration[idx] =
+                self.donor_activation_model.ionized_donor_concentration(
+                    self.mesh_structure.donor_concentration[idx],
+                    self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
+                        - self.mesh_structure.energy_level_donor[idx],
+                );
+        }
+    }
+
+    pub fn save_potential_profile(&mut self, filename: &str) {
+        let profile = self.get_potential_profile();
+        let mesh_structure = &self.mesh_structure;
+        let mut file = std::fs::File::create(filename).unwrap();
+        writeln!(
+            file,
+            "Name, Depth (nm), Ec (eV), Ev (eV), ns (1/cm^3), Nd+ (1/cm^3), Nd (1/cm^3), me (kg), ε, fix charge (C/cm^3), fix charge (C/cm^2)"
+        )
+        .unwrap();
+        for idx in 0..profile.depth.len() {
+            let layer_name = mesh_structure.name[idx].clone();
+            let depth_nm = profile.depth[idx] * 1e9;
+            let ec = profile.potential[idx] + mesh_structure.delta_conduction_band[idx];
+            let ev = ec - mesh_structure.bandgap_energy[idx];
+            let ns = profile.electron_density[idx] * 1e-6; // convert from 1/m^3 to 1/cm^3
+            let nd_plus = profile.ionized_donor_concentration[idx] * 1e-6; // convert from 1/m^3 to 1/cm^3
+            let nd = mesh_structure.donor_concentration[idx] * 1e-6; // convert from 1/m^3 to 1/cm^3
+            let me = mesh_structure.mass_electron[idx];
+            let epsilon_r = mesh_structure.permittivity[idx];
+            let fix_charge_bulk = match mesh_structure.fixcharge_density[idx] {
+                FixChargeDensity::Bulk(q) => q * 1e-6, // convert from C/m^3 to C/cm^3
+                _ => 0.0,
+            };
+            let fix_charge_interface = match mesh_structure.fixcharge_density[idx] {
+                FixChargeDensity::Interface(q) => q * 1e-4, // convert from C/m^2 to C/cm^2
+                _ => 0.0,
+            };
+            writeln!(
+                file,
+                "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2e}, {:.2}, {:.3e}, {:.3e}",
+                layer_name,
+                depth_nm,
+                ec,
+                ev,
+                ns,
+                nd_plus,
+                nd,
+                me,
+                epsilon_r,
+                fix_charge_bulk,
+                fix_charge_interface
+            )
+            .unwrap();
+        }
+    }
 }
 
 #[cfg(test)]
@@ -397,6 +398,12 @@ mod tests {
         let n = 4;
         MeshStructure {
             id: vec![IDX::Surface, IDX::Bulk(0), IDX::Bulk(0), IDX::Bottom],
+            name: vec![
+                "Surface".to_string(),
+                "Bulk".to_string(),
+                "Bulk".to_string(),
+                "Bottom".to_string(),
+            ],
             depth: vec![0.0, 1e-9, 2e-9, 3e-9],
             mass_electron: vec![0.0, mass_electron, mass_electron, 0.0],
             permittivity: vec![0.0, permittivity, permittivity, 0.0],
@@ -424,6 +431,12 @@ mod tests {
         let n = 4;
         MeshStructure {
             id: vec![IDX::Surface, IDX::Bulk(0), IDX::Bulk(0), IDX::Bottom],
+            name: vec![
+                "Surface".to_string(),
+                "Bulk".to_string(),
+                "Bulk".to_string(),
+                "Bottom".to_string(),
+            ],
             depth: vec![0.0, 1.0, 2.0, 3.0],
             mass_electron: vec![0.0, 0.0, 0.0, 0.0],
             permittivity: vec![0.0, permittivity, permittivity, 0.0],
@@ -455,6 +468,13 @@ mod tests {
                 IDX::Interface(0),
                 IDX::Bulk(1),
                 IDX::Bottom,
+            ],
+            name: vec![
+                "Surface".to_string(),
+                "Bulk".to_string(),
+                "Interface".to_string(),
+                "Bulk".to_string(),
+                "Bottom".to_string(),
             ],
             depth: vec![0.0, 1.0, 2.0, 3.0, 4.0],
             mass_electron: vec![0.0, 0.2, 0.0, 0.2, 0.0],

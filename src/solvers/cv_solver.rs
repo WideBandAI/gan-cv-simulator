@@ -176,6 +176,14 @@ mod tests {
                 IDX::Bulk(0),
                 IDX::Bottom,
             ],
+            name: vec![
+                "Surface".to_string(),
+                "Bulk".to_string(),
+                "Bulk".to_string(),
+                "Bulk".to_string(),
+                "Bulk".to_string(),
+                "Bottom".to_string(),
+            ],
             depth: vec![0.0, 1e-9, 2e-9, 3e-9, 4e-9, 5e-9],
             mass_electron: vec![
                 0.0,
