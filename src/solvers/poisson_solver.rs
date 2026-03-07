@@ -4,6 +4,7 @@ use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
+use std::fs;
 use std::io::Write;
 
 #[derive(Debug, Clone)]
@@ -339,12 +340,17 @@ impl PoissonSolver {
         }
     }
 
-    pub fn save_potential_profile(&mut self, filename: &str) {
+    pub fn save_potential_profile(&mut self, save_dir: &str, filename: &str) {
+        let potential_save_dir = format!("{}/{}", save_dir, "potential_profiles");
+        let potential_file_path = format!("{}/{}", potential_save_dir, filename);
+        fs::create_dir_all(&potential_save_dir)
+            .expect("Failed to create output directory. Please check permissions and try again.");
+
         let profile = self.get_potential_profile();
         let mesh_structure = &self.mesh_structure;
 
         // Ensure any parent directories exist so file creation doesn't fail.
-        if let Some(parent) = std::path::Path::new(filename).parent() {
+        if let Some(parent) = std::path::Path::new(&potential_file_path).parent() {
             if !parent.exists() {
                 if let Err(e) = std::fs::create_dir_all(parent) {
                     eprintln!(
@@ -356,7 +362,7 @@ impl PoissonSolver {
             }
         }
 
-        let mut file = match std::fs::File::create(filename) {
+        let mut file = match std::fs::File::create(&potential_file_path) {
             Ok(f) => f,
             Err(e) => {
                 eprintln!(

@@ -88,10 +88,10 @@ impl CVSolver {
         // set potential profile at gate voltage
         self.set_gate_voltage(gate_voltage);
         self.poisson_solver.solve_poisson();
-        self.poisson_solver.save_potential_profile(&format!(
-            "{}/potential_{:.3}V.csv",
-            self.save_dir, gate_voltage
-        ));
+        self.poisson_solver.save_potential_profile(
+            &self.save_dir,
+            &format!("potential_{:.3}V.csv", gate_voltage),
+        );
 
         let electron_density_vg_plus_ac =
             self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage);
