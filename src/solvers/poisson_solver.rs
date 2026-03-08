@@ -2,7 +2,7 @@ use crate::constants::physics::*;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
-use crate::solvers::save_files::potential_profile::save_potential_profile;
+
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 
@@ -339,10 +339,10 @@ impl PoissonSolver {
         }
     }
 
-    pub fn save_potential_profile(&mut self, save_dir: &str, filename: &str) {
-        let profile = self.get_potential_profile();
-        save_potential_profile(&self.mesh_structure, profile, save_dir, filename);
-    }
+    // pub fn save_potential_profile(&mut self, save_dir: &str, filename: &str) {
+    //     let profile = self.get_potential_profile();
+    //     save_potential_profile(&self.mesh_structure, profile, save_dir, filename);
+    // }
 }
 
 #[cfg(test)]
