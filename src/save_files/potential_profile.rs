@@ -1,3 +1,4 @@
+use crate::constants::physics::*;
 use crate::constants::units::*;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure};
 use crate::solvers::poisson_solver::Potential;
@@ -45,7 +46,7 @@ pub fn save_potential_profile(
 
     if writeln!(
             file,
-            "Name, Depth (nm), Ec (eV), Ev (eV), ns (1/cm^3), Nd+ (1/cm^3), Nd (1/cm^3), me (kg), ε, fix charge (C/cm^3), fix charge (C/cm^2)"
+            "Name, Depth (nm), Ec (eV), Ev (eV), ns (1/cm^3), Nd+ (1/cm^3), Nd (1/cm^3), me*, εr, fix charge (C/cm^3), fix charge (C/cm^2)"
         )
         .is_err()
         {
@@ -57,7 +58,7 @@ pub fn save_potential_profile(
     for idx in 0..2 {
         if writeln!(
             file,
-            "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2e}, {:.2}, {:.3e}, {:.3e}",
+            "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2}, {:.2}, {:.3e}, {:.3e}",
             "Gate",
             gate_depth[idx],
             -gate_voltage,
@@ -84,8 +85,8 @@ pub fn save_potential_profile(
         let ns = profile.electron_density[idx] * M3_TO_CM3; // convert from 1/m^3 to 1/cm^3
         let nd_plus = profile.ionized_donor_concentration[idx] * M3_TO_CM3; // convert from 1/m^3 to 1/cm^3
         let nd = mesh_structure.donor_concentration[idx] * M3_TO_CM3; // convert from 1/m^3 to 1/cm^3
-        let me = mesh_structure.mass_electron[idx];
-        let epsilon_r = mesh_structure.permittivity[idx];
+        let me = mesh_structure.mass_electron[idx] / M_ELECTRON;
+        let epsilon_r = mesh_structure.permittivity[idx] / EPSILON_0;
         let fix_charge_bulk = match mesh_structure.fixcharge_density[idx] {
             FixChargeDensity::Bulk(q) => q * M3_TO_CM3, // convert from C/m^3 to C/cm^3
             _ => 0.0,
@@ -97,7 +98,7 @@ pub fn save_potential_profile(
 
         if writeln!(
             file,
-            "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2e}, {:.2}, {:.3e}, {:.3e}",
+            "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2}, {:.2}, {:.3e}, {:.3e}",
             layer_name,
             depth_nm,
             ec,
