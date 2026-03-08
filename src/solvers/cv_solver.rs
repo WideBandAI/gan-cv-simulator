@@ -95,6 +95,7 @@ impl CVSolver {
         save_potential_profile(
             &self.poisson_solver.mesh_structure,
             profile,
+            gate_voltage,
             &self.save_dir,
             &filename,
         );

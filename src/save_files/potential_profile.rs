@@ -51,19 +51,20 @@ pub fn save_potential_profile(
             return;
         }
 
+    let gate_depth = vec![-200.0, 0.0];
     for idx in 0..2 {
         if writeln!(
             file,
             "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2e}, {:.2}, {:.3e}, {:.3e}",
             "Gate",
+            gate_depth[idx],
+            -gate_voltage,
+            -gate_voltage,
             0.0,
-            potential_profile.potential[idx],
-            potential_profile.potential[idx] - mesh_structure.bandgap_energy[idx],
             0.0,
             0.0,
             0.0,
-            mesh_structure.mass_electron[idx],
-            mesh_structure.permittivity[idx],
+            0.0,
             0.0,
             0.0
         )
