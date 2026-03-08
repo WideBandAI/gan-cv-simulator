@@ -90,10 +90,10 @@ impl MeshStructure {
         self.bandgap_energy.push(bandgap_energy);
     }
 
-    pub fn add_surface_node(&mut self, depth: f64) {
+    pub fn add_surface_node(&mut self, depth: f64, configuration: &Configuration) {
         self.push_properties(
             IDX::Surface,
-            "Surface".to_string(),
+            configuration.device_structure.name[0].clone(),
             depth,
             0.0,
             0.0,
@@ -146,10 +146,11 @@ impl MeshStructure {
         );
     }
 
-    pub fn add_bottom_node(&mut self, depth: f64) {
+    pub fn add_bottom_node(&mut self, depth: f64, configuration: &Configuration) {
         self.push_properties(
             IDX::Bottom,
-            "Bottom".to_string(),
+            configuration.device_structure.name[configuration.device_structure.name.len() - 1]
+                .clone(),
             depth,
             0.0,
             0.0,
@@ -190,7 +191,7 @@ pub fn build(configuration: &Configuration) -> MeshStructure {
     let mut add_mesh_layer_thickness = 0.0;
 
     // Surface
-    mesh_structure.add_surface_node(current_depth);
+    mesh_structure.add_surface_node(current_depth, configuration);
 
     for idx in 0..configuration.mesh_params.layer_id.len() {
         let mesh_length = configuration.mesh_params.length_per_layer[idx];
@@ -227,7 +228,10 @@ pub fn build(configuration: &Configuration) -> MeshStructure {
         }
     }
     // Bottom
-    mesh_structure.add_bottom_node(configuration.device_structure.thickness.iter().sum::<f64>());
+    mesh_structure.add_bottom_node(
+        configuration.device_structure.thickness.iter().sum::<f64>(),
+        configuration,
+    );
 
     mesh_structure
 }
