@@ -89,10 +89,6 @@ impl CVSolver {
         // set potential profile at gate voltage
         self.set_gate_voltage(gate_voltage);
         self.poisson_solver.solve_poisson();
-        // self.poisson_solver.save_potential_profile(
-        //     &self.save_dir,
-        //     &format!("potential_{:.3}V.csv", gate_voltage),
-        // );
 
         let profile = self.poisson_solver.get_potential_profile();
         let filename = format!("potential_{:.3}V.csv", gate_voltage);

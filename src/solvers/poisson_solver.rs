@@ -338,11 +338,6 @@ impl PoissonSolver {
                 );
         }
     }
-
-    // pub fn save_potential_profile(&mut self, save_dir: &str, filename: &str) {
-    //     let profile = self.get_potential_profile();
-    //     save_potential_profile(&self.mesh_structure, profile, save_dir, filename);
-    // }
 }
 
 #[cfg(test)]
