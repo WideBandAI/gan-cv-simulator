@@ -2,8 +2,8 @@ use crate::config::boundary_conditions::BoundaryConditions;
 use crate::config::measurement::Measurement;
 use crate::constants::physics::Q_ELECTRON;
 use crate::constants::units::{F_TO_NF, M2_TO_CM2};
+use crate::save_files::potential_profile::save_potential_profile;
 use crate::solvers::poisson_solver::PoissonSolver;
-use crate::solvers::save_files::potential_profile::save_potential_profile;
 
 #[derive(Debug)]
 pub struct CVSolver {
