@@ -95,13 +95,13 @@ impl MeshStructure {
             IDX::Surface,
             configuration.device_structure.name[0].clone(),
             depth,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            configuration.device_structure.mass_electron[0],
+            configuration.device_structure.permittivity[0],
+            configuration.device_structure.delta_conduction_band[0],
+            configuration.device_structure.donor_concentration[0],
+            configuration.device_structure.energy_level_donor[0],
             FixChargeDensity::Interface(0.0),
-            0.0,
+            configuration.device_structure.bandgap_energy[0],
         );
     }
 
@@ -147,18 +147,19 @@ impl MeshStructure {
     }
 
     pub fn add_bottom_node(&mut self, depth: f64, configuration: &Configuration) {
+        let idx = configuration.device_structure.name.len() - 1;
         self.push_properties(
             IDX::Bottom,
             configuration.device_structure.name[configuration.device_structure.name.len() - 1]
                 .clone(),
             depth,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            configuration.device_structure.mass_electron[idx],
+            configuration.device_structure.permittivity[idx],
+            configuration.device_structure.delta_conduction_band[idx],
+            configuration.device_structure.donor_concentration[idx],
+            configuration.device_structure.energy_level_donor[idx],
             FixChargeDensity::Interface(0.0),
-            0.0,
+            configuration.device_structure.bandgap_energy[idx],
         );
     }
 }
