@@ -6,6 +6,7 @@ use std::io::Write;
 pub fn save_potential_profile(
     mesh_structure: &MeshStructure,
     potential_profile: Potential,
+    gate_voltage: f64,
     save_dir: &str,
     filename: &str,
 ) {
@@ -49,6 +50,28 @@ pub fn save_potential_profile(
         {
             return;
         }
+
+    for idx in 0..2 {
+        if writeln!(
+            file,
+            "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2e}, {:.2}, {:.3e}, {:.3e}",
+            "Gate",
+            0.0,
+            potential_profile.potential[idx],
+            potential_profile.potential[idx] - mesh_structure.bandgap_energy[idx],
+            0.0,
+            0.0,
+            0.0,
+            mesh_structure.mass_electron[idx],
+            mesh_structure.permittivity[idx],
+            0.0,
+            0.0
+        )
+        .is_err()
+        {
+            return;
+        }
+    }
 
     for idx in 0..profile.depth.len() {
         let layer_name = mesh_structure.name[idx].clone();
