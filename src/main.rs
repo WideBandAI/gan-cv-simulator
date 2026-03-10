@@ -20,8 +20,13 @@ fn main() -> anyhow::Result<()> {
     let config = ConfigurationBuilder::from_interactive().build();
     println!("{:#?}", config);
     let output_dir = format!("outputs/{}", config.sim_settings.sim_name);
-    fs::create_dir_all(&output_dir)
-        .map_err(|e| anyhow::anyhow!("Failed to create output directory '{}': {}. Please check permissions and try again.", output_dir, e))?;
+    fs::create_dir_all(&output_dir).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to create output directory '{}': {}. Please check permissions and try again.",
+            output_dir,
+            e
+        )
+    })?;
 
     let mesh_structure = mb::build(&config);
     let poisson_solver = PoissonSolver::new(
