@@ -288,18 +288,12 @@ impl PoissonSolver {
         delta_potential
     }
 
-    /// Get potential profile
-    ///
-    /// # Returns
-    ///
-    /// - `Potential` - A struct containing vectors of depth, potential, electron density, and ionized donor concentration.
-    ///
     /// # Examples
     ///
-    /// ```
-    /// use crate::...;
-    ///
-    /// let _ = get_potential_profile();
+    /// ```ignore
+    /// // Assuming `solver` is a mutable instance of PoissonSolver
+    /// // let mut solver = PoissonSolver::new(...); // Example initialization
+    /// // let potential_profile = solver.get_potential_profile();
     /// ```
     pub fn get_potential_profile(&mut self) -> Potential {
         self.calculate_electron_density();
