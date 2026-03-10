@@ -13,6 +13,9 @@ pub struct SimSettings {
 fn get_bool_input(prompt: &str) -> bool {
     loop {
         let input = get_input(prompt);
+        if input.is_empty() {
+            return false;
+        }
         match input.trim().to_lowercase().as_str() {
             "y" => return true,
             "n" => return false,
