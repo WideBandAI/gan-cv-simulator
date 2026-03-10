@@ -8,7 +8,7 @@ use std::io::Write;
 
 pub fn save_potential_profile(
     mesh_structure: &MeshStructure,
-    potential_profile: Potential,
+    potential_profile: &Potential,
     gate_voltage: f64,
     save_dir: &str,
     filename: &str,
@@ -32,14 +32,24 @@ pub fn save_potential_profile(
 
     let potential_save_dir = save_dir_path.join("potential_profiles");
     let potential_file_path = potential_save_dir.join(filename);
-    fs::create_dir_all(&potential_save_dir)
-        .map_err(|e| anyhow::anyhow!("Failed to create output directory '{}': {}. Please check permissions and try again.", potential_save_dir.display(), e))?;
+    fs::create_dir_all(&potential_save_dir).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to create output directory '{}': {}. Please check permissions and try again.",
+            potential_save_dir.display(),
+            e
+        )
+    })?;
 
     let profile = potential_profile;
     let mesh_structure = mesh_structure;
 
-    let mut file = std::fs::File::create(&potential_file_path)
-        .map_err(|e| anyhow::anyhow!("Failed to create potential profile file '{:?}': {}", filename, e))?;
+    let mut file = std::fs::File::create(&potential_file_path).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to create potential profile file '{:?}': {}",
+            filename,
+            e
+        )
+    })?;
 
     writeln!(
         file,

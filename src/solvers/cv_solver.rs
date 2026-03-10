@@ -95,7 +95,7 @@ impl CVSolver {
         let filename = format!("potential_{:.3}V.csv", gate_voltage);
         save_potential_profile(
             &self.poisson_solver.mesh_structure,
-            profile,
+            &profile,
             gate_voltage,
             &self.save_dir,
             &filename,
