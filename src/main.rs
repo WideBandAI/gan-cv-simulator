@@ -15,18 +15,13 @@ use crate::mesh_builder::mesh_builder as mb;
 use crate::solvers::cv_solver::CVSolver;
 use crate::solvers::poisson_solver::PoissonSolver;
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     println!("Starting C-V simulation with the following parameters:");
     let config = ConfigurationBuilder::from_interactive().build();
     println!("{:#?}", config);
     let output_dir = format!("outputs/{}", config.sim_settings.sim_name);
-    if let Err(e) = fs::create_dir_all(&output_dir) {
-        eprintln!(
-            "Failed to create output directory '{}': {}. Please check permissions and try again.",
-            output_dir, e
-        );
-        return;
-    }
+    fs::create_dir_all(&output_dir)
+        .map_err(|e| anyhow::anyhow!("Failed to create output directory '{}': {}. Please check permissions and try again.", output_dir, e))?;
 
     let mesh_structure = mb::build(&config);
     let poisson_solver = PoissonSolver::new(
@@ -44,5 +39,6 @@ fn main() {
         config.boundary_conditions,
         output_dir,
     );
-    cv_solver.run();
+    cv_solver.run()?;
+    Ok(())
 }

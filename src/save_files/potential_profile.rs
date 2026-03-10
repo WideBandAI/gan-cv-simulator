@@ -12,61 +12,44 @@ pub fn save_potential_profile(
     gate_voltage: f64,
     save_dir: &str,
     filename: &str,
-) {
-    // Guard against path traversal by disallowing absolute paths, `..`, and path separators in filenames.
+) -> anyhow::Result<()> {
+    // Guard against path traversal by disallowing `..` components.
+    // We allow absolute paths as tempfile::TempDir generates them.
     let save_dir_path = std::path::Path::new(save_dir);
-    if save_dir_path.is_absolute()
-        || save_dir_path.components().any(|c| {
-            matches!(
-                c,
-                std::path::Component::ParentDir | std::path::Component::Prefix(_)
-            )
-        })
+    if save_dir_path
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
     {
-        eprintln!("Invalid save directory: contains path traversal components.");
-        return;
+        anyhow::bail!("Invalid save directory: contains path traversal components.");
     }
 
     let filename = match std::path::Path::new(filename).file_name() {
         Some(name) if name == std::path::Path::new(filename) => name,
         _ => {
-            eprintln!("Invalid filename: must not contain path separators.");
-            return;
+            anyhow::bail!("Invalid filename: must not contain path separators.");
         }
     };
 
     let potential_save_dir = save_dir_path.join("potential_profiles");
     let potential_file_path = potential_save_dir.join(filename);
     fs::create_dir_all(&potential_save_dir)
-        .expect("Failed to create output directory. Please check permissions and try again.");
+        .map_err(|e| anyhow::anyhow!("Failed to create output directory '{}': {}. Please check permissions and try again.", potential_save_dir.display(), e))?;
 
     let profile = potential_profile;
     let mesh_structure = mesh_structure;
 
-    let mut file = match std::fs::File::create(&potential_file_path) {
-        Ok(f) => f,
-        Err(e) => {
-            eprintln!(
-                "Failed to create potential profile file '{:?}': {}",
-                filename, e
-            );
-            return;
-        }
-    };
+    let mut file = std::fs::File::create(&potential_file_path)
+        .map_err(|e| anyhow::anyhow!("Failed to create potential profile file '{:?}': {}", filename, e))?;
 
-    if writeln!(
-            file,
-            "Name, Depth (nm), Ec (eV), Ev (eV), ns (1/cm^3), Nd+ (1/cm^3), Nd (1/cm^3), me*, εr, fix charge (C/cm^3), fix charge (C/cm^2)"
-        )
-        .is_err()
-        {
-            return;
-        }
+    writeln!(
+        file,
+        "Name, Depth (nm), Ec (eV), Ev (eV), ns (1/cm^3), Nd+ (1/cm^3), Nd (1/cm^3), me*, εr, fix charge (C/cm^3), fix charge (C/cm^2)"
+    )?;
 
     // gate region (at the surface of the device)
     let gate_depth = vec![-200.0, 0.0];
     for idx in 0..2 {
-        if writeln!(
+        writeln!(
             file,
             "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2}, {:.2}, {:.3e}, {:.3e}",
             "Gate",
@@ -80,11 +63,7 @@ pub fn save_potential_profile(
             0.0,
             0.0,
             0.0
-        )
-        .is_err()
-        {
-            return;
-        }
+        )?;
     }
 
     for idx in 0..profile.depth.len() {
@@ -104,7 +83,7 @@ pub fn save_potential_profile(
             let ev1 = ec1 - mesh_structure.bandgap_energy[idx - 1];
             let me1 = mesh_structure.mass_electron[idx - 1] / M_ELECTRON;
             let epsilon_r1 = mesh_structure.permittivity[idx - 1] / EPSILON_0;
-            if writeln!(
+            writeln!(
                 file,
                 "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2}, {:.2}, {:.3e}, {:.3e}",
                 layer_name,
@@ -118,17 +97,13 @@ pub fn save_potential_profile(
                 epsilon_r1,
                 fix_charge_bulk,
                 fix_charge_interface
-            )
-            .is_err()
-            {
-                return;
-            }
+            )?;
 
             let ec2 = profile.potential[idx] + mesh_structure.delta_conduction_band[idx + 1];
             let ev2 = ec2 - mesh_structure.bandgap_energy[idx + 1];
             let me2 = mesh_structure.mass_electron[idx + 1] / M_ELECTRON;
             let epsilon_r2 = mesh_structure.permittivity[idx + 1] / EPSILON_0;
-            if writeln!(
+            writeln!(
                 file,
                 "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2}, {:.2}, {:.3e}, {:.3e}",
                 layer_name,
@@ -142,11 +117,7 @@ pub fn save_potential_profile(
                 epsilon_r2,
                 fix_charge_bulk,
                 fix_charge_interface
-            )
-            .is_err()
-            {
-                return;
-            }
+            )?;
         } else {
             let ec = profile.potential[idx] + mesh_structure.delta_conduction_band[idx];
             let ev = ec - mesh_structure.bandgap_energy[idx];
@@ -156,7 +127,7 @@ pub fn save_potential_profile(
             let me = mesh_structure.mass_electron[idx] / M_ELECTRON;
             let epsilon_r = mesh_structure.permittivity[idx] / EPSILON_0;
 
-            if writeln!(
+            writeln!(
                 file,
                 "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2}, {:.2}, {:.3e}, {:.3e}",
                 layer_name,
@@ -170,11 +141,9 @@ pub fn save_potential_profile(
                 epsilon_r,
                 fix_charge_bulk,
                 fix_charge_interface
-            )
-            .is_err()
-            {
-                return;
-            }
+            )?;
         }
     }
+
+    Ok(())
 }

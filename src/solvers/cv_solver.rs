@@ -60,7 +60,7 @@ impl CVSolver {
     ///
     /// let _ = run();
     /// ```
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> anyhow::Result<()> {
         // perform basic validation of the step size before iterating
         let start = self.measurement.voltage.start;
         let end = self.measurement.voltage.end;
@@ -75,7 +75,7 @@ impl CVSolver {
         let forward = step > 0.0;
 
         while (forward && gate_voltage <= end) || (!forward && gate_voltage >= end) {
-            let capacitance = self.solve_cv(gate_voltage);
+            let capacitance = self.solve_cv(gate_voltage)?;
             println!(
                 "Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
                 gate_voltage,
@@ -83,9 +83,10 @@ impl CVSolver {
             );
             gate_voltage += step;
         }
+        Ok(())
     }
 
-    fn solve_cv(&mut self, gate_voltage: f64) -> f64 {
+    fn solve_cv(&mut self, gate_voltage: f64) -> anyhow::Result<f64> {
         // set potential profile at gate voltage
         self.set_gate_voltage(gate_voltage);
         self.poisson_solver.solve_poisson();
@@ -98,7 +99,7 @@ impl CVSolver {
             gate_voltage,
             &self.save_dir,
             &filename,
-        );
+        )?;
 
         let electron_density_vg_plus_ac =
             self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage);
@@ -108,7 +109,7 @@ impl CVSolver {
         let capacitance = Q_ELECTRON * (electron_density_vg_plus_ac - electron_density_vg_minus_ac)
             / (2.0 * self.measurement.ac_voltage);
 
-        capacitance
+        Ok(capacitance)
     }
 
     /// Get electron density (/m^2) at gate voltage
@@ -468,7 +469,7 @@ mod tests {
             0.0, 1.0, 0.1, 0.02,
         );
 
-        let capacitance = cv_solver.solve_cv(0.5);
+        let capacitance = cv_solver.solve_cv(0.5).unwrap();
         assert!(
             relative_eq!(capacitance, 0.0, epsilon = 1e-30),
             "capacitance should be zero with zero electron density: {}",
@@ -487,7 +488,7 @@ mod tests {
             0.0, 5.0, 0.1, 0.02,
         );
 
-        let capacitance = cv_solver.solve_cv(3.0);
+        let capacitance = cv_solver.solve_cv(3.0).unwrap();
         assert!(
             capacitance >= 0.0,
             "capacitance should be non-negative at positive gate voltage: {}",
@@ -502,7 +503,7 @@ mod tests {
             0.0, 0.0, 1.0, 0.5, 0.0, 1.0, 0.1, 0.5, // 大きい AC 電圧
         );
 
-        let capacitance = cv_solver.solve_cv(0.0);
+        let capacitance = cv_solver.solve_cv(0.0).unwrap();
         // mass_electron=0 → 電子密度ゼロ → キャパシタンスゼロ
         assert!(
             relative_eq!(capacitance, 0.0, epsilon = 1e-30),
@@ -523,7 +524,7 @@ mod tests {
             0.0, 0.0, 1.0, 0.1, 0.0, 1.0, 0.0, // step = 0
             0.02,
         );
-        cv_solver.run();
+        let _ = cv_solver.run();
     }
 
     /// 正方向のスイープ (step > 0) が正常に終了すること
@@ -532,7 +533,7 @@ mod tests {
     fn test_run_forward_sweep_completes() {
         let mut cv_solver = make_cv_solver(0.0, 0.0, 1.0, 0.5, 0.0, 0.2, 0.1, 0.02);
         // panic しなければ OK
-        cv_solver.run();
+        cv_solver.run().unwrap();
     }
 
     /// 逆方向のスイープ (step < 0) が正常に終了すること
@@ -540,7 +541,7 @@ mod tests {
     fn test_run_reverse_sweep_completes() {
         let mut cv_solver = make_cv_solver(0.0, 0.0, 1.0, 0.5, 0.2, 0.0, -0.1, 0.02);
         // panic しなければ OK
-        cv_solver.run();
+        cv_solver.run().unwrap();
     }
 
     /// start == end の場合、1点だけ計算されること（panic しない）
@@ -548,6 +549,6 @@ mod tests {
     fn test_run_single_point() {
         let mut cv_solver = make_cv_solver(0.0, 0.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.02);
         // start == end なので1回だけ計算して終了
-        cv_solver.run();
+        cv_solver.run().unwrap();
     }
 }
