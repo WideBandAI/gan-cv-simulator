@@ -13,32 +13,41 @@ pub fn save_potential_profile(
     save_dir: &str,
     filename: &str,
 ) {
-    let potential_save_dir = format!("{}/{}", save_dir, "potential_profiles");
-    let potential_file_path = format!("{}/{}", potential_save_dir, filename);
+    // Guard against path traversal by disallowing absolute paths, `..`, and path separators in filenames.
+    let save_dir_path = std::path::Path::new(save_dir);
+    if save_dir_path.is_absolute()
+        || save_dir_path.components().any(|c| {
+            matches!(
+                c,
+                std::path::Component::ParentDir | std::path::Component::Prefix(_)
+            )
+        })
+    {
+        eprintln!("Invalid save directory: contains path traversal components.");
+        return;
+    }
+
+    let filename = match std::path::Path::new(filename).file_name() {
+        Some(name) if name == std::path::Path::new(filename) => name,
+        _ => {
+            eprintln!("Invalid filename: must not contain path separators.");
+            return;
+        }
+    };
+
+    let potential_save_dir = save_dir_path.join("potential_profiles");
+    let potential_file_path = potential_save_dir.join(filename);
     fs::create_dir_all(&potential_save_dir)
         .expect("Failed to create output directory. Please check permissions and try again.");
 
     let profile = potential_profile;
     let mesh_structure = mesh_structure;
 
-    // Ensure any parent directories exist so file creation doesn't fail.
-    if let Some(parent) = std::path::Path::new(&potential_file_path).parent() {
-        if !parent.exists() {
-            if let Err(e) = std::fs::create_dir_all(parent) {
-                eprintln!(
-                    "Failed to create directory for potential profile '{}': {}",
-                    filename, e
-                );
-                return;
-            }
-        }
-    }
-
     let mut file = match std::fs::File::create(&potential_file_path) {
         Ok(f) => f,
         Err(e) => {
             eprintln!(
-                "Failed to create potential profile file '{}': {}",
+                "Failed to create potential profile file '{:?}': {}",
                 filename, e
             );
             return;
