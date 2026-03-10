@@ -150,8 +150,7 @@ impl MeshStructure {
         let idx = configuration.device_structure.name.len() - 1;
         self.push_properties(
             IDX::Bottom,
-            configuration.device_structure.name[configuration.device_structure.name.len() - 1]
-                .clone(),
+            configuration.device_structure.name[idx].clone(),
             depth,
             configuration.device_structure.mass_electron[idx],
             configuration.device_structure.permittivity[idx],
