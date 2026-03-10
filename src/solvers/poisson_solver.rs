@@ -292,7 +292,7 @@ impl PoissonSolver {
     ///
     /// # Returns
     ///
-    /// - `Vec<(f64, f64, f64, f64)>` - A vector of tuples containing depth, potential, electron density, and ionized donor concentration at each mesh point.
+    /// - `Potential` - A struct containing vectors of depth, potential, electron density, and ionized donor concentration.
     ///
     /// # Examples
     ///
