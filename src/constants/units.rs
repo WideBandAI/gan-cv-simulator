@@ -1,6 +1,9 @@
 /// [cm^-3] → [m^-3]
 pub const CM3_TO_M3: f64 = 1.0e6;
 
+/// [m^-3] → [cm^-3]
+pub const M3_TO_CM3: f64 = 1.0e-6;
+
 /// [cm^-2] → [m^-2]
 pub const CM2_TO_M2: f64 = 1.0e4;
 

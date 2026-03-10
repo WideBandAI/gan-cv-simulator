@@ -2,6 +2,7 @@ use crate::config::boundary_conditions::BoundaryConditions;
 use crate::config::measurement::Measurement;
 use crate::constants::physics::Q_ELECTRON;
 use crate::constants::units::{F_TO_NF, M2_TO_CM2};
+use crate::save_files::potential_profile::save_potential_profile;
 use crate::solvers::poisson_solver::PoissonSolver;
 
 #[derive(Debug)]
@@ -9,6 +10,7 @@ pub struct CVSolver {
     pub poisson_solver: PoissonSolver,
     measurement: Measurement,
     boundary_conditions: BoundaryConditions,
+    save_dir: String,
 }
 
 /// C-V solver
@@ -32,11 +34,13 @@ impl CVSolver {
         poisson_solver: PoissonSolver,
         measurement: Measurement,
         boundary_conditions: BoundaryConditions,
+        save_dir: String,
     ) -> Self {
         Self {
             poisson_solver,
             measurement,
             boundary_conditions,
+            save_dir,
         }
     }
 
@@ -56,7 +60,7 @@ impl CVSolver {
     ///
     /// let _ = run();
     /// ```
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> anyhow::Result<()> {
         // perform basic validation of the step size before iterating
         let start = self.measurement.voltage.start;
         let end = self.measurement.voltage.end;
@@ -71,7 +75,7 @@ impl CVSolver {
         let forward = step > 0.0;
 
         while (forward && gate_voltage <= end) || (!forward && gate_voltage >= end) {
-            let capacitance = self.solve_cv(gate_voltage);
+            let capacitance = self.solve_cv(gate_voltage)?;
             println!(
                 "Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
                 gate_voltage,
@@ -79,12 +83,23 @@ impl CVSolver {
             );
             gate_voltage += step;
         }
+        Ok(())
     }
 
-    fn solve_cv(&mut self, gate_voltage: f64) -> f64 {
+    fn solve_cv(&mut self, gate_voltage: f64) -> anyhow::Result<f64> {
         // set potential profile at gate voltage
         self.set_gate_voltage(gate_voltage);
         self.poisson_solver.solve_poisson();
+
+        let profile = self.poisson_solver.get_potential_profile();
+        let filename = format!("potential_{:.3}V.csv", gate_voltage);
+        save_potential_profile(
+            &self.poisson_solver.mesh_structure,
+            &profile,
+            gate_voltage,
+            &self.save_dir,
+            &filename,
+        )?;
 
         let electron_density_vg_plus_ac =
             self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage);
@@ -94,7 +109,7 @@ impl CVSolver {
         let capacitance = Q_ELECTRON * (electron_density_vg_plus_ac - electron_density_vg_minus_ac)
             / (2.0 * self.measurement.ac_voltage);
 
-        capacitance
+        Ok(capacitance)
     }
 
     /// Get electron density (/m^2) at gate voltage
@@ -148,6 +163,7 @@ mod tests {
     use crate::constants::physics::EPSILON_0;
     use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
     use approx::relative_eq;
+    use tempfile::TempDir;
 
     // -----------------------------------------------------------------------
     // Helper: テスト用の MeshStructure を手動で作成
@@ -175,6 +191,14 @@ mod tests {
                 IDX::Bulk(0),
                 IDX::Bulk(0),
                 IDX::Bottom,
+            ],
+            name: vec![
+                "Surface".to_string(),
+                "Bulk".to_string(),
+                "Bulk".to_string(),
+                "Bulk".to_string(),
+                "Bulk".to_string(),
+                "Bottom".to_string(),
             ],
             depth: vec![0.0, 1e-9, 2e-9, 3e-9, 4e-9, 5e-9],
             mass_electron: vec![
@@ -211,6 +235,7 @@ mod tests {
                 FixChargeDensity::Bulk(bulk_fixcharge),
                 FixChargeDensity::Bulk(0.0),
             ],
+            bandgap_energy: vec![1.12; n],
         }
     }
 
@@ -249,10 +274,16 @@ mod tests {
     ) -> CVSolver {
         let eps = 10.0 * EPSILON_0;
         let mesh = make_cv_mesh(mass_electron, eps, donor_concentration, 0.0);
-        let poisson_solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000);
+        let poisson_solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false);
         let measurement = make_measurement(voltage_start, voltage_end, voltage_step, ac_voltage);
         let bc = make_boundary_conditions(barrier_height, ec_ef_bottom);
-        CVSolver::new(poisson_solver, measurement, bc)
+        let temp_dir = TempDir::new().unwrap();
+        CVSolver::new(
+            poisson_solver,
+            measurement,
+            bc,
+            temp_dir.path().to_str().unwrap().to_string(),
+        )
     }
 
     // -----------------------------------------------------------------------
@@ -264,11 +295,16 @@ mod tests {
     fn test_new_initializes_fields_correctly() {
         let eps = 10.0 * EPSILON_0;
         let mesh = make_cv_mesh(0.2, eps, 1e22, 0.0);
-        let poisson_solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
+        let poisson_solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
         let measurement = make_measurement(-2.0, 2.0, 0.1, 0.02);
         let bc = make_boundary_conditions(1.0, 0.1);
-
-        let cv_solver = CVSolver::new(poisson_solver, measurement, bc);
+        let temp_dir = TempDir::new().unwrap();
+        let cv_solver = CVSolver::new(
+            poisson_solver,
+            measurement,
+            bc,
+            temp_dir.path().to_str().unwrap().to_string(),
+        );
 
         assert!(
             relative_eq!(
@@ -433,7 +469,7 @@ mod tests {
             0.0, 1.0, 0.1, 0.02,
         );
 
-        let capacitance = cv_solver.solve_cv(0.5);
+        let capacitance = cv_solver.solve_cv(0.5).unwrap();
         assert!(
             relative_eq!(capacitance, 0.0, epsilon = 1e-30),
             "capacitance should be zero with zero electron density: {}",
@@ -452,7 +488,7 @@ mod tests {
             0.0, 5.0, 0.1, 0.02,
         );
 
-        let capacitance = cv_solver.solve_cv(3.0);
+        let capacitance = cv_solver.solve_cv(3.0).unwrap();
         assert!(
             capacitance >= 0.0,
             "capacitance should be non-negative at positive gate voltage: {}",
@@ -467,7 +503,7 @@ mod tests {
             0.0, 0.0, 1.0, 0.5, 0.0, 1.0, 0.1, 0.5, // 大きい AC 電圧
         );
 
-        let capacitance = cv_solver.solve_cv(0.0);
+        let capacitance = cv_solver.solve_cv(0.0).unwrap();
         // mass_electron=0 → 電子密度ゼロ → キャパシタンスゼロ
         assert!(
             relative_eq!(capacitance, 0.0, epsilon = 1e-30),
@@ -488,7 +524,7 @@ mod tests {
             0.0, 0.0, 1.0, 0.1, 0.0, 1.0, 0.0, // step = 0
             0.02,
         );
-        cv_solver.run();
+        let _ = cv_solver.run();
     }
 
     /// 正方向のスイープ (step > 0) が正常に終了すること
@@ -497,7 +533,7 @@ mod tests {
     fn test_run_forward_sweep_completes() {
         let mut cv_solver = make_cv_solver(0.0, 0.0, 1.0, 0.5, 0.0, 0.2, 0.1, 0.02);
         // panic しなければ OK
-        cv_solver.run();
+        cv_solver.run().unwrap();
     }
 
     /// 逆方向のスイープ (step < 0) が正常に終了すること
@@ -505,7 +541,7 @@ mod tests {
     fn test_run_reverse_sweep_completes() {
         let mut cv_solver = make_cv_solver(0.0, 0.0, 1.0, 0.5, 0.2, 0.0, -0.1, 0.02);
         // panic しなければ OK
-        cv_solver.run();
+        cv_solver.run().unwrap();
     }
 
     /// start == end の場合、1点だけ計算されること（panic しない）
@@ -513,6 +549,6 @@ mod tests {
     fn test_run_single_point() {
         let mut cv_solver = make_cv_solver(0.0, 0.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.02);
         // start == end なので1回だけ計算して終了
-        cv_solver.run();
+        cv_solver.run().unwrap();
     }
 }

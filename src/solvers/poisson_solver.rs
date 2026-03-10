@@ -2,6 +2,7 @@ use crate::constants::physics::*;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
+
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 
@@ -10,7 +11,7 @@ pub struct Potential {
     pub depth: Vec<f64>,
     pub potential: Vec<f64>,
     pub electron_density: Vec<f64>,
-    ionized_donor_concentration: Vec<f64>,
+    pub ionized_donor_concentration: Vec<f64>,
 }
 
 #[derive(Debug)]
@@ -25,6 +26,7 @@ pub struct PoissonSolver {
     max_iterations: usize,
     electron_density_model: Box<dyn ElectronDensity>,
     donor_activation_model: DonorActivation,
+    parallel_use: bool,
 }
 
 /// Poisson equation solver using Successive Over-Relaxation (SOR) method.
@@ -59,6 +61,7 @@ impl PoissonSolver {
         sor_relaxation_factor: f64,
         convergence_threshold: f64,
         max_iterations: usize,
+        parallel_use: bool,
     ) -> Self {
         let potential = Potential {
             depth: mesh_structure.depth.clone(),
@@ -83,6 +86,7 @@ impl PoissonSolver {
             max_iterations,
             electron_density_model: Box::new(BoltzmannApproximation::new(temperature)),
             donor_activation_model: DonorActivation::new(temperature),
+            parallel_use,
         }
     }
 
@@ -149,7 +153,7 @@ impl PoissonSolver {
 
         for i in 1..=self.max_iterations {
             iter_count = i;
-            sum_delta_potential = self.solve_poisson_with_sor();
+            sum_delta_potential = self.solve_poisson_with_sor(self.parallel_use);
 
             // update progress bar message with current sum of delta potential
             pb.set_message(format!("Δ φ={:.3e}", sum_delta_potential));
@@ -176,46 +180,28 @@ impl PoissonSolver {
         iter_count
     }
 
-    /// Get potential profile
-    ///
-    /// # Returns
-    ///
-    /// - `Vec<(f64, f64, f64, f64)>` - A vector of tuples containing depth, potential, electron density, and ionized donor concentration at each mesh point.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use crate::...;
-    ///
-    /// let _ = get_potential_profile();
-    /// ```
-    pub fn get_potential_profile(&mut self) -> Potential {
-        self.calculate_electron_density();
-        self.calculate_ionized_donor_concentration();
-        self.potential.clone()
-    }
+    fn solve_poisson_with_sor(&mut self, parallel_use: bool) -> f64 {
+        let mut sum_delta_potential = 0.0;
 
-    fn calculate_electron_density(&mut self) {
-        for idx in 0..self.mesh_structure.id.len() {
-            self.potential.electron_density[idx] = self.electron_density_model.electron_density(
-                self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
-                self.mesh_structure.mass_electron[idx],
-            );
+        if parallel_use {
+            sum_delta_potential += self.solve_poisson_with_sor_parallel();
+        } else {
+            sum_delta_potential += self.solve_poisson_with_single_thread();
         }
+        sum_delta_potential
     }
 
-    fn calculate_ionized_donor_concentration(&mut self) {
-        for idx in 0..self.mesh_structure.id.len() {
-            self.potential.ionized_donor_concentration[idx] =
-                self.donor_activation_model.ionized_donor_concentration(
-                    self.mesh_structure.donor_concentration[idx],
-                    self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
-                        - self.mesh_structure.energy_level_donor[idx],
-                );
+    fn solve_poisson_with_single_thread(&mut self) -> f64 {
+        let mut sum_delta_potential = 0.0;
+        for idx in 1..self.mesh_structure.id.len() - 1 {
+            let delta_potential = self.compute_delta(idx);
+            self.potential.potential[idx] += self.sor_relaxation_factor * delta_potential;
+            sum_delta_potential += delta_potential.abs();
         }
+        sum_delta_potential
     }
 
-    fn solve_poisson_with_sor(&mut self) -> f64 {
+    fn solve_poisson_with_sor_parallel(&mut self) -> f64 {
         let mut sum_delta_potential = 0.0;
 
         // Red phase (odd indices: 1, 3, 5, ...)
@@ -301,6 +287,51 @@ impl PoissonSolver {
             - self.potential.potential[idx];
         delta_potential
     }
+
+    /// # Examples
+    ///
+    /// ```ignore
+    /// // Assuming `solver` is a mutable instance of PoissonSolver
+    /// // let mut solver = PoissonSolver::new(...); // Example initialization
+    /// // let potential_profile = solver.get_potential_profile();
+    /// ```
+    pub fn get_potential_profile(&mut self) -> Potential {
+        self.calculate_electron_density();
+        self.calculate_ionized_donor_concentration();
+        self.potential.clone()
+    }
+
+    /// Calculate self.potential.electron_density
+    ///
+    /// # Arguments
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = calculate_electron_density();
+    /// ```
+    fn calculate_electron_density(&mut self) {
+        for idx in 0..self.mesh_structure.id.len() {
+            self.potential.electron_density[idx] = self.electron_density_model.electron_density(
+                self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
+                self.mesh_structure.mass_electron[idx],
+            );
+        }
+    }
+
+    fn calculate_ionized_donor_concentration(&mut self) {
+        for idx in 0..self.mesh_structure.id.len() {
+            self.potential.ionized_donor_concentration[idx] =
+                self.donor_activation_model.ionized_donor_concentration(
+                    self.mesh_structure.donor_concentration[idx],
+                    self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
+                        - self.mesh_structure.energy_level_donor[idx],
+                );
+        }
+    }
 }
 
 #[cfg(test)]
@@ -327,6 +358,12 @@ mod tests {
         let n = 4;
         MeshStructure {
             id: vec![IDX::Surface, IDX::Bulk(0), IDX::Bulk(0), IDX::Bottom],
+            name: vec![
+                "Surface".to_string(),
+                "Bulk".to_string(),
+                "Bulk".to_string(),
+                "Bottom".to_string(),
+            ],
             depth: vec![0.0, 1e-9, 2e-9, 3e-9],
             mass_electron: vec![0.0, mass_electron, mass_electron, 0.0],
             permittivity: vec![0.0, permittivity, permittivity, 0.0],
@@ -339,6 +376,7 @@ mod tests {
                 FixChargeDensity::Bulk(bulk_fixcharge),
                 FixChargeDensity::Bulk(0.0),
             ],
+            bandgap_energy: vec![1.12; n],
         }
     }
 
@@ -353,6 +391,12 @@ mod tests {
         let n = 4;
         MeshStructure {
             id: vec![IDX::Surface, IDX::Bulk(0), IDX::Bulk(0), IDX::Bottom],
+            name: vec![
+                "Surface".to_string(),
+                "Bulk".to_string(),
+                "Bulk".to_string(),
+                "Bottom".to_string(),
+            ],
             depth: vec![0.0, 1.0, 2.0, 3.0],
             mass_electron: vec![0.0, 0.0, 0.0, 0.0],
             permittivity: vec![0.0, permittivity, permittivity, 0.0],
@@ -365,6 +409,7 @@ mod tests {
                 FixChargeDensity::Bulk(bulk_fixcharge),
                 FixChargeDensity::Bulk(0.0),
             ],
+            bandgap_energy: vec![1.12; n],
         }
     }
 
@@ -384,6 +429,13 @@ mod tests {
                 IDX::Bulk(1),
                 IDX::Bottom,
             ],
+            name: vec![
+                "Surface".to_string(),
+                "Bulk".to_string(),
+                "Interface".to_string(),
+                "Bulk".to_string(),
+                "Bottom".to_string(),
+            ],
             depth: vec![0.0, 1.0, 2.0, 3.0, 4.0],
             mass_electron: vec![0.0, 0.2, 0.0, 0.2, 0.0],
             permittivity: vec![0.0, permittivity, 0.0, permittivity, 0.0],
@@ -397,6 +449,7 @@ mod tests {
                 FixChargeDensity::Bulk(0.0),
                 FixChargeDensity::Bulk(0.0),
             ],
+            bandgap_energy: vec![1.12; n],
         }
     }
 
@@ -409,7 +462,7 @@ mod tests {
     fn test_new_initializes_potential_with_initial_value() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let initial_potential = 0.5;
-        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false);
 
         assert_eq!(solver.potential.potential.len(), 4);
         for &p in &solver.potential.potential {
@@ -427,7 +480,7 @@ mod tests {
     fn test_new_copies_depth_from_mesh() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let expected_depth = mesh.depth.clone();
-        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
+        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
 
         assert_eq!(solver.potential.depth, expected_depth);
     }
@@ -441,7 +494,7 @@ mod tests {
     fn test_set_boundary_conditions_surface() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let delta_ec_0 = mesh.delta_conduction_band[0]; // 0.0
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
 
         let gate_voltage = 1.0;
         let barrier_height = 0.8;
@@ -466,7 +519,7 @@ mod tests {
     fn test_set_boundary_conditions_bottom() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let n = mesh.id.len();
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
 
         let ec_ef_bottom = 0.3;
         solver.set_boundary_conditions(0.0, ec_ef_bottom);
@@ -496,7 +549,7 @@ mod tests {
         // donor_concentration=0 → ionized_donor=0
         // fixcharge=0 → rho=0 完全にゼロ電荷
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 100_000);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 100_000, false);
         solver.set_boundary_conditions(0.5, 0.1); // surface=0.5, bottom=0.1
 
         let iters = solver.solve_poisson(); // panic しないこと
@@ -546,7 +599,7 @@ mod tests {
     #[test]
     fn test_solve_poisson_returns_one_iteration_if_threshold_large() {
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, f64::MAX, 1000);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, f64::MAX, 1000, false);
         solver.set_boundary_conditions(0.0, 0.2);
 
         let iters = solver.solve_poisson();
@@ -561,7 +614,7 @@ mod tests {
     #[test]
     fn test_solve_poisson_runs_full_iterations_if_threshold_negative() {
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, -1.0, 123);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, -1.0, 123, false);
         solver.set_boundary_conditions(0.0, 0.5);
 
         let iters = solver.solve_poisson();
@@ -586,7 +639,7 @@ mod tests {
         let mesh = make_interface_mesh(eps, 0.0);
 
         // potential: Surface=0.0, Bulk=0.2, Interface=0.0, Bulk=0.4, Bottom=0.0
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1, false);
         solver.potential.potential[0] = 0.0;
         solver.potential.potential[1] = 0.2;
         solver.potential.potential[2] = 0.0; // interface の現在値
@@ -618,11 +671,11 @@ mod tests {
             s.potential.potential[4] = 0.0;
         };
 
-        let mut s0 = PoissonSolver::new(mesh_no_charge, 0.0, 300.0, 1.0, 1e-6, 1);
+        let mut s0 = PoissonSolver::new(mesh_no_charge, 0.0, 300.0, 1.0, 1e-6, 1, false);
         set_potentials(&mut s0);
         let delta_no_charge = s0.solve_interface(2);
 
-        let mut s1 = PoissonSolver::new(mesh_with_charge, 0.0, 300.0, 1.0, 1e-6, 1);
+        let mut s1 = PoissonSolver::new(mesh_with_charge, 0.0, 300.0, 1.0, 1e-6, 1, false);
         set_potentials(&mut s1);
         let delta_with_charge = s1.solve_interface(2);
 
@@ -646,7 +699,7 @@ mod tests {
         let uniform_pot = 5.0; // 高いポテンシャル → electron_density ≈ 0
         let mesh = make_simple_mesh(0.2, eps, 0.0, 0.0);
 
-        let mut solver = PoissonSolver::new(mesh, uniform_pot, 300.0, 1.0, 1e-6, 1);
+        let mut solver = PoissonSolver::new(mesh, uniform_pot, 300.0, 1.0, 1e-6, 1, false);
         // 全ノードを同じ値に揃える
         for p in solver.potential.potential.iter_mut() {
             *p = uniform_pot;
@@ -668,7 +721,7 @@ mod tests {
         // donor_concentration=0 → ionized_donor ≈ 0, electron_density ≈ 0 (高ポテンシャル时)
         let mesh = make_simple_mesh(0.2, eps, 0.0, 0.0);
 
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1, false);
         solver.potential.potential[0] = 0.0;
         solver.potential.potential[1] = 5.0; // 高いポテンシャル → rho≈0
         solver.potential.potential[2] = 1.0;
@@ -690,7 +743,7 @@ mod tests {
         let bulk_fixcharge = 1.0 / Q_ELECTRON;
         let mesh = make_simple_insulator_mesh(eps, bulk_fixcharge);
         let initial_potential = 0.0;
-        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false);
         let delta_poisson = solver.solve_bulk(1);
 
         assert!(
@@ -707,7 +760,7 @@ mod tests {
         let interface_fixcharge = 1.0 / Q_ELECTRON;
         let mesh = make_interface_mesh(eps, interface_fixcharge);
         let initial_potential = 1.0;
-        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000);
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false);
         let delta_poisson = solver.solve_interface(2);
 
         assert!(

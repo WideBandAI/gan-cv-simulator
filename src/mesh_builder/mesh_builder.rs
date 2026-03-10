@@ -38,6 +38,7 @@ pub enum FixChargeDensity {
 #[derive(Debug)]
 pub struct MeshStructure {
     pub id: Vec<IDX>,
+    pub name: Vec<String>,
     pub depth: Vec<f64>,
     pub mass_electron: Vec<f64>,
     pub permittivity: Vec<f64>,
@@ -45,12 +46,14 @@ pub struct MeshStructure {
     pub donor_concentration: Vec<f64>,
     pub energy_level_donor: Vec<f64>,
     pub fixcharge_density: Vec<FixChargeDensity>,
+    pub bandgap_energy: Vec<f64>,
 }
 
 impl MeshStructure {
     pub fn new() -> Self {
         Self {
             id: Vec::new(),
+            name: Vec::new(),
             depth: Vec::new(),
             mass_electron: Vec::new(),
             permittivity: Vec::new(),
@@ -58,12 +61,14 @@ impl MeshStructure {
             donor_concentration: Vec::new(),
             energy_level_donor: Vec::new(),
             fixcharge_density: Vec::new(),
+            bandgap_energy: Vec::new(),
         }
     }
 
     fn push_properties(
         &mut self,
         id: IDX,
+        name: String,
         depth: f64,
         mass_electron: f64,
         permittivity: f64,
@@ -71,8 +76,10 @@ impl MeshStructure {
         donor_concentration: f64,
         energy_level_donor: f64,
         fixcharge_density: FixChargeDensity,
+        bandgap_energy: f64,
     ) {
         self.id.push(id);
+        self.name.push(name);
         self.depth.push(depth);
         self.mass_electron.push(mass_electron);
         self.permittivity.push(permittivity);
@@ -80,18 +87,21 @@ impl MeshStructure {
         self.donor_concentration.push(donor_concentration);
         self.energy_level_donor.push(energy_level_donor);
         self.fixcharge_density.push(fixcharge_density);
+        self.bandgap_energy.push(bandgap_energy);
     }
 
-    pub fn add_surface_node(&mut self, depth: f64) {
+    pub fn add_surface_node(&mut self, depth: f64, configuration: &Configuration) {
         self.push_properties(
             IDX::Surface,
+            configuration.device_structure.name[0].clone(),
             depth,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            configuration.device_structure.mass_electron[0],
+            configuration.device_structure.permittivity[0],
+            configuration.device_structure.delta_conduction_band[0],
+            configuration.device_structure.donor_concentration[0],
+            configuration.device_structure.energy_level_donor[0],
             FixChargeDensity::Interface(0.0),
+            configuration.device_structure.bandgap_energy[0],
         );
     }
 
@@ -103,6 +113,11 @@ impl MeshStructure {
     ) {
         self.push_properties(
             IDX::Interface(struct_idx),
+            format!(
+                "Interface_{}-{}",
+                configuration.device_structure.name[struct_idx],
+                configuration.device_structure.name[struct_idx + 1]
+            ),
             depth,
             0.0,
             0.0,
@@ -112,12 +127,14 @@ impl MeshStructure {
             FixChargeDensity::Interface(
                 configuration.interface_fixed_charge.charge_density[struct_idx],
             ),
+            0.0,
         );
     }
 
     pub fn add_bulk_node(&mut self, depth: f64, struct_idx: usize, configuration: &Configuration) {
         self.push_properties(
             IDX::Bulk(struct_idx),
+            configuration.device_structure.name[struct_idx].clone(),
             depth,
             configuration.device_structure.mass_electron[struct_idx],
             configuration.device_structure.permittivity[struct_idx],
@@ -125,19 +142,23 @@ impl MeshStructure {
             configuration.device_structure.donor_concentration[struct_idx],
             configuration.device_structure.energy_level_donor[struct_idx],
             FixChargeDensity::Bulk(configuration.bulk_fixed_charge.charge_density[struct_idx]),
+            configuration.device_structure.bandgap_energy[struct_idx],
         );
     }
 
-    pub fn add_bottom_node(&mut self, depth: f64) {
+    pub fn add_bottom_node(&mut self, depth: f64, configuration: &Configuration) {
+        let idx = configuration.device_structure.name.len() - 1;
         self.push_properties(
             IDX::Bottom,
+            configuration.device_structure.name[idx].clone(),
             depth,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            configuration.device_structure.mass_electron[idx],
+            configuration.device_structure.permittivity[idx],
+            configuration.device_structure.delta_conduction_band[idx],
+            configuration.device_structure.donor_concentration[idx],
+            configuration.device_structure.energy_level_donor[idx],
             FixChargeDensity::Interface(0.0),
+            configuration.device_structure.bandgap_energy[idx],
         );
     }
 }
@@ -170,7 +191,7 @@ pub fn build(configuration: &Configuration) -> MeshStructure {
     let mut add_mesh_layer_thickness = 0.0;
 
     // Surface
-    mesh_structure.add_surface_node(current_depth);
+    mesh_structure.add_surface_node(current_depth, configuration);
 
     for idx in 0..configuration.mesh_params.layer_id.len() {
         let mesh_length = configuration.mesh_params.length_per_layer[idx];
@@ -207,7 +228,10 @@ pub fn build(configuration: &Configuration) -> MeshStructure {
         }
     }
     // Bottom
-    mesh_structure.add_bottom_node(configuration.device_structure.thickness.iter().sum::<f64>());
+    mesh_structure.add_bottom_node(
+        configuration.device_structure.thickness.iter().sum::<f64>(),
+        configuration,
+    );
 
     mesh_structure
 }
@@ -278,9 +302,11 @@ mod tests {
                 ec_ef_bottom: 0.1,
             },
             sim_settings: SimSettings {
+                sim_name: "test_simulation".to_string(),
                 sor_relaxation_factor: 1.9,
                 convergence_criterion: 1e-6,
                 max_iterations: 500000,
+                parallel_use: false,
             },
         }
     }
