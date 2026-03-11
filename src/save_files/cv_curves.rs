@@ -1,5 +1,6 @@
 use crate::solvers::cv_solver::CVResult;
 use std::fs;
+use std::io::Write;
 
 pub fn save_cv_curves(
     cv_results: &[CVResult],
@@ -23,12 +24,11 @@ pub fn save_cv_curves(
         }
     };
 
-    let cv_save_dir = save_dir_path.join("cv_curves");
-    let cv_file_path = cv_save_dir.join(filename);
-    fs::create_dir_all(&cv_save_dir).map_err(|e| {
+    let cv_file_path = save_dir_path.join(filename);
+    fs::create_dir_all(&save_dir_path).map_err(|e| {
         anyhow::anyhow!(
             "Failed to create output directory '{}': {}. Please check permissions and try again.",
-            cv_save_dir.display(),
+            save_dir_path.display(),
             e
         )
     })?;
@@ -38,11 +38,10 @@ pub fn save_cv_curves(
 
     writeln!(file, "Gate Voltage (V), Capacitance (nF/cm^2)")?;
     for result in cv_results {
-        writeln!(
-            file,
-            "{:.3}, {:.3e}",
-            result.gate_voltage, result.capacitance
-        )?;
+        for (gate_voltage, capacitance) in result.gate_voltage.iter().zip(result.capacitance.iter())
+        {
+            writeln!(file, "{:.3}, {:.3e}", gate_voltage, capacitance)?;
+        }
     }
 
     Ok(())
