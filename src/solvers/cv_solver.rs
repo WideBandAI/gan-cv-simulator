@@ -2,6 +2,7 @@ use crate::config::boundary_conditions::BoundaryConditions;
 use crate::config::measurement::Measurement;
 use crate::constants::physics::Q_ELECTRON;
 use crate::constants::units::{F_TO_NF, M2_TO_CM2};
+use crate::save_files::cv_curves::save_cv_curves;
 use crate::save_files::potential_profile::save_potential_profile;
 use crate::solvers::poisson_solver::PoissonSolver;
 
@@ -11,6 +12,12 @@ pub struct CVSolver {
     measurement: Measurement,
     boundary_conditions: BoundaryConditions,
     save_dir: String,
+}
+
+#[derive(Debug)]
+pub struct CVResult {
+    pub gate_voltage: Vec<f64>,
+    pub capacitance: Vec<f64>,
 }
 
 /// C-V solver
@@ -61,6 +68,9 @@ impl CVSolver {
     /// let _ = run();
     /// ```
     pub fn run(&mut self) -> anyhow::Result<()> {
+        let mut gate_voltages: Vec<f64> = Vec::new();
+        let mut capacitances: Vec<f64> = Vec::new();
+
         // perform basic validation of the step size before iterating
         let start = self.measurement.voltage.start;
         let end = self.measurement.voltage.end;
@@ -81,8 +91,15 @@ impl CVSolver {
                 gate_voltage,
                 capacitance * F_TO_NF * M2_TO_CM2
             );
+            gate_voltages.push(gate_voltage);
+            capacitances.push(capacitance * F_TO_NF * M2_TO_CM2);
             gate_voltage += step;
         }
+        let cv_results = CVResult {
+            gate_voltage: gate_voltages,
+            capacitance: capacitances,
+        };
+        save_cv_curves(&[cv_results], &self.save_dir, "cv_curves.csv")?;
         Ok(())
     }
 
