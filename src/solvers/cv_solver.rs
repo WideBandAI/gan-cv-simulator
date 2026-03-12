@@ -83,8 +83,9 @@ impl CVSolver {
         // determine loop direction based on sign of step
         let mut gate_voltage = start;
         let forward = step > 0.0;
-
+        let mut index = 0;
         while (forward && gate_voltage <= end) || (!forward && gate_voltage >= end) {
+            let _ = self.set_dc_save_potential(gate_voltage, index);
             let capacitance = self.solve_cv(gate_voltage)?;
             println!(
                 "Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
@@ -94,7 +95,9 @@ impl CVSolver {
             gate_voltages.push(gate_voltage);
             capacitances.push(capacitance * F_TO_NF * M2_TO_CM2);
             gate_voltage += step;
+            index += 1;
         }
+
         let cv_results = CVResult {
             gate_voltage: gate_voltages,
             capacitance: capacitances,
@@ -103,13 +106,12 @@ impl CVSolver {
         Ok(())
     }
 
-    fn solve_cv(&mut self, gate_voltage: f64) -> anyhow::Result<f64> {
-        // set potential profile at gate voltage
+    fn set_dc_save_potential(&mut self, gate_voltage: f64, index: usize) -> anyhow::Result<()> {
         self.set_gate_voltage(gate_voltage);
         self.poisson_solver.solve_poisson();
 
         let profile = self.poisson_solver.get_potential_profile();
-        let filename = format!("potential_{:.3}V.csv", gate_voltage);
+        let filename = format!("{}_potential_{:.3}V.csv", index, gate_voltage);
         save_potential_profile(
             &self.poisson_solver.mesh_structure,
             &profile,
@@ -117,7 +119,10 @@ impl CVSolver {
             &self.save_dir,
             &filename,
         )?;
+        Ok(())
+    }
 
+    fn solve_cv(&mut self, gate_voltage: f64) -> anyhow::Result<f64> {
         let electron_density_vg_plus_ac =
             self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage);
         let electron_density_vg_minus_ac =
