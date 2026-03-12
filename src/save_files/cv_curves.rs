@@ -18,7 +18,7 @@ pub fn save_cv_curves(
     }
 
     let filename = match std::path::Path::new(filename).file_name() {
-        Some(name) if name == std::path::Path::new(filename) => name,
+        Some(name) if name == filename.as_ref() => name,
         _ => {
             anyhow::bail!("Invalid filename: must not contain path separators.");
         }
