@@ -29,7 +29,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       
       - name: install libraries
-        run: apt update && apt install -y libfontconfig1-dev
+        run: |
+          sudo apt update 
+          sudo apt install -y libfontconfig1-dev
 
       - name: Cargo test
         run: cargo test --all
