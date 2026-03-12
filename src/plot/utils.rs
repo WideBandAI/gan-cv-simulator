@@ -11,9 +11,9 @@
 /// # Examples
 ///
 /// ```
-/// use crate::...;
-///
-/// let _ = find_range();
+/// // let data = vec![1.0, -2.5, 5.0, 0.0];
+/// // let (min, max) = find_range(&data);
+/// // assert_eq!((min, max), (-2.5, 5.0));
 /// ```
 pub fn find_range(data: &[f64]) -> (f64, f64) {
     let min = data.iter().copied().fold(f64::INFINITY, f64::min);
