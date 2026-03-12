@@ -86,7 +86,7 @@ impl CVSolver {
         let forward = step > 0.0;
         let mut index = 0;
         while (forward && gate_voltage <= end) || (!forward && gate_voltage >= end) {
-            let _ = self.set_dc_save_potential(gate_voltage, index);
+            self.set_dc_save_potential(gate_voltage, index)?;
             let capacitance = self.solve_cv(gate_voltage)?;
             println!(
                 "Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
