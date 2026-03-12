@@ -8,7 +8,19 @@ pub fn plot_cv_curves(
     filename: &str,
     save_dir: &str,
 ) -> anyhow::Result<()> {
-    let filepath = format!("{}/{}", save_dir, filename);
+    let save_dir_path = std::path::Path::new(save_dir);
+    if save_dir_path
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
+        anyhow::bail!("Invalid save directory: contains path traversal components.");
+    }
+
+    if filename.contains(['/', '\\']) {
+        anyhow::bail!("Invalid filename: must not contain path separators.");
+    }
+
+    let filepath = save_dir_path.join(filename);
     let root = BitMapBackend::new(&filepath, (800, 600)).into_drawing_area();
     root.fill(&WHITE)?;
 
