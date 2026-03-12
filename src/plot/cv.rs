@@ -2,7 +2,7 @@ use crate::plot::style::mesh_style;
 use crate::plot::utils::find_range;
 use plotters::prelude::*;
 
-pub fn plot_cv(
+pub fn plot_cv_curves(
     voltage: &[f64],
     capacitance: &[f64],
     filename: &str,
@@ -21,7 +21,7 @@ pub fn plot_cv(
         .y_label_area_size(70)
         .build_cartesian_2d(xmin..xmax, ymin..ymax)?;
 
-    mesh_style(&mut chart, "Gate Voltage (V)", "Capacitance (F/cm^2)")?;
+    mesh_style(&mut chart, "Gate Voltage (V)", "Capacitance (F/cm²)")?;
 
     chart.draw_series(LineSeries::new(
         voltage.iter().zip(capacitance).map(|(&v, &c)| (v, c)),

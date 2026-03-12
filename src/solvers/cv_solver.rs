@@ -2,7 +2,7 @@ use crate::config::boundary_conditions::BoundaryConditions;
 use crate::config::measurement::Measurement;
 use crate::constants::physics::Q_ELECTRON;
 use crate::constants::units::{F_TO_NF, M2_TO_CM2};
-use crate::plot::cv::plot_cv;
+use crate::plot::cv::plot_cv_curves;
 use crate::save_files::cv_curves::save_cv_curves;
 use crate::save_files::potential_profile::save_potential_profile;
 use crate::solvers::poisson_solver::PoissonSolver;
@@ -105,7 +105,7 @@ impl CVSolver {
         };
         save_cv_curves(&[cv_results.clone()], &self.save_dir, "cv_curves.csv")?;
         // plot_cv_curves(&[cv_results], &self.save_dir, "cv_curves.png")?;
-        plot_cv(
+        plot_cv_curves(
             &cv_results.gate_voltage,
             &cv_results.capacitance,
             "cv_curves.png",
