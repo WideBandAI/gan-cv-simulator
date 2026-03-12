@@ -58,13 +58,24 @@ pub fn plot_cv_curves(
     let voltage = &cv_results[0].gate_voltage;
     let capacitance = &cv_results[0].capacitance;
 
-    let file_path = std::path::Path::new(save_dir).join(filename);
-    let _ = match file_path.file_name() {
-        Some(name) if name == file_path => name,
+    // Guard against path traversal by disallowing `..` components.
+    // We allow absolute paths as tempfile::TempDir generates them.
+    let save_dir_path = std::path::Path::new(save_dir);
+    if save_dir_path
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir))
+    {
+        anyhow::bail!("Invalid save directory: contains path traversal components.");
+    }
+
+    let filename = match std::path::Path::new(filename).file_name() {
+        Some(name) if name == std::path::Path::new(filename) => name,
         _ => {
             anyhow::bail!("Invalid filename: must not contain path separators.");
         }
     };
+
+    let file_path = save_dir_path.join(filename);
     let root = BitMapBackend::new(&file_path, (900, 600)).into_drawing_area();
     root.fill(&WHITE)?;
 
