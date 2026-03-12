@@ -58,42 +58,33 @@ pub fn plot_cv_curves(
     let voltage = &cv_results[0].gate_voltage;
     let capacitance = &cv_results[0].capacitance;
 
-    // Guard against path traversal by disallowing `..` components.
-    // We allow absolute paths as tempfile::TempDir generates them.
     let save_dir_path = std::path::Path::new(save_dir);
-    if save_dir_path
-        .components()
-        .any(|c| matches!(c, std::path::Component::ParentDir))
-    {
-        anyhow::bail!("Invalid save directory: contains path traversal components.");
-    }
-
-    let filename = match std::path::Path::new(filename).file_name() {
-        Some(name) if name == std::path::Path::new(filename) => name,
-        _ => {
-            anyhow::bail!("Invalid filename: must not contain path separators.");
-        }
-    };
-
     let file_path = save_dir_path.join(filename);
-    let root = BitMapBackend::new(&file_path, (900, 600)).into_drawing_area();
+
+    let root = BitMapBackend::new(&file_path, (800, 600)).into_drawing_area();
     root.fill(&WHITE)?;
 
     let (xmin, xmax) = find_range(voltage);
     let (ymin, ymax) = find_range(capacitance);
 
     let mut chart = ChartBuilder::on(&root)
-        .caption("C-V curve", ("sans-serif", 30))
-        .margin(20)
-        .x_label_area_size(40)
-        .y_label_area_size(60)
+        .margin(30)
+        .x_label_area_size(50)
+        .y_label_area_size(70)
         .build_cartesian_2d(xmin..xmax, ymin..ymax)?;
 
     chart
         .configure_mesh()
         .x_desc("Gate Voltage (V)")
-        .y_desc("Capacitance (F/cm^2)")
-        .light_line_style(&RGBColor(220, 220, 220))
+        .y_desc("Capacitance (F/cm²)")
+        .axis_desc_style(("sans-serif", 22))
+        .label_style(("sans-serif", 18))
+        // 軸
+        .axis_style(BLACK.stroke_width(2))
+        // grid (major)
+        .bold_line_style(RGBColor(200, 200, 200))
+        // grid (minor)
+        .light_line_style(RGBColor(230, 230, 230))
         .draw()?;
 
     chart.draw_series(LineSeries::new(
@@ -102,5 +93,6 @@ pub fn plot_cv_curves(
     ))?;
 
     root.present()?;
+
     Ok(())
 }
