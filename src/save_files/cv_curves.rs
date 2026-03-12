@@ -1,6 +1,9 @@
 use crate::solvers::cv_solver::CVResult;
+use plotters::prelude::*;
 use std::fs;
 use std::io::Write;
+
+use crate::utils::find_range;
 
 pub fn save_cv_curves(
     cv_results: &[CVResult],
@@ -44,5 +47,49 @@ pub fn save_cv_curves(
         }
     }
 
+    Ok(())
+}
+
+pub fn plot_cv_curves(
+    cv_results: &[CVResult],
+    save_dir: &str,
+    filename: &str,
+) -> anyhow::Result<()> {
+    let voltage = &cv_results[0].gate_voltage;
+    let capacitance = &cv_results[0].capacitance;
+
+    let file_path = std::path::Path::new(save_dir).join(filename);
+    let _ = match file_path.file_name() {
+        Some(name) if name == file_path => name,
+        _ => {
+            anyhow::bail!("Invalid filename: must not contain path separators.");
+        }
+    };
+    let root = BitMapBackend::new(&file_path, (900, 600)).into_drawing_area();
+    root.fill(&WHITE)?;
+
+    let (xmin, xmax) = find_range(voltage);
+    let (ymin, ymax) = find_range(capacitance);
+
+    let mut chart = ChartBuilder::on(&root)
+        .caption("C-V curve", ("sans-serif", 30))
+        .margin(20)
+        .x_label_area_size(40)
+        .y_label_area_size(60)
+        .build_cartesian_2d(xmin..xmax, ymin..ymax)?;
+
+    chart
+        .configure_mesh()
+        .x_desc("Gate Voltage (V)")
+        .y_desc("Capacitance (F/cm^2)")
+        .light_line_style(&RGBColor(220, 220, 220))
+        .draw()?;
+
+    chart.draw_series(LineSeries::new(
+        voltage.iter().zip(capacitance).map(|(&v, &c)| (v, c)),
+        RED.stroke_width(3),
+    ))?;
+
+    root.present()?;
     Ok(())
 }

@@ -28,4 +28,5 @@ target
 # My ignore
 .serena
 *.csv
+*.png
 

@@ -2,7 +2,7 @@ use crate::config::boundary_conditions::BoundaryConditions;
 use crate::config::measurement::Measurement;
 use crate::constants::physics::Q_ELECTRON;
 use crate::constants::units::{F_TO_NF, M2_TO_CM2};
-use crate::save_files::cv_curves::save_cv_curves;
+use crate::save_files::cv_curves::{plot_cv_curves, save_cv_curves};
 use crate::save_files::potential_profile::save_potential_profile;
 use crate::solvers::poisson_solver::PoissonSolver;
 
@@ -14,7 +14,7 @@ pub struct CVSolver {
     save_dir: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CVResult {
     pub gate_voltage: Vec<f64>,
     pub capacitance: Vec<f64>,
@@ -102,7 +102,8 @@ impl CVSolver {
             gate_voltage: gate_voltages,
             capacitance: capacitances,
         };
-        save_cv_curves(&[cv_results], &self.save_dir, "cv_curves.csv")?;
+        save_cv_curves(&[cv_results.clone()], &self.save_dir, "cv_curves.csv")?;
+        plot_cv_curves(&[cv_results], &self.save_dir, "cv_curves.png")?;
         Ok(())
     }
 
