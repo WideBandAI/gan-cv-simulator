@@ -63,6 +63,37 @@ pub fn write_potential_profile_csv(
     Ok(())
 }
 
+/// Anti traversal filename
+///
+/// # Arguments
+///
+/// - `filename` (`&str`) - filename to validate. Must not contain path separators (`/` or `\`) or `..` segments.
+///
+/// # Returns
+///
+/// - `Option<String>` - `Some(filename)` if valid, `None` if invalid (contains path separators or `..`).
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let filename = match anti_traversal_filename(&filename) {
+///     Some(name) => name,
+///     None => {
+///         anyhow::bail!("Invalid filename: must not contain path separators or '..'.");
+///     }
+/// };
+/// ```
+pub fn anti_traversal_filename(filename: &str) -> Option<String> {
+    // Disallow path separators and parent directory references
+    if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+        None
+    } else {
+        Some(filename.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -92,5 +123,14 @@ mod tests {
 
         // cleanup
         let _ = fs::remove_file(path_str);
+    }
+
+    #[test]
+    fn test_anti_traversal_filename() {
+        assert!(anti_traversal_filename("test.csv").is_some());
+        assert!(anti_traversal_filename("test/path.csv").is_none());
+        assert!(anti_traversal_filename("test\\path.csv").is_none());
+        assert!(anti_traversal_filename("test/../path.csv").is_none());
+        assert!(anti_traversal_filename("test\\..\\path.csv").is_none());
     }
 }
