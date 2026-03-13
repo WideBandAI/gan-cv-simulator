@@ -56,8 +56,9 @@ The simulator will prompt you interactively for various parameters, including:
 
 ### Documentation
 
-For a detailed explanation of all configuration parameters, please refer to:
-- [**Parameter Descriptions**](./docs/parameters.md)
+For detailed information, please refer to:
+- [**Parameter Descriptions**](./docs/parameters.md): Explanation of all configuration parameters.
+- [**Simulation Physics**](./docs/physics.md): Mathematical models and physical equations used.
 
 ## Outputs
 
