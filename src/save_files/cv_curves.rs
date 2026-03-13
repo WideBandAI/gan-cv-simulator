@@ -1,4 +1,5 @@
 use crate::solvers::cv_solver::CVResult;
+use crate::utils::anti_traversal_filename;
 use std::fs;
 use std::io::Write;
 
@@ -17,12 +18,14 @@ pub fn save_cv_curves(
         anyhow::bail!("Invalid save directory: contains path traversal components.");
     }
 
-    // Check if filename contains path separators
-    if filename.contains('/') || filename.contains('\\') {
-        anyhow::bail!("Invalid filename: must not contain path separators.");
-    }
+    let filename = match anti_traversal_filename(&filename) {
+        Some(name) => name,
+        None => {
+            anyhow::bail!("Invalid filename: must not contain path separators or '..'.");
+        }
+    };
 
-    let cv_file_path = save_dir_path.join(filename);
+    let cv_file_path = save_dir_path.join(&filename);
     fs::create_dir_all(&save_dir_path).map_err(|e| {
         anyhow::anyhow!(
             "Failed to create output directory '{}': {}. Please check permissions and try again.",

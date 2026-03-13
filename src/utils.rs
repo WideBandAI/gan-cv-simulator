@@ -63,6 +63,15 @@ pub fn write_potential_profile_csv(
     Ok(())
 }
 
+pub fn anti_traversal_filename(filename: &str) -> Option<String> {
+    // Disallow path separators and parent directory references
+    if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+        None
+    } else {
+        Some(filename.to_string())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
