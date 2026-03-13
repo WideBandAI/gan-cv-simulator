@@ -27,6 +27,11 @@ codegen-units = 1
 panic = "abort"
 strip = true
 
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
 [package.metadata.rpm]
 package = "gan-cv-simulator"
 
@@ -35,3 +40,9 @@ buildflags = ["--release"]
 
 [package.metadata.rpm.targets]
 gan-cv-simulator = { path = "/usr/bin/gan-cv-simulator" }
+
+[package.metadata.wix]
+upgrade-guid = "32F6E7DB-4563-4F05-BFB7-ACC407AA5058"
+path-guid = "766D8025-66CA-475D-8148-A12821D79E75"
+license = false
+eula = false
