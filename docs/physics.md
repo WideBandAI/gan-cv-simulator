@@ -26,13 +26,13 @@ The Successive Over-Relaxation (SOR) method is used to iterate towards convergen
 
 The net charge density $\rho(x)$ is given by:
 
-$$\rho(x) = q \cdot (N_D^+(x) - n(x) + \rho_{fixed}(x))$$
+$$\rho(x) = q \cdot (N_D^+(x) - n(x) + N_{fixed}(x))$$
 
 Where:
 - $q$: Elementary charge [$1.602 \times 10^{-19}$ C]
 - $N_D^+(x)$: Ionized donor concentration [$m^{-3}$]
 - $n(x)$: Free electron concentration [$m^{-3}$]
-- $\rho_{fixed}(x)$: Fixed charge density [$C/m^3$]
+- $N_{fixed}(x)$: Fixed charge number density [$m^{-3}$]
 
 ### 2.1. Consideration of Carriers
 In wide-bandgap semiconductors like GaN, minority carrier generation is extremely slow at room temperature. [Under negative bias, GaN MOS/MIS structures typically exhibit **deep depletion** rather than inversion because the minority carrier (hole) density is too small to be observed in standard C-V measurements within a reasonable timeframe.](#reference-1) 
