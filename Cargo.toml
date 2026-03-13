@@ -2,12 +2,19 @@
 name = "gan-cv-simulator"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0"
+description = "Simulate the C-V characteristics of n-GaN and GaN HEMTs diodes."
+repository = "https://github.com/WideBandAI/gan-cv-simulator"
+homepage = "https://github.com/WideBandAI/gan-cv-simulator"
+documentation = "https://docs.rs/gan-cv-simulator"
+readme = "README.md"
 
 [dependencies]
 anyhow = "1.0.95"
 approx = "0.5.1"
 indicatif = "0.18.4"
-plotters = "0.3.7"
+plotters = { version = "0.3.7", features = ["fontconfig-dlopen"] }
+rand = "0.8.5"
 rayon = "1.11.0"
 serde = { version = "1.0", features = ["derive"] }
 tempfile = "3.26.0"
@@ -19,3 +26,23 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+[package.metadata.rpm]
+package = "gan-cv-simulator"
+
+[package.metadata.rpm.cargo]
+buildflags = ["--release"]
+
+[package.metadata.rpm.targets]
+gan-cv-simulator = { path = "/usr/bin/gan-cv-simulator" }
+
+[package.metadata.wix]
+upgrade-guid = "32F6E7DB-4563-4F05-BFB7-ACC407AA5058"
+path-guid = "766D8025-66CA-475D-8148-A12821D79E75"
+license = false
+eula = false
