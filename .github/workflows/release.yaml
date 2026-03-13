@@ -3,7 +3,6 @@ name: Release
 permissions:
   contents: write
   id-token: write
-  attestations: write
 
 on:
   push:
@@ -78,7 +77,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt update
-          sudo apt install -y musl-tools libfontconfig1-dev
+          sudo apt install -y musl-tools libfontconfig1-dev pkg-config
 
       - name: Install cross
         if: runner.os == 'Linux'
@@ -102,7 +101,8 @@ jobs:
             echo "EXT=" >> $GITHUB_ENV
           fi
 
-      - name: Package
+      - name: Package-Linux-and-macOS
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
         shell: bash
         run: |
 
@@ -119,6 +119,14 @@ jobs:
             zip -r $DIR.zip $DIR
             echo "ASSET=$DIR.zip" >> $GITHUB_ENV
           fi
+    
+      - name: Package-Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+            cp target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${EXT} \
+            ${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.target }}${EXT}
+
+            echo "ASSET=${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.target }}${EXT}" >> $GITHUB_ENV
 
       - name: Checksum
         run: |
