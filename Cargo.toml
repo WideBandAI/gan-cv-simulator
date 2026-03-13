@@ -26,3 +26,12 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[package.metadata.rpm]
+package = "gan-cv-simulator"
+
+[package.metadata.rpm.cargo]
+buildflags = ["--release"]
+
+[package.metadata.rpm.targets]
+gan-cv-simulator = { path = "/usr/bin/gan-cv-simulator" }
