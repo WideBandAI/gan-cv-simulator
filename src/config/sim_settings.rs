@@ -1,3 +1,4 @@
+use crate::utils::anti_traversal_filename;
 use crate::utils::get_input;
 use crate::utils::get_parsed_input_with_default;
 
@@ -37,9 +38,10 @@ fn validate_sim_name(name: &str) -> bool {
     }
 
     // Disallow path traversal and absolute paths.
-    if trimmed.contains('/') || trimmed.contains('\\') || trimmed.contains("..") {
-        return false;
-    }
+    let _ = match anti_traversal_filename(trimmed) {
+        Some(name) => name,
+        None => return false,
+    };
 
     // Allow only a limited set of safe characters.
     trimmed
