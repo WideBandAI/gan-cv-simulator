@@ -13,7 +13,8 @@ readme = "README.md"
 anyhow = "1.0.95"
 approx = "0.5.1"
 indicatif = "0.18.4"
-plotters = "0.3.7"
+plotters = { version = "0.3.7", features = ["fontconfig-dlopen"] }
+rand = "0.8.5"
 rayon = "1.11.0"
 serde = { version = "1.0", features = ["derive"] }
 tempfile = "3.26.0"
