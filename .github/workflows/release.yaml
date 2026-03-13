@@ -85,6 +85,8 @@ jobs:
 
       - name: Build
         shell: bash
+        env:
+          RUST_FONTCONFIG_DLOPEN: "1"
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             cross build --release --target ${{ matrix.target }}
@@ -121,7 +123,8 @@ jobs:
           fi
     
       - name: Package-Windows
-        if: matrix.os == 'windows-latest'
+        if: runner.os == 'Windows'
+        shell: bash
         run: |
             cp target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${EXT} \
             ${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.target }}${EXT}
@@ -129,9 +132,14 @@ jobs:
             echo "ASSET=${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.target }}${EXT}" >> $GITHUB_ENV
 
       - name: Checksum
+        shell: bash
         run: |
-          sha256sum $ASSET > $ASSET.sha256
-          echo "CHECKSUM=$ASSET.sha256" >> $GITHUB_ENV
+            if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum $ASSET > $ASSET.sha256
+            else
+            shasum -a 256 $ASSET > $ASSET.sha256
+            fi
+            echo "CHECKSUM=$ASSET.sha256" >> $GITHUB_ENV
 
       - name: Upload release
         uses: softprops/action-gh-release@v2
