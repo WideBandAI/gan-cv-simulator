@@ -132,11 +132,6 @@ jobs:
             ${{ env.ASSET }}
             ${{ env.CHECKSUM }}
 
-      - name: Attest provenance
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: ${{ env.ASSET }}
-
   package-linux:
 
     runs-on: ubuntu-latest
