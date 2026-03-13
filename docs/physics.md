@@ -35,7 +35,7 @@ Where:
 - $\rho_{fixed}(x)$: Fixed charge density [$C/m^3$]
 
 ### 2.1. Consideration of Carriers
-In wide-bandgap semiconductors like GaN, minority carrier generation is extremely slow at room temperature. Under negative bias, GaN MOS/MIS structures typically exhibit **deep depletion** rather than inversion because the minority carrier (hole) density is too small to be observed in standard C-V measurements within a reasonable timeframe.
+In wide-bandgap semiconductors like GaN, minority carrier generation is extremely slow at room temperature. [Under negative bias, GaN MOS/MIS structures typically exhibit **deep depletion** rather than inversion because the minority carrier (hole) density is too small to be observed in standard C-V measurements within a reasonable timeframe.](#reference-1) 
 
 Furthermore, this project specifically targets **n-GaN** and GaN HEMT structures; **p-GaN is currently out of scope**. Therefore, the Poisson equation implemented here only considers ionized donors ($N_D^+$) and electrons ($n$), neglecting hole density ($p$) and ionized acceptors ($N_A^-$).
 
@@ -82,7 +82,7 @@ $$Q_{total} = q \int n(x) dx$$
 The simulator uses a small AC amplitude $\Delta V$ (typically 20 mV) to numerically evaluate this derivative.
 
 ## References
-
+### Reference 1
 - @article{nishiguchi2022numerical,
   title={A numerical modeling of the frequency dependence of the capacitance--voltage and conductance--voltage characteristics of GaN MIS structures},
   author={Nishiguchi, K and Nakata, K and Hashizume, T},
