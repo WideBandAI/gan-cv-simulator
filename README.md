@@ -56,8 +56,9 @@ The simulator will prompt you interactively for various parameters, including:
 
 ### Documentation
 
-For a detailed explanation of all configuration parameters, please refer to:
-- [**Parameter Descriptions**](./docs/parameters.md)
+For detailed information, please refer to:
+- [**Parameter Descriptions**](./docs/parameters.md): Explanation of all configuration parameters.
+- [**Simulation Physics**](./docs/physics.md): Mathematical models and physical equations used.
 
 ## Outputs
 
@@ -65,6 +66,23 @@ Simulation results are saved in the `outputs/` directory under a subfolder named
 - `cv_characteristics.csv`: The calculated capacitance vs. voltage data.
 - `potential_profile.csv`: Spatial distribution of the electrostatic potential.
 - Plots generated using the `plotters` library.
+
+## Citation
+
+If you use this software in your research, please cite the following paper:
+
+```bibtex
+@article{nishiguchi2017current,
+  title={Current linearity and operation stability in Al2O3-gate AlGaN/GaN MOS high electron mobility transistors},
+  author={Nishiguchi, Kenya and Kaneki, Syota and Ozaki, Shiro and Hashizume, Tamotsu},
+  journal={Japanese Journal of Applied Physics},
+  volume={56},
+  number={10},
+  pages={101001},
+  year={2017},
+  publisher={The Japan Society of Applied Physics}
+}
+```
 
 ## License
 

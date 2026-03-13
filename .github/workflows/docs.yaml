@@ -1,0 +1,32 @@
+name: Build Documentation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_docs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+
+    - name: Build documentation
+      run: cargo doc --no-deps
+
+    # Optional: Upload the generated documentation as an artifact
+    - name: Upload documentation artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: rust-docs
+        path: target/doc
