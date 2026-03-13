@@ -14,6 +14,41 @@ pub enum FixChargeDensity {
     Interface(f64), // Charge density (C/m^2)
 }
 
+#[derive(Debug)]
+pub enum ProopertyType {
+    Surface(SurfaceProperties),
+    Bulk(BulkProperties),
+    Interface(InterfaceProperties),
+    Bottom,
+}
+
+#[derive(Debug)]
+pub struct SurfaceProperties {
+    pub mass_electron: f64,
+    pub permittivity: f64,
+    pub delta_conduction_band: f64,
+    pub donor_concentration: f64,
+    pub energy_level_donor: f64,
+    pub fixcharge_density: FixChargeDensity,
+    pub bandgap_energy: f64,
+}
+
+#[derive(Debug)]
+pub struct BulkProperties {
+    pub mass_electron: f64,
+    pub permittivity: f64,
+    pub delta_conduction_band: f64,
+    pub donor_concentration: f64,
+    pub energy_level_donor: f64,
+    pub fixcharge_density: FixChargeDensity,
+    pub bandgap_energy: f64,
+}
+
+#[derive(Debug)]
+pub struct InterfaceProperties {
+    pub fixcharge_density: FixChargeDensity,
+}
+
 /// Mesh structure
 ///
 /// # Fields
