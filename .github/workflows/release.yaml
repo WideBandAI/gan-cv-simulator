@@ -1,68 +1,181 @@
 name: Release
 
-# Releasesへのファイル追加のために書き込み権限が必要
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 on:
   push:
     tags:
-      - v*
+      - "v*"
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
+
   build:
-    runs-on: ${{ matrix.job.os }}
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
-        job:
-          - { os: ubuntu-latest  , target: x86_64-unknown-linux-gnu       , use-cross: false , extension: ""   }
-          - { os: ubuntu-latest  , target: x86_64-unknown-linux-musl      , use-cross: true  , extension: ""   }
-          - { os: ubuntu-latest  , target: armv7-unknown-linux-gnueabihf  , use-cross: true  , extension: ""   }
-          - { os: ubuntu-latest  , target: armv7-unknown-linux-musleabihf , use-cross: true  , extension: ""   }
-          - { os: ubuntu-latest  , target: aarch64-unknown-linux-gnu      , use-cross: true  , extension: ""   }
-          - { os: ubuntu-latest  , target: aarch64-unknown-linux-musl     , use-cross: true  , extension: ""   }
-          - { os: macos-latest   , target: x86_64-apple-darwin            , use-cross: false , extension: ""   }
-          - { os: macos-latest   , target: aarch64-apple-darwin           , use-cross: false , extension: ""   }
-          - { os: windows-latest , target: x86_64-pc-windows-msvc         , use-cross: false , extension: .exe }
+        include:
+
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            archive: tar.gz
+
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            archive: tar.gz
+
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            archive: tar.gz
+
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            archive: tar.gz
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive: tar.gz
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: zip
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
 
-      # Rustのpackage名を取得して環境変数に入れておく。(後のステップで使用)
-      - name: Extract crate information
+      - uses: actions/checkout@v4
+
+      - name: Extract crate name
         shell: bash
         run: |
-          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_NAME=$(grep '^name' Cargo.toml | head -n1 | cut -d '"' -f2)" >> $GITHUB_ENV
 
-      # rustcやcargoをインストール
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: ${{ matrix.job.target }}
-          override: true
-          profile: minimal
+          targets: ${{ matrix.target }}
 
-      # targetに応じてcargoもしくはcrossを使用してビルド
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo
+            target
+          key: cargo-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Linux libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install -y musl-tools libfontconfig1-dev
+
+      - name: Install cross
+        if: runner.os == 'Linux'
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: ${{ matrix.job.use-cross }}
-          command: build
-          args: --release --target ${{ matrix.job.target }}
-
-      # ビルド済みバイナリをリネーム
-      - name: Rename artifacts
         shell: bash
         run: |
-          mv target/${{ matrix.job.target }}/release/${{ env.PROJECT_NAME }}{,-${{ github.ref_name }}-${{ matrix.job.target }}${{ matrix.job.extension }}}
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
 
-      # ビルド済みバイナリをReleasesに配置
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set extension
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "EXT=.exe" >> $GITHUB_ENV
+          else
+            echo "EXT=" >> $GITHUB_ENV
+          fi
+
+      - name: Package
+        shell: bash
+        run: |
+
+          BIN=target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}${EXT}
+          DIR=${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.target }}
+
+          mkdir $DIR
+          cp $BIN $DIR/
+
+          if [ "${{ matrix.archive }}" = "tar.gz" ]; then
+            tar czf $DIR.tar.gz $DIR
+            echo "ASSET=$DIR.tar.gz" >> $GITHUB_ENV
+          else
+            zip -r $DIR.zip $DIR
+            echo "ASSET=$DIR.zip" >> $GITHUB_ENV
+          fi
+
+      - name: Checksum
+        run: |
+          sha256sum $ASSET > $ASSET.sha256
+          echo "CHECKSUM=$ASSET.sha256" >> $GITHUB_ENV
+
+      - name: Upload release
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-            target/${{ matrix.job.target }}/release/${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.job.target }}${{ matrix.job.extension }}
+            ${{ env.ASSET }}
+            ${{ env.CHECKSUM }}
+
+      - name: Attest provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: ${{ env.ASSET }}
+
+  package-linux:
+
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Install cargo-deb
+        run: cargo install cargo-deb
+
+      - name: Install cargo-rpm
+        run: cargo install cargo-rpm
+
+      - name: Build deb
+        run: cargo deb
+
+      - name: Build rpm
+        run: cargo rpm build
+
+      - name: Upload packages
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            target/debian/*.deb
+            target/release/rpmbuild/RPMS/*/*.rpm
+
+  dist:
+
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Install cargo-dist
+        run: cargo install cargo-dist
+
+      - name: Generate installers
+        run: cargo dist build
