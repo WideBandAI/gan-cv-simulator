@@ -91,33 +91,6 @@ impl MeshStructure {
         }
     }
 
-    // fn push_properties(
-    //     &mut self,
-    //     id: IDX,
-    //     name: String,
-    //     depth: f64,
-    //     mass_electron: f64,
-    //     permittivity: f64,
-    //     delta_conduction_band: f64,
-    //     donor_concentration: f64,
-    //     energy_level_donor: f64,
-    //     fixcharge_density: FixChargeDensity,
-    //     bandgap_energy: f64,
-    // ) {
-    //     self.id.push(id);
-    //     self.name.push(name);
-    //     self.depth.push(depth);
-    //     self.property_type.push(ProopertyType::Bulk(BulkProperties {
-    //         mass_electron,
-    //         permittivity,
-    //         delta_conduction_band,
-    //         donor_concentration,
-    //         energy_level_donor,
-    //         fixcharge_density,
-    //         bandgap_energy,
-    //     }));
-    // }
-
     pub fn add_surface_node(&mut self, depth: f64, configuration: &Configuration) {
         self.id.push(IDX::Surface);
         self.name
@@ -129,18 +102,6 @@ impl MeshStructure {
                 delta_conduction_band: configuration.device_structure.delta_conduction_band[0],
                 bandgap_energy: configuration.device_structure.bandgap_energy[0],
             }));
-        // self.push_properties(
-        //     IDX::Surface,
-        //     configuration.device_structure.name[0].clone(),
-        //     depth,
-        //     configuration.device_structure.mass_electron[0],
-        //     configuration.device_structure.permittivity[0],
-        //     configuration.device_structure.delta_conduction_band[0],
-        //     configuration.device_structure.donor_concentration[0],
-        //     configuration.device_structure.energy_level_donor[0],
-        //     FixChargeDensity::Interface(0.0),
-        //     configuration.device_structure.bandgap_energy[0],
-        // );
     }
 
     pub fn add_interface_node(
