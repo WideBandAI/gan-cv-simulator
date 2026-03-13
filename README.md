@@ -67,6 +67,23 @@ Simulation results are saved in the `outputs/` directory under a subfolder named
 - `potential_profile.csv`: Spatial distribution of the electrostatic potential.
 - Plots generated using the `plotters` library.
 
+## Citation
+
+If you use this software in your research, please cite the following paper:
+
+```bibtex
+@article{nishiguchi2017current,
+  title={Current linearity and operation stability in Al2O3-gate AlGaN/GaN MOS high electron mobility transistors},
+  author={Nishiguchi, Kenya and Kaneki, Syota and Ozaki, Shiro and Hashizume, Tamotsu},
+  journal={Japanese Journal of Applied Physics},
+  volume={56},
+  number={10},
+  pages={101001},
+  year={2017},
+  publisher={The Japan Society of Applied Physics}
+}
+```
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
