@@ -83,7 +83,8 @@ The simulator uses a small AC amplitude $\Delta V$ (typically 20 mV) to numerica
 
 ## References
 ### Reference 1
-- @article{nishiguchi2022numerical,
+```bibtex
+@article{nishiguchi2022numerical,
   title={A numerical modeling of the frequency dependence of the capacitance--voltage and conductance--voltage characteristics of GaN MIS structures},
   author={Nishiguchi, K and Nakata, K and Hashizume, T},
   journal={Journal of Applied Physics},
@@ -92,3 +93,4 @@ The simulator uses a small AC amplitude $\Delta V$ (typically 20 mV) to numerica
   year={2022},
   publisher={AIP Publishing}
 }
+```
