@@ -17,12 +17,10 @@ pub fn save_cv_curves(
         anyhow::bail!("Invalid save directory: contains path traversal components.");
     }
 
-    let filename = match std::path::Path::new(filename).file_name() {
-        Some(name) if name == filename.as_ref() => name,
-        _ => {
-            anyhow::bail!("Invalid filename: must not contain path separators.");
-        }
-    };
+    // Check if filename contains path separators
+    if filename.contains('/') || filename.contains('\\') {
+        anyhow::bail!("Invalid filename: must not contain path separators.");
+    }
 
     let cv_file_path = save_dir_path.join(filename);
     fs::create_dir_all(&save_dir_path).map_err(|e| {
