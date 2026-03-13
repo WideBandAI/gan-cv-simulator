@@ -102,4 +102,13 @@ mod tests {
         // cleanup
         let _ = fs::remove_file(path_str);
     }
+
+    #[test]
+    fn test_anti_traversal_filename() {
+        assert!(anti_traversal_filename("test.csv").is_some());
+        assert!(anti_traversal_filename("test/path.csv").is_none());
+        assert!(anti_traversal_filename("test\\path.csv").is_none());
+        assert!(anti_traversal_filename("test/../path.csv").is_none());
+        assert!(anti_traversal_filename("test\\..\\path.csv").is_none());
+    }
 }
