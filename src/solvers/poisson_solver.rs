@@ -107,9 +107,11 @@ impl PoissonSolver {
     /// ```
     pub fn set_boundary_conditions(&mut self, surface_potential: f64, bottom_potential: f64) {
         self.potential.potential[0] =
-            surface_potential - self.mesh_structure.delta_conduction_band[0];
+            surface_potential - self.mesh_structure.delta_conduction_band(0);
         self.potential.potential[self.mesh_structure.id.len() - 1] = bottom_potential
-            - self.mesh_structure.delta_conduction_band[self.mesh_structure.id.len() - 1];
+            - self
+                .mesh_structure
+                .delta_conduction_band(self.mesh_structure.id.len() - 1);
     }
 
     /// Set temperature
@@ -242,20 +244,20 @@ impl PoissonSolver {
     fn solve_bulk(&self, idx: usize) -> f64 {
         let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
         let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
-        let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
+        let fixcharge_density = match self.mesh_structure.fixcharge_density(idx) {
             FixChargeDensity::Bulk(q) => q, // in 1/m^3
             _ => 0.0,
         };
 
         let electron_density = self.electron_density_model.electron_density(
-            self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
-            self.mesh_structure.mass_electron[idx],
+            self.potential.potential[idx] + self.mesh_structure.delta_conduction_band(idx),
+            self.mesh_structure.mass_electron(idx),
         );
 
         let ionized_donor = self.donor_activation_model.ionized_donor_concentration(
-            self.mesh_structure.donor_concentration[idx],
-            self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
-                - self.mesh_structure.energy_level_donor[idx],
+            self.mesh_structure.donor_concentration(idx),
+            self.potential.potential[idx] + self.mesh_structure.delta_conduction_band(idx)
+                - self.mesh_structure.energy_level_donor(idx),
         );
 
         let rho = -Q_ELECTRON * (fixcharge_density + ionized_donor - electron_density);
@@ -263,7 +265,7 @@ impl PoissonSolver {
             * (lower_mesh_length * self.potential.potential[idx - 1]
                 + upper_mesh_length * self.potential.potential[idx + 1])
             + (lower_mesh_length * upper_mesh_length * rho
-                / (2.0 * self.mesh_structure.permittivity[idx]))
+                / (2.0 * self.mesh_structure.permittivity(idx)))
             - self.potential.potential[idx];
 
         delta_potential
@@ -272,10 +274,10 @@ impl PoissonSolver {
     fn solve_interface(&self, idx: usize) -> f64 {
         let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
         let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
-        let c_upper = self.mesh_structure.permittivity[idx - 1] / upper_mesh_length;
-        let c_lower = self.mesh_structure.permittivity[idx + 1] / lower_mesh_length;
+        let c_upper = self.mesh_structure.permittivity(idx - 1) / upper_mesh_length;
+        let c_lower = self.mesh_structure.permittivity(idx + 1) / lower_mesh_length;
 
-        let fixcharge_density = match self.mesh_structure.fixcharge_density[idx] {
+        let fixcharge_density = match self.mesh_structure.fixcharge_density(idx) {
             FixChargeDensity::Interface(q) => q, // in 1/m^2
             _ => 0.0,
         };
@@ -316,8 +318,8 @@ impl PoissonSolver {
     fn calculate_electron_density(&mut self) {
         for idx in 0..self.mesh_structure.id.len() {
             self.potential.electron_density[idx] = self.electron_density_model.electron_density(
-                self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx],
-                self.mesh_structure.mass_electron[idx],
+                self.potential.potential[idx] + self.mesh_structure.delta_conduction_band(idx),
+                self.mesh_structure.mass_electron(idx),
             );
         }
     }
@@ -326,9 +328,9 @@ impl PoissonSolver {
         for idx in 0..self.mesh_structure.id.len() {
             self.potential.ionized_donor_concentration[idx] =
                 self.donor_activation_model.ionized_donor_concentration(
-                    self.mesh_structure.donor_concentration[idx],
-                    self.potential.potential[idx] + self.mesh_structure.delta_conduction_band[idx]
-                        - self.mesh_structure.energy_level_donor[idx],
+                    self.mesh_structure.donor_concentration(idx),
+                    self.potential.potential[idx] + self.mesh_structure.delta_conduction_band(idx)
+                        - self.mesh_structure.energy_level_donor(idx),
                 );
         }
     }
@@ -337,7 +339,10 @@ impl PoissonSolver {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
+    use crate::mesh_builder::mesh_builder::{
+        BottomProperties, BulkProperties, FixChargeDensity, InterfaceProperties, MeshStructure,
+        ProopertyType, SurfaceProperties, IDX,
+    };
     use approx::relative_eq;
 
     // -----------------------------------------------------------------------
@@ -355,7 +360,6 @@ mod tests {
         donor_concentration: f64,
         bulk_fixcharge: f64,
     ) -> MeshStructure {
-        let n = 4;
         MeshStructure {
             id: vec![IDX::Surface, IDX::Bulk(0), IDX::Bulk(0), IDX::Bottom],
             name: vec![
@@ -365,18 +369,36 @@ mod tests {
                 "Bottom".to_string(),
             ],
             depth: vec![0.0, 1e-9, 2e-9, 3e-9],
-            mass_electron: vec![0.0, mass_electron, mass_electron, 0.0],
-            permittivity: vec![0.0, permittivity, permittivity, 0.0],
-            delta_conduction_band: vec![0.0; n],
-            donor_concentration: vec![0.0, donor_concentration, donor_concentration, 0.0],
-            energy_level_donor: vec![0.0, 0.05, 0.05, 0.0],
-            fixcharge_density: vec![
-                FixChargeDensity::Bulk(0.0),
-                FixChargeDensity::Bulk(bulk_fixcharge),
-                FixChargeDensity::Bulk(bulk_fixcharge),
-                FixChargeDensity::Bulk(0.0),
+            property_type: vec![
+                ProopertyType::Surface(SurfaceProperties {
+                    permittivity: 0.0,
+                    delta_conduction_band: 0.0,
+                    bandgap_energy: 1.12,
+                }),
+                ProopertyType::Bulk(BulkProperties {
+                    mass_electron,
+                    permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration,
+                    energy_level_donor: 0.05,
+                    fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
+                    bandgap_energy: 1.12,
+                }),
+                ProopertyType::Bulk(BulkProperties {
+                    mass_electron,
+                    permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration,
+                    energy_level_donor: 0.05,
+                    fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
+                    bandgap_energy: 1.12,
+                }),
+                ProopertyType::Bottom(BottomProperties {
+                    permittivity: 0.0,
+                    delta_conduction_band: 0.0,
+                    bandgap_energy: 1.12,
+                }),
             ],
-            bandgap_energy: vec![1.12; n],
         }
     }
 
@@ -388,7 +410,6 @@ mod tests {
     //   [4] Bottom       depth=4
     // -----------------------------------------------------------------------
     fn make_simple_insulator_mesh(permittivity: f64, bulk_fixcharge: f64) -> MeshStructure {
-        let n = 4;
         MeshStructure {
             id: vec![IDX::Surface, IDX::Bulk(0), IDX::Bulk(0), IDX::Bottom],
             name: vec![
@@ -398,18 +419,36 @@ mod tests {
                 "Bottom".to_string(),
             ],
             depth: vec![0.0, 1.0, 2.0, 3.0],
-            mass_electron: vec![0.0, 0.0, 0.0, 0.0],
-            permittivity: vec![0.0, permittivity, permittivity, 0.0],
-            delta_conduction_band: vec![0.0; n],
-            donor_concentration: vec![0.0, 0.0, 0.0, 0.0],
-            energy_level_donor: vec![0.0, 0.0, 0.0, 0.0],
-            fixcharge_density: vec![
-                FixChargeDensity::Bulk(0.0),
-                FixChargeDensity::Bulk(bulk_fixcharge),
-                FixChargeDensity::Bulk(bulk_fixcharge),
-                FixChargeDensity::Bulk(0.0),
+            property_type: vec![
+                ProopertyType::Surface(SurfaceProperties {
+                    permittivity: 0.0,
+                    delta_conduction_band: 0.0,
+                    bandgap_energy: 1.12,
+                }),
+                ProopertyType::Bulk(BulkProperties {
+                    mass_electron: 0.0,
+                    permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration: 0.0,
+                    energy_level_donor: 0.0,
+                    fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
+                    bandgap_energy: 1.12,
+                }),
+                ProopertyType::Bulk(BulkProperties {
+                    mass_electron: 0.0,
+                    permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration: 0.0,
+                    energy_level_donor: 0.0,
+                    fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
+                    bandgap_energy: 1.12,
+                }),
+                ProopertyType::Bottom(BottomProperties {
+                    permittivity: 0.0,
+                    delta_conduction_band: 0.0,
+                    bandgap_energy: 1.12,
+                }),
             ],
-            bandgap_energy: vec![1.12; n],
         }
     }
 
@@ -420,7 +459,6 @@ mod tests {
     //   [3] Bulk(1)      depth=3e-9
     //   [4] Bottom       depth=4e-9
     fn make_interface_mesh(permittivity: f64, interface_fixcharge: f64) -> MeshStructure {
-        let n = 5;
         MeshStructure {
             id: vec![
                 IDX::Surface,
@@ -437,19 +475,39 @@ mod tests {
                 "Bottom".to_string(),
             ],
             depth: vec![0.0, 1.0, 2.0, 3.0, 4.0],
-            mass_electron: vec![0.0, 0.2, 0.0, 0.2, 0.0],
-            permittivity: vec![0.0, permittivity, 0.0, permittivity, 0.0],
-            delta_conduction_band: vec![0.0; n],
-            donor_concentration: vec![0.0, 1e22, 0.0, 1e22, 0.0],
-            energy_level_donor: vec![0.0, 0.05, 0.0, 0.05, 0.0],
-            fixcharge_density: vec![
-                FixChargeDensity::Bulk(0.0),
-                FixChargeDensity::Bulk(0.0),
-                FixChargeDensity::Interface(interface_fixcharge),
-                FixChargeDensity::Bulk(0.0),
-                FixChargeDensity::Bulk(0.0),
+            property_type: vec![
+                ProopertyType::Surface(SurfaceProperties {
+                    permittivity: 0.0,
+                    delta_conduction_band: 0.0,
+                    bandgap_energy: 1.12,
+                }),
+                ProopertyType::Bulk(BulkProperties {
+                    mass_electron: 0.2,
+                    permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration: 1e22,
+                    energy_level_donor: 0.05,
+                    fixcharge_density: FixChargeDensity::Bulk(0.0),
+                    bandgap_energy: 1.12,
+                }),
+                ProopertyType::Interface(InterfaceProperties {
+                    fixcharge_density: FixChargeDensity::Interface(interface_fixcharge),
+                }),
+                ProopertyType::Bulk(BulkProperties {
+                    mass_electron: 0.2,
+                    permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration: 1e22,
+                    energy_level_donor: 0.05,
+                    fixcharge_density: FixChargeDensity::Bulk(0.0),
+                    bandgap_energy: 1.12,
+                }),
+                ProopertyType::Bottom(BottomProperties {
+                    permittivity: 0.0,
+                    delta_conduction_band: 0.0,
+                    bandgap_energy: 1.12,
+                }),
             ],
-            bandgap_energy: vec![1.12; n],
         }
     }
 

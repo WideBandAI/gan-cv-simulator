@@ -8,7 +8,7 @@ pub enum IDX {
     Bottom,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum FixChargeDensity {
     Bulk(f64),      // Charge density (C/m^3)
     Interface(f64), // Charge density (C/m^2)
@@ -155,6 +155,69 @@ impl MeshStructure {
                     [struct_idx],
                 bandgap_energy: configuration.device_structure.bandgap_energy[struct_idx],
             }));
+    }
+
+    /// Get the permittivity at the given mesh index.
+    pub fn permittivity(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            ProopertyType::Surface(p) => p.permittivity,
+            ProopertyType::Bulk(p) => p.permittivity,
+            ProopertyType::Bottom(p) => p.permittivity,
+            ProopertyType::Interface(_) => 0.0,
+        }
+    }
+
+    /// Get the delta conduction band value at the given mesh index.
+    pub fn delta_conduction_band(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            ProopertyType::Surface(p) => p.delta_conduction_band,
+            ProopertyType::Bulk(p) => p.delta_conduction_band,
+            ProopertyType::Bottom(p) => p.delta_conduction_band,
+            ProopertyType::Interface(_) => 0.0,
+        }
+    }
+
+    /// Get the bandgap energy at the given mesh index.
+    pub fn bandgap_energy(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            ProopertyType::Surface(p) => p.bandgap_energy,
+            ProopertyType::Bulk(p) => p.bandgap_energy,
+            ProopertyType::Bottom(p) => p.bandgap_energy,
+            ProopertyType::Interface(_) => 0.0,
+        }
+    }
+
+    /// Get the effective electron mass at the given mesh index.
+    pub fn mass_electron(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            ProopertyType::Bulk(p) => p.mass_electron,
+            _ => 0.0,
+        }
+    }
+
+    /// Get the donor concentration at the given mesh index.
+    pub fn donor_concentration(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            ProopertyType::Bulk(p) => p.donor_concentration,
+            _ => 0.0,
+        }
+    }
+
+    /// Get the donor energy level at the given mesh index.
+    pub fn energy_level_donor(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            ProopertyType::Bulk(p) => p.energy_level_donor,
+            _ => 0.0,
+        }
+    }
+
+    /// Get the fixed charge density at the given mesh index.
+    pub fn fixcharge_density(&self, idx: usize) -> FixChargeDensity {
+        match &self.property_type[idx] {
+            ProopertyType::Bulk(p) => p.fixcharge_density,
+            ProopertyType::Interface(p) => p.fixcharge_density,
+            _ => FixChargeDensity::Bulk(0.0),
+        }
     }
 }
 
