@@ -551,7 +551,7 @@ mod tests {
     #[test]
     fn test_set_boundary_conditions_surface() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
-        let delta_ec_0 = mesh.delta_conduction_band[0]; // 0.0
+        let delta_ec_0 = mesh.delta_conduction_band(0); // 0.0
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
 
         let gate_voltage = 1.0;
