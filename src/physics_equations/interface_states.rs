@@ -34,7 +34,23 @@ impl DIGSModel {
         }
     }
 
-    /// エネルギー b を引数に取り、Dit を計算して f64 で返す機能
+    /// Contunious interface states.
+    ///
+    /// # Arguments
+    ///
+    /// - `potential` (`f64`) - |E - Ec| in eV.
+    ///
+    /// # Returns
+    ///
+    /// - `TrapStatesType` - Trap States Type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = contunious_states();
+    /// ```
     pub fn contunious_states(&self, potential: f64) -> TrapStatesType {
         if potential > self.bandgap {
             panic!("potential cannot be greater than bandgap")
