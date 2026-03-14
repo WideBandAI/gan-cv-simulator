@@ -8,10 +8,48 @@ pub enum IDX {
     Bottom,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum FixChargeDensity {
     Bulk(f64),      // Charge density (C/m^3)
     Interface(f64), // Charge density (C/m^2)
+}
+
+#[derive(Debug)]
+pub enum PropertyType {
+    Surface(SurfaceProperties),
+    Bulk(BulkProperties),
+    Interface(InterfaceProperties),
+    Bottom(BottomProperties),
+}
+
+#[derive(Debug)]
+pub struct SurfaceProperties {
+    pub permittivity: f64,
+    pub delta_conduction_band: f64,
+    pub bandgap_energy: f64,
+}
+
+#[derive(Debug)]
+pub struct BulkProperties {
+    pub mass_electron: f64,
+    pub permittivity: f64,
+    pub delta_conduction_band: f64,
+    pub donor_concentration: f64,
+    pub energy_level_donor: f64,
+    pub fixcharge_density: FixChargeDensity,
+    pub bandgap_energy: f64,
+}
+
+#[derive(Debug)]
+pub struct InterfaceProperties {
+    pub fixcharge_density: FixChargeDensity,
+}
+
+#[derive(Debug)]
+pub struct BottomProperties {
+    pub permittivity: f64,
+    pub delta_conduction_band: f64,
+    pub bandgap_energy: f64,
 }
 
 /// Mesh structure
@@ -40,13 +78,7 @@ pub struct MeshStructure {
     pub id: Vec<IDX>,
     pub name: Vec<String>,
     pub depth: Vec<f64>,
-    pub mass_electron: Vec<f64>,
-    pub permittivity: Vec<f64>,
-    pub delta_conduction_band: Vec<f64>,
-    pub donor_concentration: Vec<f64>,
-    pub energy_level_donor: Vec<f64>,
-    pub fixcharge_density: Vec<FixChargeDensity>,
-    pub bandgap_energy: Vec<f64>,
+    pub property_type: Vec<PropertyType>,
 }
 
 impl MeshStructure {
@@ -55,54 +87,21 @@ impl MeshStructure {
             id: Vec::new(),
             name: Vec::new(),
             depth: Vec::new(),
-            mass_electron: Vec::new(),
-            permittivity: Vec::new(),
-            delta_conduction_band: Vec::new(),
-            donor_concentration: Vec::new(),
-            energy_level_donor: Vec::new(),
-            fixcharge_density: Vec::new(),
-            bandgap_energy: Vec::new(),
+            property_type: Vec::new(),
         }
     }
 
-    fn push_properties(
-        &mut self,
-        id: IDX,
-        name: String,
-        depth: f64,
-        mass_electron: f64,
-        permittivity: f64,
-        delta_conduction_band: f64,
-        donor_concentration: f64,
-        energy_level_donor: f64,
-        fixcharge_density: FixChargeDensity,
-        bandgap_energy: f64,
-    ) {
-        self.id.push(id);
-        self.name.push(name);
-        self.depth.push(depth);
-        self.mass_electron.push(mass_electron);
-        self.permittivity.push(permittivity);
-        self.delta_conduction_band.push(delta_conduction_band);
-        self.donor_concentration.push(donor_concentration);
-        self.energy_level_donor.push(energy_level_donor);
-        self.fixcharge_density.push(fixcharge_density);
-        self.bandgap_energy.push(bandgap_energy);
-    }
-
     pub fn add_surface_node(&mut self, depth: f64, configuration: &Configuration) {
-        self.push_properties(
-            IDX::Surface,
-            configuration.device_structure.name[0].clone(),
-            depth,
-            configuration.device_structure.mass_electron[0],
-            configuration.device_structure.permittivity[0],
-            configuration.device_structure.delta_conduction_band[0],
-            configuration.device_structure.donor_concentration[0],
-            configuration.device_structure.energy_level_donor[0],
-            FixChargeDensity::Interface(0.0),
-            configuration.device_structure.bandgap_energy[0],
-        );
+        self.id.push(IDX::Surface);
+        self.name
+            .push(configuration.device_structure.name[0].clone());
+        self.depth.push(depth);
+        self.property_type
+            .push(PropertyType::Surface(SurfaceProperties {
+                permittivity: configuration.device_structure.permittivity[0],
+                delta_conduction_band: configuration.device_structure.delta_conduction_band[0],
+                bandgap_energy: configuration.device_structure.bandgap_energy[0],
+            }));
     }
 
     pub fn add_interface_node(
@@ -111,55 +110,114 @@ impl MeshStructure {
         struct_idx: usize,
         configuration: &Configuration,
     ) {
-        self.push_properties(
-            IDX::Interface(struct_idx),
-            format!(
-                "Interface_{}-{}",
-                configuration.device_structure.name[struct_idx],
-                configuration.device_structure.name[struct_idx + 1]
-            ),
-            depth,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            FixChargeDensity::Interface(
-                configuration.interface_fixed_charge.charge_density[struct_idx],
-            ),
-            0.0,
-        );
+        self.id.push(IDX::Interface(struct_idx));
+        self.name.push(format!(
+            "Interface_{}-{}",
+            configuration.device_structure.name[struct_idx],
+            configuration.device_structure.name[struct_idx + 1]
+        ));
+        self.depth.push(depth);
+        self.property_type
+            .push(PropertyType::Interface(InterfaceProperties {
+                fixcharge_density: FixChargeDensity::Interface(
+                    configuration.interface_fixed_charge.charge_density[struct_idx],
+                ),
+            }));
     }
 
     pub fn add_bulk_node(&mut self, depth: f64, struct_idx: usize, configuration: &Configuration) {
-        self.push_properties(
-            IDX::Bulk(struct_idx),
-            configuration.device_structure.name[struct_idx].clone(),
-            depth,
-            configuration.device_structure.mass_electron[struct_idx],
-            configuration.device_structure.permittivity[struct_idx],
-            configuration.device_structure.delta_conduction_band[struct_idx],
-            configuration.device_structure.donor_concentration[struct_idx],
-            configuration.device_structure.energy_level_donor[struct_idx],
-            FixChargeDensity::Bulk(configuration.bulk_fixed_charge.charge_density[struct_idx]),
-            configuration.device_structure.bandgap_energy[struct_idx],
-        );
+        self.id.push(IDX::Bulk(struct_idx));
+        self.name
+            .push(configuration.device_structure.name[struct_idx].clone());
+        self.depth.push(depth);
+        self.property_type.push(PropertyType::Bulk(BulkProperties {
+            mass_electron: configuration.device_structure.mass_electron[struct_idx],
+            permittivity: configuration.device_structure.permittivity[struct_idx],
+            delta_conduction_band: configuration.device_structure.delta_conduction_band[struct_idx],
+            donor_concentration: configuration.device_structure.donor_concentration[struct_idx],
+            energy_level_donor: configuration.device_structure.energy_level_donor[struct_idx],
+            fixcharge_density: FixChargeDensity::Bulk(
+                configuration.bulk_fixed_charge.charge_density[struct_idx],
+            ),
+            bandgap_energy: configuration.device_structure.bandgap_energy[struct_idx],
+        }));
     }
 
     pub fn add_bottom_node(&mut self, depth: f64, configuration: &Configuration) {
-        let idx = configuration.device_structure.name.len() - 1;
-        self.push_properties(
-            IDX::Bottom,
-            configuration.device_structure.name[idx].clone(),
-            depth,
-            configuration.device_structure.mass_electron[idx],
-            configuration.device_structure.permittivity[idx],
-            configuration.device_structure.delta_conduction_band[idx],
-            configuration.device_structure.donor_concentration[idx],
-            configuration.device_structure.energy_level_donor[idx],
-            FixChargeDensity::Interface(0.0),
-            configuration.device_structure.bandgap_energy[idx],
-        );
+        let struct_idx = configuration.device_structure.id.len() - 1;
+        self.id.push(IDX::Bottom);
+        self.name.push("Bottom".to_string());
+        self.depth.push(depth);
+        self.property_type
+            .push(PropertyType::Bottom(BottomProperties {
+                permittivity: configuration.device_structure.permittivity[struct_idx],
+                delta_conduction_band: configuration.device_structure.delta_conduction_band
+                    [struct_idx],
+                bandgap_energy: configuration.device_structure.bandgap_energy[struct_idx],
+            }));
+    }
+
+    /// Get the permittivity at the given mesh index.
+    pub fn permittivity(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            PropertyType::Surface(p) => p.permittivity,
+            PropertyType::Bulk(p) => p.permittivity,
+            PropertyType::Bottom(p) => p.permittivity,
+            PropertyType::Interface(_) => 0.0,
+        }
+    }
+
+    /// Get the delta conduction band value at the given mesh index.
+    pub fn delta_conduction_band(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            PropertyType::Surface(p) => p.delta_conduction_band,
+            PropertyType::Bulk(p) => p.delta_conduction_band,
+            PropertyType::Bottom(p) => p.delta_conduction_band,
+            PropertyType::Interface(_) => 0.0,
+        }
+    }
+
+    /// Get the bandgap energy at the given mesh index.
+    pub fn bandgap_energy(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            PropertyType::Surface(p) => p.bandgap_energy,
+            PropertyType::Bulk(p) => p.bandgap_energy,
+            PropertyType::Bottom(p) => p.bandgap_energy,
+            PropertyType::Interface(_) => 0.0,
+        }
+    }
+
+    /// Get the effective electron mass at the given mesh index.
+    pub fn mass_electron(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            PropertyType::Bulk(p) => p.mass_electron,
+            _ => 0.0,
+        }
+    }
+
+    /// Get the donor concentration at the given mesh index.
+    pub fn donor_concentration(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            PropertyType::Bulk(p) => p.donor_concentration,
+            _ => 0.0,
+        }
+    }
+
+    /// Get the donor energy level at the given mesh index.
+    pub fn energy_level_donor(&self, idx: usize) -> f64 {
+        match &self.property_type[idx] {
+            PropertyType::Bulk(p) => p.energy_level_donor,
+            _ => 0.0,
+        }
+    }
+
+    /// Get the fixed charge density at the given mesh index.
+    pub fn fixcharge_density(&self, idx: usize) -> FixChargeDensity {
+        match &self.property_type[idx] {
+            PropertyType::Bulk(p) => p.fixcharge_density,
+            PropertyType::Interface(p) => p.fixcharge_density,
+            _ => FixChargeDensity::Bulk(0.0),
+        }
     }
 }
 

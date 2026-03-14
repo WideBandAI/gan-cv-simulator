@@ -191,7 +191,10 @@ mod tests {
     use super::*;
     use crate::config::measurement::{Stress, Temperature, Time, Voltage};
     use crate::constants::physics::EPSILON_0;
-    use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
+    use crate::mesh_builder::mesh_builder::{
+        BottomProperties, BulkProperties, FixChargeDensity, MeshStructure, PropertyType,
+        SurfaceProperties, IDX,
+    };
     use approx::relative_eq;
     use tempfile::TempDir;
 
@@ -212,7 +215,6 @@ mod tests {
         donor_concentration: f64,
         bulk_fixcharge: f64,
     ) -> MeshStructure {
-        let n = 6;
         MeshStructure {
             id: vec![
                 IDX::Surface,
@@ -231,41 +233,54 @@ mod tests {
                 "Bottom".to_string(),
             ],
             depth: vec![0.0, 1e-9, 2e-9, 3e-9, 4e-9, 5e-9],
-            mass_electron: vec![
-                0.0,
-                mass_electron,
-                mass_electron,
-                mass_electron,
-                mass_electron,
-                0.0,
+            property_type: vec![
+                PropertyType::Surface(SurfaceProperties {
+                    permittivity: 0.0,
+                    delta_conduction_band: 0.0,
+                    bandgap_energy: 0.0,
+                }),
+                PropertyType::Bulk(BulkProperties {
+                    mass_electron: mass_electron,
+                    permittivity: permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration: donor_concentration,
+                    energy_level_donor: 0.0,
+                    fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
+                    bandgap_energy: 0.0,
+                }),
+                PropertyType::Bulk(BulkProperties {
+                    mass_electron: mass_electron,
+                    permittivity: permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration: donor_concentration,
+                    energy_level_donor: 0.0,
+                    fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
+                    bandgap_energy: 0.0,
+                }),
+                PropertyType::Bulk(BulkProperties {
+                    mass_electron: mass_electron,
+                    permittivity: permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration: donor_concentration,
+                    energy_level_donor: 0.0,
+                    fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
+                    bandgap_energy: 0.0,
+                }),
+                PropertyType::Bulk(BulkProperties {
+                    mass_electron: mass_electron,
+                    permittivity: permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration: donor_concentration,
+                    energy_level_donor: 0.0,
+                    fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
+                    bandgap_energy: 0.0,
+                }),
+                PropertyType::Bottom(BottomProperties {
+                    permittivity: 0.0,
+                    delta_conduction_band: 0.0,
+                    bandgap_energy: 0.0,
+                }),
             ],
-            permittivity: vec![
-                0.0,
-                permittivity,
-                permittivity,
-                permittivity,
-                permittivity,
-                0.0,
-            ],
-            delta_conduction_band: vec![0.0; n],
-            donor_concentration: vec![
-                0.0,
-                donor_concentration,
-                donor_concentration,
-                donor_concentration,
-                donor_concentration,
-                0.0,
-            ],
-            energy_level_donor: vec![0.0, 0.05, 0.05, 0.05, 0.05, 0.0],
-            fixcharge_density: vec![
-                FixChargeDensity::Bulk(0.0),
-                FixChargeDensity::Bulk(bulk_fixcharge),
-                FixChargeDensity::Bulk(bulk_fixcharge),
-                FixChargeDensity::Bulk(bulk_fixcharge),
-                FixChargeDensity::Bulk(bulk_fixcharge),
-                FixChargeDensity::Bulk(0.0),
-            ],
-            bandgap_energy: vec![1.12; n],
         }
     }
 
