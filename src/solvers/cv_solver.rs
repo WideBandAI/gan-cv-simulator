@@ -192,7 +192,7 @@ mod tests {
     use crate::config::measurement::{Stress, Temperature, Time, Voltage};
     use crate::constants::physics::EPSILON_0;
     use crate::mesh_builder::mesh_builder::{
-        BottomProperties, BulkProperties, FixChargeDensity, MeshStructure, ProopertyType,
+        BottomProperties, BulkProperties, FixChargeDensity, MeshStructure, PropertyType,
         SurfaceProperties, IDX,
     };
     use approx::relative_eq;
@@ -234,12 +234,12 @@ mod tests {
             ],
             depth: vec![0.0, 1e-9, 2e-9, 3e-9, 4e-9, 5e-9],
             property_type: vec![
-                ProopertyType::Surface(SurfaceProperties {
+                PropertyType::Surface(SurfaceProperties {
                     permittivity: 0.0,
                     delta_conduction_band: 0.0,
                     bandgap_energy: 0.0,
                 }),
-                ProopertyType::Bulk(BulkProperties {
+                PropertyType::Bulk(BulkProperties {
                     mass_electron: mass_electron,
                     permittivity: permittivity,
                     delta_conduction_band: 0.0,
@@ -248,7 +248,7 @@ mod tests {
                     fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
                     bandgap_energy: 0.0,
                 }),
-                ProopertyType::Bulk(BulkProperties {
+                PropertyType::Bulk(BulkProperties {
                     mass_electron: mass_electron,
                     permittivity: permittivity,
                     delta_conduction_band: 0.0,
@@ -257,7 +257,7 @@ mod tests {
                     fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
                     bandgap_energy: 0.0,
                 }),
-                ProopertyType::Bulk(BulkProperties {
+                PropertyType::Bulk(BulkProperties {
                     mass_electron: mass_electron,
                     permittivity: permittivity,
                     delta_conduction_band: 0.0,
@@ -266,7 +266,7 @@ mod tests {
                     fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
                     bandgap_energy: 0.0,
                 }),
-                ProopertyType::Bulk(BulkProperties {
+                PropertyType::Bulk(BulkProperties {
                     mass_electron: mass_electron,
                     permittivity: permittivity,
                     delta_conduction_band: 0.0,
@@ -275,7 +275,7 @@ mod tests {
                     fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
                     bandgap_energy: 0.0,
                 }),
-                ProopertyType::Bottom(BottomProperties {
+                PropertyType::Bottom(BottomProperties {
                     permittivity: 0.0,
                     delta_conduction_band: 0.0,
                     bandgap_energy: 0.0,

@@ -15,7 +15,7 @@ pub enum FixChargeDensity {
 }
 
 #[derive(Debug)]
-pub enum ProopertyType {
+pub enum PropertyType {
     Surface(SurfaceProperties),
     Bulk(BulkProperties),
     Interface(InterfaceProperties),
@@ -78,7 +78,7 @@ pub struct MeshStructure {
     pub id: Vec<IDX>,
     pub name: Vec<String>,
     pub depth: Vec<f64>,
-    pub property_type: Vec<ProopertyType>,
+    pub property_type: Vec<PropertyType>,
 }
 
 impl MeshStructure {
@@ -97,7 +97,7 @@ impl MeshStructure {
             .push(configuration.device_structure.name[0].clone());
         self.depth.push(depth);
         self.property_type
-            .push(ProopertyType::Surface(SurfaceProperties {
+            .push(PropertyType::Surface(SurfaceProperties {
                 permittivity: configuration.device_structure.permittivity[0],
                 delta_conduction_band: configuration.device_structure.delta_conduction_band[0],
                 bandgap_energy: configuration.device_structure.bandgap_energy[0],
@@ -118,7 +118,7 @@ impl MeshStructure {
         ));
         self.depth.push(depth);
         self.property_type
-            .push(ProopertyType::Interface(InterfaceProperties {
+            .push(PropertyType::Interface(InterfaceProperties {
                 fixcharge_density: FixChargeDensity::Interface(
                     configuration.interface_fixed_charge.charge_density[struct_idx],
                 ),
@@ -130,7 +130,7 @@ impl MeshStructure {
         self.name
             .push(configuration.device_structure.name[struct_idx].clone());
         self.depth.push(depth);
-        self.property_type.push(ProopertyType::Bulk(BulkProperties {
+        self.property_type.push(PropertyType::Bulk(BulkProperties {
             mass_electron: configuration.device_structure.mass_electron[struct_idx],
             permittivity: configuration.device_structure.permittivity[struct_idx],
             delta_conduction_band: configuration.device_structure.delta_conduction_band[struct_idx],
@@ -149,7 +149,7 @@ impl MeshStructure {
         self.name.push("Bottom".to_string());
         self.depth.push(depth);
         self.property_type
-            .push(ProopertyType::Bottom(BottomProperties {
+            .push(PropertyType::Bottom(BottomProperties {
                 permittivity: configuration.device_structure.permittivity[struct_idx],
                 delta_conduction_band: configuration.device_structure.delta_conduction_band
                     [struct_idx],
@@ -160,37 +160,37 @@ impl MeshStructure {
     /// Get the permittivity at the given mesh index.
     pub fn permittivity(&self, idx: usize) -> f64 {
         match &self.property_type[idx] {
-            ProopertyType::Surface(p) => p.permittivity,
-            ProopertyType::Bulk(p) => p.permittivity,
-            ProopertyType::Bottom(p) => p.permittivity,
-            ProopertyType::Interface(_) => 0.0,
+            PropertyType::Surface(p) => p.permittivity,
+            PropertyType::Bulk(p) => p.permittivity,
+            PropertyType::Bottom(p) => p.permittivity,
+            PropertyType::Interface(_) => 0.0,
         }
     }
 
     /// Get the delta conduction band value at the given mesh index.
     pub fn delta_conduction_band(&self, idx: usize) -> f64 {
         match &self.property_type[idx] {
-            ProopertyType::Surface(p) => p.delta_conduction_band,
-            ProopertyType::Bulk(p) => p.delta_conduction_band,
-            ProopertyType::Bottom(p) => p.delta_conduction_band,
-            ProopertyType::Interface(_) => 0.0,
+            PropertyType::Surface(p) => p.delta_conduction_band,
+            PropertyType::Bulk(p) => p.delta_conduction_band,
+            PropertyType::Bottom(p) => p.delta_conduction_band,
+            PropertyType::Interface(_) => 0.0,
         }
     }
 
     /// Get the bandgap energy at the given mesh index.
     pub fn bandgap_energy(&self, idx: usize) -> f64 {
         match &self.property_type[idx] {
-            ProopertyType::Surface(p) => p.bandgap_energy,
-            ProopertyType::Bulk(p) => p.bandgap_energy,
-            ProopertyType::Bottom(p) => p.bandgap_energy,
-            ProopertyType::Interface(_) => 0.0,
+            PropertyType::Surface(p) => p.bandgap_energy,
+            PropertyType::Bulk(p) => p.bandgap_energy,
+            PropertyType::Bottom(p) => p.bandgap_energy,
+            PropertyType::Interface(_) => 0.0,
         }
     }
 
     /// Get the effective electron mass at the given mesh index.
     pub fn mass_electron(&self, idx: usize) -> f64 {
         match &self.property_type[idx] {
-            ProopertyType::Bulk(p) => p.mass_electron,
+            PropertyType::Bulk(p) => p.mass_electron,
             _ => 0.0,
         }
     }
@@ -198,7 +198,7 @@ impl MeshStructure {
     /// Get the donor concentration at the given mesh index.
     pub fn donor_concentration(&self, idx: usize) -> f64 {
         match &self.property_type[idx] {
-            ProopertyType::Bulk(p) => p.donor_concentration,
+            PropertyType::Bulk(p) => p.donor_concentration,
             _ => 0.0,
         }
     }
@@ -206,7 +206,7 @@ impl MeshStructure {
     /// Get the donor energy level at the given mesh index.
     pub fn energy_level_donor(&self, idx: usize) -> f64 {
         match &self.property_type[idx] {
-            ProopertyType::Bulk(p) => p.energy_level_donor,
+            PropertyType::Bulk(p) => p.energy_level_donor,
             _ => 0.0,
         }
     }
@@ -214,8 +214,8 @@ impl MeshStructure {
     /// Get the fixed charge density at the given mesh index.
     pub fn fixcharge_density(&self, idx: usize) -> FixChargeDensity {
         match &self.property_type[idx] {
-            ProopertyType::Bulk(p) => p.fixcharge_density,
-            ProopertyType::Interface(p) => p.fixcharge_density,
+            PropertyType::Bulk(p) => p.fixcharge_density,
+            PropertyType::Interface(p) => p.fixcharge_density,
             _ => FixChargeDensity::Bulk(0.0),
         }
     }

@@ -341,7 +341,7 @@ mod tests {
     use super::*;
     use crate::mesh_builder::mesh_builder::{
         BottomProperties, BulkProperties, FixChargeDensity, InterfaceProperties, MeshStructure,
-        ProopertyType, SurfaceProperties, IDX,
+        PropertyType, SurfaceProperties, IDX,
     };
     use approx::relative_eq;
 
@@ -370,12 +370,12 @@ mod tests {
             ],
             depth: vec![0.0, 1e-9, 2e-9, 3e-9],
             property_type: vec![
-                ProopertyType::Surface(SurfaceProperties {
+                PropertyType::Surface(SurfaceProperties {
                     permittivity: 0.0,
                     delta_conduction_band: 0.0,
                     bandgap_energy: 1.12,
                 }),
-                ProopertyType::Bulk(BulkProperties {
+                PropertyType::Bulk(BulkProperties {
                     mass_electron,
                     permittivity,
                     delta_conduction_band: 0.0,
@@ -384,7 +384,7 @@ mod tests {
                     fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
                     bandgap_energy: 1.12,
                 }),
-                ProopertyType::Bulk(BulkProperties {
+                PropertyType::Bulk(BulkProperties {
                     mass_electron,
                     permittivity,
                     delta_conduction_band: 0.0,
@@ -393,7 +393,7 @@ mod tests {
                     fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
                     bandgap_energy: 1.12,
                 }),
-                ProopertyType::Bottom(BottomProperties {
+                PropertyType::Bottom(BottomProperties {
                     permittivity: 0.0,
                     delta_conduction_band: 0.0,
                     bandgap_energy: 1.12,
@@ -420,12 +420,12 @@ mod tests {
             ],
             depth: vec![0.0, 1.0, 2.0, 3.0],
             property_type: vec![
-                ProopertyType::Surface(SurfaceProperties {
+                PropertyType::Surface(SurfaceProperties {
                     permittivity: 0.0,
                     delta_conduction_band: 0.0,
                     bandgap_energy: 1.12,
                 }),
-                ProopertyType::Bulk(BulkProperties {
+                PropertyType::Bulk(BulkProperties {
                     mass_electron: 0.0,
                     permittivity,
                     delta_conduction_band: 0.0,
@@ -434,7 +434,7 @@ mod tests {
                     fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
                     bandgap_energy: 1.12,
                 }),
-                ProopertyType::Bulk(BulkProperties {
+                PropertyType::Bulk(BulkProperties {
                     mass_electron: 0.0,
                     permittivity,
                     delta_conduction_band: 0.0,
@@ -443,7 +443,7 @@ mod tests {
                     fixcharge_density: FixChargeDensity::Bulk(bulk_fixcharge),
                     bandgap_energy: 1.12,
                 }),
-                ProopertyType::Bottom(BottomProperties {
+                PropertyType::Bottom(BottomProperties {
                     permittivity: 0.0,
                     delta_conduction_band: 0.0,
                     bandgap_energy: 1.12,
@@ -476,12 +476,12 @@ mod tests {
             ],
             depth: vec![0.0, 1.0, 2.0, 3.0, 4.0],
             property_type: vec![
-                ProopertyType::Surface(SurfaceProperties {
+                PropertyType::Surface(SurfaceProperties {
                     permittivity: 0.0,
                     delta_conduction_band: 0.0,
                     bandgap_energy: 1.12,
                 }),
-                ProopertyType::Bulk(BulkProperties {
+                PropertyType::Bulk(BulkProperties {
                     mass_electron: 0.2,
                     permittivity,
                     delta_conduction_band: 0.0,
@@ -490,10 +490,10 @@ mod tests {
                     fixcharge_density: FixChargeDensity::Bulk(0.0),
                     bandgap_energy: 1.12,
                 }),
-                ProopertyType::Interface(InterfaceProperties {
+                PropertyType::Interface(InterfaceProperties {
                     fixcharge_density: FixChargeDensity::Interface(interface_fixcharge),
                 }),
-                ProopertyType::Bulk(BulkProperties {
+                PropertyType::Bulk(BulkProperties {
                     mass_electron: 0.2,
                     permittivity,
                     delta_conduction_band: 0.0,
@@ -502,7 +502,7 @@ mod tests {
                     fixcharge_density: FixChargeDensity::Bulk(0.0),
                     bandgap_energy: 1.12,
                 }),
-                ProopertyType::Bottom(BottomProperties {
+                PropertyType::Bottom(BottomProperties {
                     permittivity: 0.0,
                     delta_conduction_band: 0.0,
                     bandgap_energy: 1.12,
