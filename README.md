@@ -17,12 +17,6 @@
 
 ## Installation
 
-### From Cargo
-
-```bash
-cargo install gan-cv-simulator
-```
-
 ### Manual Installation
 
 Download the pre-compiled binaries from the [GitHub Releases](https://github.com/WideBandAI/gan-cv-simulator/releases) page.
