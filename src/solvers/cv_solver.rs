@@ -281,42 +281,6 @@ mod tests {
                     bandgap_energy: 0.0,
                 }),
             ],
-            // property_type: vec![
-            // mass_electron: vec![
-            //     0.0,
-            //     mass_electron,
-            //     mass_electron,
-            //     mass_electron,
-            //     mass_electron,
-            //     0.0,
-            // ],
-            // permittivity: vec![
-            //     0.0,
-            //     permittivity,
-            //     permittivity,
-            //     permittivity,
-            //     permittivity,
-            //     0.0,
-            // ],
-            // delta_conduction_band: vec![0.0; n],
-            // donor_concentration: vec![
-            //     0.0,
-            //     donor_concentration,
-            //     donor_concentration,
-            //     donor_concentration,
-            //     donor_concentration,
-            //     0.0,
-            // ],
-            // energy_level_donor: vec![0.0, 0.05, 0.05, 0.05, 0.05, 0.0],
-            // fixcharge_density: vec![
-            //     FixChargeDensity::Bulk(0.0),
-            //     FixChargeDensity::Bulk(bulk_fixcharge),
-            //     FixChargeDensity::Bulk(bulk_fixcharge),
-            //     FixChargeDensity::Bulk(bulk_fixcharge),
-            //     FixChargeDensity::Bulk(bulk_fixcharge),
-            //     FixChargeDensity::Bulk(0.0),
-            // ],
-            // bandgap_energy: vec![1.12; n],
         }
     }
 
