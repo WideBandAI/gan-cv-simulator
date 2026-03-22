@@ -10,6 +10,7 @@ pub enum PotentialError {
     Negative,
 }
 
+#[derive(Debug)]
 pub struct DIGSModel {
     dit0: f64,
     nssec: f64,
@@ -86,6 +87,7 @@ pub enum DiscreteStateType {
     AcceptorLike,
 }
 
+#[derive(Debug)]
 pub struct DiscreteModel {
     ditmax: f64,
     ed: f64,
