@@ -52,9 +52,9 @@ impl DIGSModel {
     ///
     /// let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
     /// let potential = 1.0;
-    /// let trap_states = model.contunious_states(potential);
+    /// let trap_states = model.continuous_states(potential);
     /// ```
-    pub fn contunious_states(&self, potential: f64) -> TrapStatesType {
+    pub fn continuous_states(&self, potential: f64) -> TrapStatesType {
         if potential > self.bandgap {
             panic!("potential cannot be greater than bandgap")
         } else if potential < 0.0 {
@@ -133,11 +133,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_contunious_states_donorlike() {
+    fn test_continuous_states_donorlike() {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential > ecnl, donorlike
         let potential = 2.0;
-        match model.contunious_states(potential) {
+        match model.continuous_states(potential) {
             TrapStatesType::DonorLike(dit) => {
                 let e0d = (model.bandgap - model.ecnl) * model.nssev.ln().powf(-1.0 / model.nd);
                 let expected_dit =
@@ -149,11 +149,11 @@ mod tests {
     }
 
     #[test]
-    fn test_contunious_states_acceptorlike() {
+    fn test_continuous_states_acceptorlike() {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential <= ecnl, acceptorlike
         let potential = 1.0;
-        match model.contunious_states(potential) {
+        match model.continuous_states(potential) {
             TrapStatesType::AcceptorLike(dit) => {
                 let e0a = model.ecnl * model.nssec.ln().powf(-1.0 / model.na);
                 let expected_dit =
@@ -166,29 +166,29 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "potential cannot be greater than bandgap")]
-    fn test_contunious_states_potential_greater_than_bandgap() {
+    fn test_continuous_states_potential_greater_than_bandgap() {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential > bandgap, should panic
-        model.contunious_states(3.1);
+        model.continuous_states(3.1);
     }
 
     #[test]
-    fn test_contunious_states_at_ecnl() {
+    fn test_continuous_states_at_ecnl() {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential == ecnl, acceptorlike
         let potential = model.ecnl;
-        match model.contunious_states(potential) {
+        match model.continuous_states(potential) {
             TrapStatesType::AcceptorLike(_) => {}
             _ => panic!("Expected AcceptorLike at ecnl"),
         }
     }
 
     #[test]
-    fn test_contunious_states_at_bandgap() {
+    fn test_continuous_states_at_bandgap() {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential == bandgap, donorlike
         let potential = model.bandgap;
-        match model.contunious_states(potential) {
+        match model.continuous_states(potential) {
             TrapStatesType::DonorLike(_) => {}
             _ => panic!("Expected DonorLike at bandgap"),
         }
@@ -199,7 +199,7 @@ mod tests {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential == ecnl, acceptorlike
         let potential = model.ecnl;
-        match model.contunious_states(potential) {
+        match model.continuous_states(potential) {
             TrapStatesType::AcceptorLike(dit) => {
                 assert_eq!(dit, model.dit0);
             }
