@@ -30,7 +30,6 @@ impl ConductionBandDensity {
     /// # Arguments
     ///
     /// - `mass_electron` (`f64`) - The effective mass of electron in kg.
-    /// - `mass_electron` (`f64`) - The effective mass of electron in kg.
     ///
     /// # Returns
     ///
