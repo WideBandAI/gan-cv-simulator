@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum TrapStatesType {
     DonorLike(f64),
     AcceptorLike(f64),
@@ -52,23 +53,23 @@ impl DIGSModel {
     ///
     /// let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
     /// let potential = 1.0;
-    /// let trap_states = model.continuous_states(potential);
+    /// let trap_states = model.continuous_states(potential).unwrap();
     /// ```
-    pub fn continuous_states(&self, potential: f64) -> TrapStatesType {
+    pub fn continuous_states(&self, potential: f64) -> Result<TrapStatesType, String> {
         if potential > self.bandgap {
-            panic!("potential cannot be greater than bandgap")
+            Err("potential cannot be greater than bandgap".to_string())
         } else if potential < 0.0 {
-            panic!("potential cannot be negative")
+            Err("potential cannot be negative".to_string())
         } else if potential > self.ecnl {
             // donorlike interface states
             let e0d = (self.bandgap - self.ecnl) * self.nssev.ln().powf(-1.0 / self.nd);
             let dit = self.dit0 * ((-potential + self.ecnl).abs() / e0d).powf(self.nd).exp();
-            TrapStatesType::DonorLike(dit)
+            Ok(TrapStatesType::DonorLike(dit))
         } else {
             // acceptorlike interface states
             let e0a = self.ecnl * self.nssec.ln().powf(-1.0 / self.na);
             let dit = self.dit0 * ((-potential + self.ecnl).abs() / e0a).powf(self.na).exp();
-            TrapStatesType::AcceptorLike(dit)
+            Ok(TrapStatesType::AcceptorLike(dit))
         }
     }
 }
@@ -137,7 +138,7 @@ mod tests {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential > ecnl, donorlike
         let potential = 2.0;
-        match model.continuous_states(potential) {
+        match model.continuous_states(potential).unwrap() {
             TrapStatesType::DonorLike(dit) => {
                 let e0d = (model.bandgap - model.ecnl) * model.nssev.ln().powf(-1.0 / model.nd);
                 let expected_dit =
@@ -153,7 +154,7 @@ mod tests {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential <= ecnl, acceptorlike
         let potential = 1.0;
-        match model.continuous_states(potential) {
+        match model.continuous_states(potential).unwrap() {
             TrapStatesType::AcceptorLike(dit) => {
                 let e0a = model.ecnl * model.nssec.ln().powf(-1.0 / model.na);
                 let expected_dit =
@@ -165,11 +166,14 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "potential cannot be greater than bandgap")]
     fn test_continuous_states_potential_greater_than_bandgap() {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
-        // potential > bandgap, should panic
-        model.continuous_states(3.1);
+        // potential > bandgap, should return error
+        let result = model.continuous_states(3.1);
+        assert_eq!(
+            result.unwrap_err(),
+            "potential cannot be greater than bandgap"
+        );
     }
 
     #[test]
@@ -177,7 +181,7 @@ mod tests {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential == ecnl, acceptorlike
         let potential = model.ecnl;
-        match model.continuous_states(potential) {
+        match model.continuous_states(potential).unwrap() {
             TrapStatesType::AcceptorLike(_) => {}
             _ => panic!("Expected AcceptorLike at ecnl"),
         }
@@ -188,7 +192,7 @@ mod tests {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential == bandgap, donorlike
         let potential = model.bandgap;
-        match model.continuous_states(potential) {
+        match model.continuous_states(potential).unwrap() {
             TrapStatesType::DonorLike(_) => {}
             _ => panic!("Expected DonorLike at bandgap"),
         }
@@ -199,7 +203,7 @@ mod tests {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential == ecnl, acceptorlike
         let potential = model.ecnl;
-        match model.continuous_states(potential) {
+        match model.continuous_states(potential).unwrap() {
             TrapStatesType::AcceptorLike(dit) => {
                 assert_eq!(dit, model.dit0);
             }
