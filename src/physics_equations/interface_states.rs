@@ -4,6 +4,12 @@ pub enum TrapStatesType {
     AcceptorLike(f64),
 }
 
+#[derive(Debug, PartialEq)]
+pub enum PotentialError {
+    GreaterThanBandgap,
+    Negative,
+}
+
 pub struct DIGSModel {
     dit0: f64,
     nssec: f64,
@@ -55,11 +61,11 @@ impl DIGSModel {
     /// let potential = 1.0;
     /// let trap_states = model.continuous_states(potential).unwrap();
     /// ```
-    pub fn continuous_states(&self, potential: f64) -> Result<TrapStatesType, String> {
+    pub fn continuous_states(&self, potential: f64) -> Result<TrapStatesType, PotentialError> {
         if potential > self.bandgap {
-            Err("potential cannot be greater than bandgap".to_string())
+            Err(PotentialError::GreaterThanBandgap)
         } else if potential < 0.0 {
-            Err("potential cannot be negative".to_string())
+            Err(PotentialError::Negative)
         } else if potential > self.ecnl {
             // donorlike interface states
             let e0d = (self.bandgap - self.ecnl) * self.nssev.ln().powf(-1.0 / self.nd);
@@ -170,10 +176,7 @@ mod tests {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential > bandgap, should return error
         let result = model.continuous_states(3.1);
-        assert_eq!(
-            result.unwrap_err(),
-            "potential cannot be greater than bandgap"
-        );
+        assert_eq!(result.unwrap_err(), PotentialError::GreaterThanBandgap);
     }
 
     #[test]
