@@ -11,8 +11,8 @@ pub struct ContinuousInterfaceStatesConfig {
 
 #[derive(Debug)]
 pub struct DiscreteInterfaceStatesConfig {
-    pub interface_id: Vec<u32>,         // Interface ID between layers
-    pub parameters: Vec<DiscreteModel>, // Discrete model parameters
+    pub interface_id: Vec<u32>,              // Interface ID between layers
+    pub parameters: Vec<Vec<DiscreteModel>>, // Discrete model parameters
 }
 
 pub fn define_interface_states(device_structure: &DeviceStructure) {
@@ -59,7 +59,7 @@ pub fn define_interface_states(device_structure: &DeviceStructure) {
                 );
                 if val < 0.0 || val > bandgap {
                     println!(
-                        "Error: |Ec - Ecnl| must be between 0 and {:.3}. Please enter a valid value.",
+                        "Error: |Ec - Ecnl| must be between 0 and {}. Please enter a valid value.",
                         bandgap
                     );
                 } else {

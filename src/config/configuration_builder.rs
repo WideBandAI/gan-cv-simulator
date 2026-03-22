@@ -4,6 +4,7 @@ use crate::config::fixcharge::define_bulk_fixed_charge;
 use crate::config::fixcharge::define_interface_fixed_charge;
 use crate::config::fixcharge::BulkFixedCharge;
 use crate::config::fixcharge::InterfaceFixedCharge;
+use crate::config::interface_states::define_interface_states;
 use crate::config::measurement::define_measurement;
 use crate::config::measurement::Measurement;
 use crate::config::mesh::define_mesh_params;
@@ -42,6 +43,7 @@ impl ConfigurationBuilder {
         let device_structure = define_structure();
         let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
+        let interface_states = define_interface_states(&device_structure);
         let mesh_params = define_mesh_params(&device_structure);
         let boundary_conditions = define_boundary_conditions(&device_structure, &measurement);
 
