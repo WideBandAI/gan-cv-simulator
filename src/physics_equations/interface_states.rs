@@ -101,7 +101,7 @@ impl DiscreteModel {
     ///
     /// # Returns
     ///
-    /// - `f64` - Describe the return value.
+    /// - `TrapStatesType` - The calculated trap state type and density.
     ///
     /// # Examples
     ///
