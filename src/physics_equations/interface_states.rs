@@ -199,4 +199,53 @@ mod tests {
             _ => panic!("Expected AcceptorLike at ecnl"),
         }
     }
+
+    #[test]
+    fn test_discrete_states_donorlike() {
+        let ditmax = 1.0;
+        let ed = 1.5;
+        let fwhm = 0.2;
+        let model = DiscreteModel::new(ditmax, ed, fwhm, DiscreteStateType::DonorLike);
+        let potential = 1.6;
+        match model.discrete_states(potential) {
+            TrapStatesType::DonorLike(dit) => {
+                let sigma = fwhm.powi(2) / (4.0 * 2.0_f64.ln());
+                let expected_dit = ditmax * (-(potential - ed).powi(2) / sigma).exp();
+                assert!((dit - expected_dit).abs() < 1e-10);
+            }
+            _ => panic!("Expected DonorLike"),
+        }
+    }
+
+    #[test]
+    fn test_discrete_states_acceptorlike() {
+        let ditmax = 2.0;
+        let ed = 1.0;
+        let fwhm = 0.3;
+        let model = DiscreteModel::new(ditmax, ed, fwhm, DiscreteStateType::AcceptorLike);
+        let potential = 0.8;
+        match model.discrete_states(potential) {
+            TrapStatesType::AcceptorLike(dit) => {
+                let sigma = fwhm.powi(2) / (4.0 * 2.0_f64.ln());
+                let expected_dit = ditmax * (-(potential - ed).powi(2) / sigma).exp();
+                assert!((dit - expected_dit).abs() < 1e-10);
+            }
+            _ => panic!("Expected AcceptorLike"),
+        }
+    }
+
+    #[test]
+    fn test_discrete_states_peak_value() {
+        let ditmax = 3.0;
+        let ed = 2.0;
+        let fwhm = 0.1;
+        let model = DiscreteModel::new(ditmax, ed, fwhm, DiscreteStateType::DonorLike);
+        let potential = ed; // peak
+        match model.discrete_states(potential) {
+            TrapStatesType::DonorLike(dit) => {
+                assert!((dit - ditmax).abs() < 1e-10);
+            }
+            _ => panic!("Expected DonorLike"),
+        }
+    }
 }
