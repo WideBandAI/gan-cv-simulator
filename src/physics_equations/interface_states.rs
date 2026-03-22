@@ -54,6 +54,8 @@ impl DIGSModel {
     pub fn contunious_states(&self, potential: f64) -> TrapStatesType {
         if potential > self.bandgap {
             panic!("potential cannot be greater than bandgap")
+        } else if potential < 0.0 {
+            panic!("potential cannot be negative")
         } else if potential > self.ecnl {
             // donorlike interface states
             let e0d = (self.bandgap - self.ecnl) * self.nssev.ln().powf(-1.0 / self.nd);
@@ -62,13 +64,13 @@ impl DIGSModel {
         } else {
             // acceptorlike interface states
             let e0a = self.ecnl * self.nssec.ln().powf(-1.0 / self.na);
-            // Discrete interface states を含める場合はここに処理を追加
             let dit = self.dit0 * ((-potential + self.ecnl).abs() / e0a).powf(self.na).exp();
             TrapStatesType::AcceptorLike(dit)
         }
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum DiscreteStateType {
     DonorLike,
     AcceptorLike,
@@ -111,10 +113,10 @@ impl DiscreteModel {
     pub fn discrete_states(&self, potential: f64) -> TrapStatesType {
         let sigma = self.fwhm.powi(2) / (4.0 * 2.0_f64.ln());
         let dit = self.ditmax * (-(potential - self.ed).powi(2) / sigma).exp();
-        if self.state_type is DiscreteStateType::DonorLike {
-            TrapStatesType::DonorLike((dit))
+        if self.state_type == DiscreteStateType::DonorLike {
+            TrapStatesType::DonorLike(dit)
         } else {
-            TrapStatesType::AcceptorLike((dit))
+            TrapStatesType::AcceptorLike(dit)
         }
     }
 }
