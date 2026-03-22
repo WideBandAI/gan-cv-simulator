@@ -188,7 +188,7 @@ mod tests {
     }
 
     #[test]
-    fn test_minimamu_dit_is_dit0() {
+    fn test_minimum_dit_is_dit0() {
         let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
         // potential == ecnl, acceptorlike
         let potential = model.ecnl;
