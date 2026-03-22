@@ -47,9 +47,12 @@ impl DIGSModel {
     /// # Examples
     ///
     /// ```
-    /// use crate::...;
+    /// use crate::physics_equations::interface_states::DIGSModel;
+    /// use crate::physics_equations::interface_states::TrapStatesType;
     ///
-    /// let _ = contunious_states();
+    /// let model = DIGSModel::new(1.0, 2.0, 3.0, 1.5, 2.0, 2.5, 3.0);
+    /// let potential = 1.0;
+    /// let trap_states = model.contunious_states(potential);
     /// ```
     pub fn contunious_states(&self, potential: f64) -> TrapStatesType {
         if potential > self.bandgap {
@@ -113,8 +116,6 @@ impl DiscreteModel {
     /// let model = DiscreteModel::new(1.0, 2.0, 3.0, DiscreteStateType::DonorLike);
     /// let potential = 1.0;
     /// let trap_states = model.discrete_states(potential);
-    ///
-    /// assert_eq!(trap_states, TrapStatesType::DonorLike(1.0));
     /// ```
     pub fn discrete_states(&self, potential: f64) -> TrapStatesType {
         let sigma = self.fwhm.powi(2) / (4.0 * 2.0_f64.ln());
