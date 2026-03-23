@@ -362,15 +362,15 @@ mod tests {
             },
             discrete_interface_states: DiscreteInterfaceStatesConfig {
                 interface_id: (0..num_layers.saturating_sub(1) as u32).collect(),
-                parameters: vec![vec![
-                    DiscreteModel::new(
+                parameters: vec![
+                    vec![DiscreteModel::new(
                         1.0,
                         1.0,
                         1.0,
                         DiscreteStateType::DonorLike
-                    );
+                    )];
                     num_layers.saturating_sub(1)
-                ]],
+                ],
             },
             mesh_params: MeshParams {
                 layer_id: (0..mesh_lengths.len() as u32).collect(),
