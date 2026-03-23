@@ -299,10 +299,14 @@ mod tests {
     use super::*;
     use crate::config::boundary_conditions::BoundaryConditions;
     use crate::config::fixcharge::{BulkFixedCharge, InterfaceFixedCharge};
+    use crate::config::interface_states::{
+        ContinuousInterfaceStatesConfig, DiscreteInterfaceStatesConfig,
+    };
     use crate::config::measurement::{Measurement, Stress, Temperature, Time, Voltage};
     use crate::config::mesh::MeshParams;
     use crate::config::sim_settings::SimSettings;
     use crate::config::structure::{DeviceStructure, MaterialType};
+    use crate::physics_equations::interface_states::{DIGSModel, DiscreteModel, DiscreteStateType};
     use approx::relative_eq;
 
     fn create_dummy_configuration(
@@ -348,6 +352,25 @@ mod tests {
             interface_fixed_charge: InterfaceFixedCharge {
                 interface_id: (0..num_layers.saturating_sub(1) as u32).collect(),
                 charge_density: vec![0.0; num_layers.saturating_sub(1)],
+            },
+            continuous_interface_states: ContinuousInterfaceStatesConfig {
+                interface_id: (0..num_layers.saturating_sub(1) as u32).collect(),
+                parameters: vec![
+                    DIGSModel::new(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+                    num_layers.saturating_sub(1)
+                ],
+            },
+            discrete_interface_states: DiscreteInterfaceStatesConfig {
+                interface_id: (0..num_layers.saturating_sub(1) as u32).collect(),
+                parameters: vec![
+                    vec![DiscreteModel::new(
+                        1.0,
+                        1.0,
+                        1.0,
+                        DiscreteStateType::DonorLike
+                    )];
+                    num_layers.saturating_sub(1)
+                ],
             },
             mesh_params: MeshParams {
                 layer_id: (0..mesh_lengths.len() as u32).collect(),

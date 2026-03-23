@@ -1,3 +1,6 @@
+use std::fmt;
+use std::str::FromStr;
+
 #[derive(Debug)]
 pub enum TrapStatesType {
     DonorLike(f64),
@@ -10,14 +13,15 @@ pub enum PotentialError {
     Negative,
 }
 
+#[derive(Debug, Clone)]
 pub struct DIGSModel {
-    dit0: f64,
-    nssec: f64,
-    nssev: f64,
-    ecnl: f64,
-    nd: f64,
-    na: f64,
-    bandgap: f64,
+    pub dit0: f64,
+    pub nssec: f64,
+    pub nssev: f64,
+    pub ecnl: f64,
+    pub nd: f64,
+    pub na: f64,
+    pub bandgap: f64,
 }
 
 impl DIGSModel {
@@ -80,12 +84,34 @@ impl DIGSModel {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum DiscreteStateType {
     DonorLike,
     AcceptorLike,
 }
 
+impl FromStr for DiscreteStateType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "DonorLike" => Ok(DiscreteStateType::DonorLike),
+            "AcceptorLike" => Ok(DiscreteStateType::AcceptorLike),
+            _ => Err(anyhow::anyhow!("Invalid DiscreteStateType: {}", s)),
+        }
+    }
+}
+
+impl fmt::Display for DiscreteStateType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::DonorLike => write!(f, "DonorLike"),
+            Self::AcceptorLike => write!(f, "AcceptorLike"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct DiscreteModel {
     ditmax: f64,
     ed: f64,
