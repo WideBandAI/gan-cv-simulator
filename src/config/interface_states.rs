@@ -1,7 +1,7 @@
 use crate::config::structure::DeviceStructure;
 use crate::physics_equations::interface_states::DIGSModel;
 use crate::physics_equations::interface_states::DiscreteModel;
-use crate::utils::get_parsed_input_with_default;
+use crate::utils::{get_parsed_input_with_default, get_parsed_input_with_default_nonnegative};
 
 #[derive(Debug)]
 pub struct ContinuousInterfaceStatesConfig {
@@ -15,7 +15,21 @@ pub struct DiscreteInterfaceStatesConfig {
     pub parameters: Vec<Vec<DiscreteModel>>, // Discrete model parameters
 }
 
-pub fn define_interface_states(device_structure: &DeviceStructure) {
+pub fn define_interface_states(
+    device_structure: &DeviceStructure,
+) -> (
+    ContinuousInterfaceStatesConfig,
+    DiscreteInterfaceStatesConfig,
+) {
+    let mut continuous_interface_states_config = ContinuousInterfaceStatesConfig {
+        interface_id: vec![],
+        parameters: vec![],
+    };
+    let mut discrete_interface_states_config = DiscreteInterfaceStatesConfig {
+        interface_id: vec![],
+        parameters: vec![],
+    };
+
     let num_layers = device_structure.id.len();
     for i in 0..(num_layers - 1) {
         println!(
@@ -37,43 +51,40 @@ pub fn define_interface_states(device_structure: &DeviceStructure) {
             let bandgap: f64 =
                 device_structure.bandgap_energy[i].min(device_structure.bandgap_energy[i + 1]);
 
-            let dit0: f64 = get_parsed_input_with_default(
+            let dit0: f64 = get_parsed_input_with_default_nonnegative(
                 &format!("Enter Dit0 (cm^-2) for interface {}: default is 1e12 ", i),
                 1e12,
             );
-            let nssec: f64 = get_parsed_input_with_default(
+            let nssec: f64 = get_parsed_input_with_default_nonnegative(
                 &format!("Enter nssec for interface {}: default is 10 ", i),
                 10.0,
             );
-            let nssev: f64 = get_parsed_input_with_default(
+            let nssev: f64 = get_parsed_input_with_default_nonnegative(
                 &format!("Enter nssev for interface {}: default is 10 ", i),
                 10.0,
             );
-            let ecnl: f64 = loop {
-                let val: f64 = get_parsed_input_with_default(
-                    &format!(
-                        "Enter |Ec - Ecnl| (eV) for interface {}: default is 1.3 ",
-                        i
-                    ),
-                    1.3,
-                );
-                if val < 0.0 || val > bandgap {
-                    println!(
-                        "Error: |Ec - Ecnl| must be between 0 and {}. Please enter a valid value.",
-                        bandgap
-                    );
-                } else {
-                    break val;
-                }
-            };
-            let nd: f64 = get_parsed_input_with_default(
+            let ecnl: f64 = get_parsed_input_with_default_nonnegative(
+                &format!(
+                    "Enter |Ec - Ecnl| (eV) for interface {}: default is 1.3 ",
+                    i
+                ),
+                1.3,
+            );
+            let nd: f64 = get_parsed_input_with_default_nonnegative(
                 &format!("Enter nd for interface {}: default is 3 ", i),
                 3.0,
             );
-            let na: f64 = get_parsed_input_with_default(
+            let na: f64 = get_parsed_input_with_default_nonnegative(
                 &format!("Enter na for interface {}: default is 3 ", i),
                 3.0,
             );
+            continuous_interface_states_config
+                .interface_id
+                .push(i as u32);
+            continuous_interface_states_config
+                .parameters
+                .push(DIGSModel::new(dit0, nssec, nssev, ecnl, nd, na, bandgap));
         }
     }
+    continuous_interface_states_config
 }
