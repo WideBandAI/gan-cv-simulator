@@ -35,6 +35,17 @@ pub fn get_parsed_input_with_default<T: FromStr + Clone>(prompt: &str, default: 
     }
 }
 
+pub fn get_parsed_input_with_default_nonnegative(prompt: &str, default: f64) -> f64 {
+    loop {
+        let input = get_parsed_input_with_default(prompt, default);
+        if input < 0.0 {
+            println!("Invalid input. Please enter a non-negative value.");
+        } else {
+            return input;
+        }
+    }
+}
+
 /// Write a potential profile (depth,potential pairs) to a CSV file.
 ///
 /// The output file will be created or overwritten. The first line is the header
