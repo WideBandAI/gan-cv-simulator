@@ -3,7 +3,7 @@ use crate::physics_equations::interface_states::DIGSModel;
 use crate::physics_equations::interface_states::DiscreteModel;
 use crate::physics_equations::interface_states::DiscreteStateType;
 use crate::utils::{
-    get_parsed_input_with_default, get_parsed_input_with_default_nonnegative,
+    get_input, get_parsed_input_with_default, get_parsed_input_with_default_nonnegative,
     get_parsed_input_with_default_positiveint,
 };
 
@@ -116,25 +116,19 @@ pub fn define_interface_states(
                 );
                 let ed: f64 = get_parsed_input_with_default_nonnegative(
                     &format!(
-                        "Enter |Ec - Ed| (eV) for interface {} discrete trap {}: default is 0.6 ",
+                        "Enter |Ec - Ed| (eV) for interface {} discrete trap {}: default is 0.5 ",
                         i, j
                     ),
-                    0.6,
+                    0.5,
                 );
                 let fwhm: f64 = get_parsed_input_with_default_nonnegative(
                     &format!(
-                        "Enter FWHM (eV) for interface {} discrete trap {}: default is 0.1 ",
+                        "Enter FWHM (eV) for interface {} discrete trap {}: default is 0.3 ",
                         i, j
                     ),
-                    0.1,
+                    0.3,
                 );
-                let state_type: DiscreteStateType = get_parsed_input_with_default(
-                    &format!(
-                        "Enter state type for interface {} discrete trap {}: default is DonorLike ",
-                        i, j
-                    ),
-                    DiscreteStateType::DonorLike,
-                );
+                let state_type: DiscreteStateType = get_discrete_state_type();
                 discrete_parameters.push(DiscreteModel::new(ditmax, ed, fwhm, state_type));
             }
             discrete_interface_states_config.interface_id.push(i as u32);
@@ -147,4 +141,15 @@ pub fn define_interface_states(
         continuous_interface_states_config,
         discrete_interface_states_config,
     )
+}
+
+fn get_discrete_state_type() -> DiscreteStateType {
+    loop {
+        let input = get_input("Enter state type DonorLike (d) or AcceptorLike (a): ");
+        match input.trim().to_lowercase().as_str() {
+            "d" => return DiscreteStateType::DonorLike,
+            "a" => return DiscreteStateType::AcceptorLike,
+            _ => println!("Invalid input. Please enter 'd' or 'a'."),
+        }
+    }
 }
