@@ -13,7 +13,7 @@ pub enum PotentialError {
     Negative,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DIGSModel {
     pub dit0: f64,
     pub nssec: f64,
@@ -111,7 +111,7 @@ impl fmt::Display for DiscreteStateType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DiscreteModel {
     ditmax: f64,
     ed: f64,
