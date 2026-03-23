@@ -1,3 +1,6 @@
+use std::fmt;
+use std::str::FromStr;
+
 #[derive(Debug)]
 pub enum TrapStatesType {
     DonorLike(f64),
@@ -81,10 +84,31 @@ impl DIGSModel {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum DiscreteStateType {
     DonorLike,
     AcceptorLike,
+}
+
+impl FromStr for DiscreteStateType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "DonorLike" => Ok(DiscreteStateType::DonorLike),
+            "AcceptorLike" => Ok(DiscreteStateType::AcceptorLike),
+            _ => Err(anyhow::anyhow!("Invalid DiscreteStateType: {}", s)),
+        }
+    }
+}
+
+impl fmt::Display for DiscreteStateType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::DonorLike => write!(f, "DonorLike"),
+            Self::AcceptorLike => write!(f, "AcceptorLike"),
+        }
+    }
 }
 
 #[derive(Debug)]
