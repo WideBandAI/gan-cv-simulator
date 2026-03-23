@@ -1,7 +1,11 @@
 use crate::config::structure::DeviceStructure;
 use crate::physics_equations::interface_states::DIGSModel;
 use crate::physics_equations::interface_states::DiscreteModel;
-use crate::utils::{get_parsed_input_with_default, get_parsed_input_with_default_nonnegative};
+use crate::physics_equations::interface_states::DiscreteStateType;
+use crate::utils::{
+    get_parsed_input_with_default, get_parsed_input_with_default_nonnegative,
+    get_parsed_input_with_default_positiveint,
+};
 
 #[derive(Debug)]
 pub struct ContinuousInterfaceStatesConfig {
@@ -85,6 +89,62 @@ pub fn define_interface_states(
                 .parameters
                 .push(DIGSModel::new(dit0, nssec, nssev, ecnl, nd, na, bandgap));
         }
+
+        let has_discrete_traps: bool = get_parsed_input_with_default(
+            &format!(
+                "Does interface {} have discrete traps? (true/false): default is false ",
+                i
+            ),
+            false,
+        );
+        if has_discrete_traps {
+            let num_discrete_traps: u32 = get_parsed_input_with_default_positiveint(
+                &format!(
+                    "Enter the number of discrete traps for interface {}: default is 1 ",
+                    i
+                ),
+                1,
+            );
+            let mut discrete_parameters = Vec::new();
+            for j in 0..num_discrete_traps {
+                let ditmax: f64 = get_parsed_input_with_default_nonnegative(
+                    &format!(
+                        "Enter Ditmax (cm^-2) for interface {} discrete trap {}: default is 1e12 ",
+                        i, j
+                    ),
+                    1e12,
+                );
+                let ed: f64 = get_parsed_input_with_default_nonnegative(
+                    &format!(
+                        "Enter |Ec - Ed| (eV) for interface {} discrete trap {}: default is 0.6 ",
+                        i, j
+                    ),
+                    0.6,
+                );
+                let fwhm: f64 = get_parsed_input_with_default_nonnegative(
+                    &format!(
+                        "Enter FWHM (eV) for interface {} discrete trap {}: default is 0.1 ",
+                        i, j
+                    ),
+                    0.1,
+                );
+                let state_type: DiscreteStateType = get_parsed_input_with_default(
+                    &format!(
+                        "Enter state type for interface {} discrete trap {}: default is DonorLike ",
+                        i, j
+                    ),
+                    DiscreteStateType::DonorLike,
+                );
+                discrete_parameters.push(DiscreteModel::new(ditmax, ed, fwhm, state_type));
+            }
+            discrete_interface_states_config.interface_id.push(i as u32);
+            discrete_interface_states_config
+                .parameters
+                .push(discrete_parameters);
+        }
     }
-    continuous_interface_states_config
+    (
+        continuous_interface_states_config,
+        discrete_interface_states_config,
+    )
 }
