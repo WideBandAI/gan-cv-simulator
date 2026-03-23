@@ -5,6 +5,8 @@ use crate::config::fixcharge::define_interface_fixed_charge;
 use crate::config::fixcharge::BulkFixedCharge;
 use crate::config::fixcharge::InterfaceFixedCharge;
 use crate::config::interface_states::define_interface_states;
+use crate::config::interface_states::ContinuousInterfaceStatesConfig;
+use crate::config::interface_states::DiscreteInterfaceStatesConfig;
 use crate::config::measurement::define_measurement;
 use crate::config::measurement::Measurement;
 use crate::config::mesh::define_mesh_params;
@@ -20,6 +22,8 @@ pub struct Configuration {
     pub device_structure: DeviceStructure,
     pub bulk_fixed_charge: BulkFixedCharge,
     pub interface_fixed_charge: InterfaceFixedCharge,
+    pub continuous_interface_states: ContinuousInterfaceStatesConfig,
+    pub discrete_interface_states: DiscreteInterfaceStatesConfig,
     pub mesh_params: MeshParams,
     pub boundary_conditions: BoundaryConditions,
     pub sim_settings: SimSettings,
@@ -43,7 +47,8 @@ impl ConfigurationBuilder {
         let device_structure = define_structure();
         let bulk_fixed_charge = define_bulk_fixed_charge(&device_structure);
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
-        let interface_states = define_interface_states(&device_structure);
+        let (continuous_interface_states, discrete_interface_states) =
+            define_interface_states(&device_structure);
         let mesh_params = define_mesh_params(&device_structure);
         let boundary_conditions = define_boundary_conditions(&device_structure, &measurement);
 
@@ -52,6 +57,8 @@ impl ConfigurationBuilder {
             device_structure,
             bulk_fixed_charge,
             interface_fixed_charge,
+            continuous_interface_states,
+            discrete_interface_states,
             mesh_params,
             boundary_conditions,
             sim_settings,
