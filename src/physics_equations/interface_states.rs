@@ -12,13 +12,13 @@ pub enum PotentialError {
 
 #[derive(Debug)]
 pub struct DIGSModel {
-    dit0: f64,
-    nssec: f64,
-    nssev: f64,
-    ecnl: f64,
-    nd: f64,
-    na: f64,
-    bandgap: f64,
+    pub dit0: f64,
+    pub nssec: f64,
+    pub nssev: f64,
+    pub ecnl: f64,
+    pub nd: f64,
+    pub na: f64,
+    pub bandgap: f64,
 }
 
 impl DIGSModel {
