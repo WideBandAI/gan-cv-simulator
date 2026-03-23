@@ -36,14 +36,7 @@ pub fn define_interface_states(
 
     let num_layers = device_structure.id.len();
     for i in 0..(num_layers - 1) {
-        println!(
-            "Interface {} between Layer {} (Name: {}) and Layer {} (Name: {})",
-            i,
-            device_structure.id[i],
-            device_structure.name[i],
-            device_structure.id[i + 1],
-            device_structure.name[i + 1]
-        );
+        print_interface_details(i, device_structure);
         let has_continuous_traps: bool = get_parsed_input_with_default(
             &format!(
                 "Does interface {} have continuous traps? (true/false): default is false ",
@@ -161,4 +154,15 @@ fn configure_discrete_interface_states(i: usize) -> Vec<DiscreteModel> {
         discrete_parameters.push(DiscreteModel::new(ditmax, ed, fwhm, state_type));
     }
     discrete_parameters
+}
+
+fn print_interface_details(i: usize, device_structure: &DeviceStructure) {
+    println!(
+        "Interface {} between Layer {} (Name: {}) and Layer {} (Name: {})",
+        i,
+        device_structure.id[i],
+        device_structure.name[i],
+        device_structure.id[i + 1],
+        device_structure.name[i + 1]
+    );
 }
