@@ -13,7 +13,7 @@ pub enum PotentialError {
     Negative,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct DIGSModel {
     pub dit0: f64,
     pub nssec: f64,

@@ -1,4 +1,5 @@
 use crate::config::configuration_builder::Configuration;
+use crate::physics_equations::interface_states::TrapStatesType;
 
 #[derive(Debug)]
 pub enum IDX {
@@ -43,6 +44,20 @@ pub struct BulkProperties {
 #[derive(Debug)]
 pub struct InterfaceProperties {
     pub fixcharge_density: FixChargeDensity,
+    pub interface_states: InterfaceStates,
+}
+
+#[derive(Debug)]
+pub enum InterfaceStates {
+    Distribution(InterfaceStatesDistribution),
+    None,
+}
+
+#[derive(Debug)]
+pub struct InterfaceStatesDistribution {
+    pub id: usize,
+    pub potential: Vec<f64>,
+    pub dit: Vec<TrapStatesType>,
 }
 
 #[derive(Debug)]
@@ -117,11 +132,37 @@ impl MeshStructure {
             configuration.device_structure.name[struct_idx + 1]
         ));
         self.depth.push(depth);
+
+        let mut interfacestates = InterfaceStatesDistribution {
+            id: struct_idx,
+            potential: Vec::new(),
+            dit: Vec::new(),
+        };
+
+        for i in 0..configuration.continuous_interface_states.interface_id.len() {
+            if configuration.continuous_interface_states.interface_id[i]
+                == struct_idx.try_into().unwrap()
+            {
+                let digsmodel = configuration.continuous_interface_states.parameters[i];
+                let mut potential = 0.0;
+                loop {
+                    let dit = digsmodel.continuous_states(potential).unwrap();
+                    interfacestates.potential.push(potential);
+                    interfacestates.dit.push(dit);
+                    potential += configuration.mesh_params.energy_step;
+                    if potential > configuration.device_structure.bandgap_energy[struct_idx] {
+                        break;
+                    }
+                }
+            }
+        }
+
         self.property_type
             .push(PropertyType::Interface(InterfaceProperties {
                 fixcharge_density: FixChargeDensity::Interface(
                     configuration.interface_fixed_charge.charge_density[struct_idx],
                 ),
+                interface_states: InterfaceStates::Distribution(interfacestates),
             }));
     }
 
