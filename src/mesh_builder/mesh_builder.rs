@@ -139,10 +139,12 @@ impl MeshStructure {
             dit: Vec::new(),
         };
 
+        let mut has_states = false;
         for i in 0..configuration.continuous_interface_states.interface_id.len() {
             if configuration.continuous_interface_states.interface_id[i]
                 == struct_idx.try_into().unwrap()
             {
+                has_states = true;
                 let digsmodel = configuration.continuous_interface_states.parameters[i];
                 let mut potential = 0.0;
                 loop {
@@ -150,19 +152,29 @@ impl MeshStructure {
                     interfacestates.potential.push(potential);
                     interfacestates.dit.push(dit);
                     potential += configuration.mesh_params.energy_step;
-                    if potential > configuration.device_structure.bandgap_energy[struct_idx] {
+                    if potential >= digsmodel.bandgap {
+                        interfacestates.potential.push(digsmodel.bandgap);
+                        interfacestates
+                            .dit
+                            .push(digsmodel.continuous_states(digsmodel.bandgap).unwrap());
                         break;
                     }
                 }
             }
         }
 
+        let interface_states = if has_states {
+            InterfaceStates::Distribution(interfacestates)
+        } else {
+            InterfaceStates::None
+        };
+
         self.property_type
             .push(PropertyType::Interface(InterfaceProperties {
                 fixcharge_density: FixChargeDensity::Interface(
                     configuration.interface_fixed_charge.charge_density[struct_idx],
                 ),
-                interface_states: InterfaceStates::Distribution(interfacestates),
+                interface_states,
             }));
     }
 
