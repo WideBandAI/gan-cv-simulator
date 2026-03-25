@@ -60,7 +60,7 @@ pub fn define_interface_states(
             false,
         );
         if has_discrete_traps {
-            let params = configure_discrete_interface_states(i);
+            let params = configure_discrete_interface_states(i, device_structure);
             discrete_interface_states_config.interface_id.push(i as u32);
             discrete_interface_states_config.parameters.push(params);
         }
@@ -119,7 +119,12 @@ fn configure_continuous_interface_states(
     DIGSModel::new(dit0, nssec, nssev, ecnl, nd, na, bandgap)
 }
 
-fn configure_discrete_interface_states(i: usize) -> Vec<DiscreteModel> {
+fn configure_discrete_interface_states(
+    i: usize,
+    device_structure: &DeviceStructure,
+) -> Vec<DiscreteModel> {
+    let bandgap: f64 =
+        device_structure.bandgap_energy[i].min(device_structure.bandgap_energy[i + 1]);
     let num_discrete_traps: u32 = get_parsed_input_with_default_positiveint(
         &format!(
             "Enter the number of discrete traps for interface {}: default is 1 ",
@@ -151,7 +156,7 @@ fn configure_discrete_interface_states(i: usize) -> Vec<DiscreteModel> {
             0.3,
         );
         let state_type: DiscreteStateType = get_discrete_state_type();
-        discrete_parameters.push(DiscreteModel::new(ditmax, ed, fwhm, state_type));
+        discrete_parameters.push(DiscreteModel::new(ditmax, ed, fwhm, state_type, bandgap));
     }
     discrete_parameters
 }

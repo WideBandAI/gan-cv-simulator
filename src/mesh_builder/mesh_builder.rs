@@ -1,4 +1,5 @@
 use crate::config::configuration_builder::Configuration;
+use crate::physics_equations::interface_states::TrapStatesType;
 
 #[derive(Debug)]
 pub enum IDX {
@@ -43,6 +44,21 @@ pub struct BulkProperties {
 #[derive(Debug)]
 pub struct InterfaceProperties {
     pub fixcharge_density: FixChargeDensity,
+    pub interface_states: InterfaceStates,
+}
+
+#[derive(Debug)]
+pub enum InterfaceStates {
+    Distribution(InterfaceStatesDistribution),
+    None,
+}
+
+#[derive(Debug)]
+pub struct InterfaceStatesDistribution {
+    pub id: usize,
+    pub potential: Vec<f64>,
+    pub acceptor_dit: Vec<f64>,
+    pub donor_dit: Vec<f64>,
 }
 
 #[derive(Debug)]
@@ -117,11 +133,130 @@ impl MeshStructure {
             configuration.device_structure.name[struct_idx + 1]
         ));
         self.depth.push(depth);
+
+        let mut interfacestates = InterfaceStatesDistribution {
+            id: struct_idx,
+            potential: Vec::new(),
+            acceptor_dit: Vec::new(),
+            donor_dit: Vec::new(),
+        };
+
+        let has_continuous = configuration
+            .continuous_interface_states
+            .interface_id
+            .iter()
+            .any(|&id| id == struct_idx as u32);
+        let has_discrete = configuration
+            .discrete_interface_states
+            .interface_id
+            .iter()
+            .any(|&id| id == struct_idx as u32);
+        let has_states = has_continuous || has_discrete;
+
+        if has_states {
+            let bandgap = configuration
+                .continuous_interface_states
+                .interface_id
+                .iter()
+                .position(|&id| id == struct_idx as u32)
+                .map(|i| configuration.continuous_interface_states.parameters[i].bandgap)
+                .or_else(|| {
+                    configuration
+                        .discrete_interface_states
+                        .interface_id
+                        .iter()
+                        .position(|&id| id == struct_idx as u32)
+                        .and_then(|i| {
+                            configuration.discrete_interface_states.parameters[i]
+                                .first()
+                                .map(|m| m.bandgap)
+                        })
+                })
+                .unwrap_or_else(|| {
+                    let device_structure = &configuration.device_structure;
+                    device_structure.bandgap_energy[struct_idx]
+                        .min(device_structure.bandgap_energy[struct_idx + 1])
+                });
+
+            let continuous_param = if has_continuous {
+                let idx = configuration
+                    .continuous_interface_states
+                    .interface_id
+                    .iter()
+                    .position(|&id| id == struct_idx as u32)
+                    .unwrap();
+                Some(&configuration.continuous_interface_states.parameters[idx])
+            } else {
+                None
+            };
+
+            let discrete_params = if has_discrete {
+                let idx = configuration
+                    .discrete_interface_states
+                    .interface_id
+                    .iter()
+                    .position(|&id| id == struct_idx as u32)
+                    .unwrap();
+                Some(&configuration.discrete_interface_states.parameters[idx])
+            } else {
+                None
+            };
+
+            let mut potential = 0.0;
+            loop {
+                let mut acceptor_contribution = 0.0;
+                let mut donor_contribution = 0.0;
+
+                // Continuous states contribution (independent)
+                if let Some(params) = continuous_param {
+                    match params
+                        .continuous_states(potential)
+                        .expect("potential is within [0, bandgap]; this is a bug")
+                    {
+                        TrapStatesType::AcceptorLike(dit) => acceptor_contribution += dit,
+                        TrapStatesType::DonorLike(dit) => donor_contribution += dit,
+                    }
+                }
+
+                // Discrete states contribution (independent)
+                if let Some(models) = discrete_params {
+                    for discrete_model in models {
+                        match discrete_model
+                            .discrete_states(potential)
+                            .expect("potential is within [0, bandgap]; this is a bug")
+                        {
+                            TrapStatesType::AcceptorLike(dit) => acceptor_contribution += dit,
+                            TrapStatesType::DonorLike(dit) => donor_contribution += dit,
+                        }
+                    }
+                }
+
+                interfacestates.potential.push(potential);
+                interfacestates.acceptor_dit.push(acceptor_contribution);
+                interfacestates.donor_dit.push(donor_contribution);
+
+                if potential >= bandgap {
+                    break;
+                }
+                potential += configuration.mesh_params.energy_step;
+                if potential > bandgap {
+                    potential = bandgap;
+                }
+            }
+        }
+
+        let interface_states = if has_states {
+            InterfaceStates::Distribution(interfacestates)
+        } else {
+            InterfaceStates::None
+        };
+
         self.property_type
             .push(PropertyType::Interface(InterfaceProperties {
                 fixcharge_density: FixChargeDensity::Interface(
                     configuration.interface_fixed_charge.charge_density[struct_idx],
                 ),
+                interface_states,
             }));
     }
 
@@ -367,7 +502,8 @@ mod tests {
                         1.0,
                         1.0,
                         1.0,
-                        DiscreteStateType::DonorLike
+                        DiscreteStateType::DonorLike,
+                        1.0,
                     )];
                     num_layers.saturating_sub(1)
                 ],
