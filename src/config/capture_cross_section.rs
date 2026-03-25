@@ -30,15 +30,14 @@ fn collect_interface_ids(
     continuous: &ContinuousInterfaceStatesConfig,
     discrete: &DiscreteInterfaceStatesConfig,
 ) -> Vec<u32> {
-    let mut ids: Vec<u32> = continuous
+    continuous
         .interface_id
         .iter()
         .chain(discrete.interface_id.iter())
         .copied()
-        .collect();
-    ids.sort_unstable();
-    ids.dedup();
-    ids
+        .collect::<std::collections::BTreeSet<u32>>()
+        .into_iter()
+        .collect()
 }
 
 pub fn define_capture_cross_section(
