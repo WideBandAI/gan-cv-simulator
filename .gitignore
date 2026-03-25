@@ -29,4 +29,4 @@ target
 .serena
 *.csv
 *.png
-
+docs/superpowers/*
