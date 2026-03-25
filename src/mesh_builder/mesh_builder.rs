@@ -508,6 +508,10 @@ mod tests {
                     num_layers.saturating_sub(1)
                 ],
             },
+            capture_cross_section: crate::config::capture_cross_section::CaptureCrossSectionConfig {
+                interface_id: vec![],
+                model: vec![],
+            },
             mesh_params: MeshParams {
                 layer_id: (0..mesh_lengths.len() as u32).collect(),
                 length_per_layer: mesh_lengths,
