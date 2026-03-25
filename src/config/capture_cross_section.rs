@@ -5,6 +5,7 @@ use crate::constants::units::CM_TO_M;
 use crate::utils::{
     get_input, get_parsed_input_with_default, get_parsed_input_with_default_nonnegative,
 };
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy)]
 pub enum CaptureCrossSectionModel {
@@ -35,7 +36,7 @@ fn collect_interface_ids(
         .iter()
         .chain(discrete.interface_id.iter())
         .copied()
-        .collect::<std::collections::BTreeSet<u32>>()
+        .collect::<BTreeSet<u32>>()
         .into_iter()
         .collect()
 }
@@ -44,25 +45,25 @@ pub fn define_capture_cross_section(
     continuous: &ContinuousInterfaceStatesConfig,
     discrete: &DiscreteInterfaceStatesConfig,
 ) -> CaptureCrossSectionConfig {
-    let mut config = CaptureCrossSectionConfig {
-        interface_id: vec![],
-        model: vec![],
-    };
-
     let interface_ids = collect_interface_ids(continuous, discrete);
-    if interface_ids.is_empty() {
-        return config;
+
+    if !interface_ids.is_empty() {
+        println!("Define capture cross-section parameters.");
     }
 
-    println!("Define capture cross-section parameters.");
-    for &id in &interface_ids {
-        println!("Interface {}:", id);
-        let model = get_capture_cross_section_model(id);
-        config.interface_id.push(id);
-        config.model.push(model);
-    }
+    let (interface_id, model) = interface_ids
+        .iter()
+        .map(|&id| {
+            println!("Interface {}:", id);
+            let model = get_capture_cross_section_model(id);
+            (id, model)
+        })
+        .unzip();
 
-    config
+    CaptureCrossSectionConfig {
+        interface_id,
+        model,
+    }
 }
 
 fn get_capture_cross_section_model(interface_id: u32) -> CaptureCrossSectionModel {
