@@ -117,15 +117,23 @@ pub struct DiscreteModel {
     ed: f64,
     fwhm: f64,
     state_type: DiscreteStateType,
+    pub bandgap: f64,
 }
 
 impl DiscreteModel {
-    pub fn new(ditmax: f64, ed: f64, fwhm: f64, state_type: DiscreteStateType) -> Self {
+    pub fn new(
+        ditmax: f64,
+        ed: f64,
+        fwhm: f64,
+        state_type: DiscreteStateType,
+        bandgap: f64,
+    ) -> Self {
         Self {
             ditmax,
             ed,
             fwhm,
             state_type,
+            bandgap,
         }
     }
 
@@ -150,13 +158,19 @@ impl DiscreteModel {
     /// let potential = 1.0;
     /// let trap_states = model.discrete_states(potential);
     /// ```
-    pub fn discrete_states(&self, potential: f64) -> TrapStatesType {
-        let sigma = self.fwhm.powi(2) / (4.0 * 2.0_f64.ln());
-        let dit = self.ditmax * (-(potential - self.ed).powi(2) / sigma).exp();
-        if self.state_type == DiscreteStateType::DonorLike {
-            TrapStatesType::DonorLike(dit)
+    pub fn discrete_states(&self, potential: f64) -> Result<TrapStatesType, PotentialError> {
+        if potential > self.bandgap {
+            Err(PotentialError::GreaterThanBandgap)
+        } else if potential < 0.0 {
+            Err(PotentialError::Negative)
         } else {
-            TrapStatesType::AcceptorLike(dit)
+            let sigma = self.fwhm.powi(2) / (4.0 * 2.0_f64.ln());
+            let dit = self.ditmax * (-(potential - self.ed).powi(2) / sigma).exp();
+            if self.state_type == DiscreteStateType::DonorLike {
+                Ok(TrapStatesType::DonorLike(dit))
+            } else {
+                Ok(TrapStatesType::AcceptorLike(dit))
+            }
         }
     }
 }
