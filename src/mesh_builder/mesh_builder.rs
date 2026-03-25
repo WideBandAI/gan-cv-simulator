@@ -178,36 +178,55 @@ impl MeshStructure {
                         .min(device_structure.bandgap_energy[struct_idx + 1])
                 });
 
+            let continuous_param = if has_continuous {
+                let idx = configuration
+                    .continuous_interface_states
+                    .interface_id
+                    .iter()
+                    .position(|&id| id == struct_idx as u32)
+                    .unwrap();
+                Some(&configuration.continuous_interface_states.parameters[idx])
+            } else {
+                None
+            };
+
+            let discrete_params = if has_discrete {
+                let idx = configuration
+                    .discrete_interface_states
+                    .interface_id
+                    .iter()
+                    .position(|&id| id == struct_idx as u32)
+                    .unwrap();
+                Some(&configuration.discrete_interface_states.parameters[idx])
+            } else {
+                None
+            };
+
             let mut potential = 0.0;
             loop {
                 let mut acceptor_contribution = 0.0;
                 let mut donor_contribution = 0.0;
 
                 // Continuous states contribution (independent)
-                for i in 0..configuration.continuous_interface_states.interface_id.len() {
-                    if configuration.continuous_interface_states.interface_id[i]
-                        == struct_idx as u32
+                if let Some(params) = continuous_param {
+                    match params
+                        .continuous_states(potential)
+                        .expect("potential is within [0, bandgap]; this is a bug")
                     {
-                        match configuration.continuous_interface_states.parameters[i]
-                            .continuous_states(potential)
-                            .unwrap()
-                        {
-                            TrapStatesType::AcceptorLike(dit) => acceptor_contribution += dit,
-                            TrapStatesType::DonorLike(dit) => donor_contribution += dit,
-                        }
+                        TrapStatesType::AcceptorLike(dit) => acceptor_contribution += dit,
+                        TrapStatesType::DonorLike(dit) => donor_contribution += dit,
                     }
                 }
 
                 // Discrete states contribution (independent)
-                for j in 0..configuration.discrete_interface_states.interface_id.len() {
-                    if configuration.discrete_interface_states.interface_id[j] == struct_idx as u32
-                    {
-                        for discrete_model in &configuration.discrete_interface_states.parameters[j]
+                if let Some(models) = discrete_params {
+                    for discrete_model in models {
+                        match discrete_model
+                            .discrete_states(potential)
+                            .expect("potential is within [0, bandgap]; this is a bug")
                         {
-                            match discrete_model.discrete_states(potential).unwrap() {
-                                TrapStatesType::AcceptorLike(dit) => acceptor_contribution += dit,
-                                TrapStatesType::DonorLike(dit) => donor_contribution += dit,
-                            }
+                            TrapStatesType::AcceptorLike(dit) => acceptor_contribution += dit,
+                            TrapStatesType::DonorLike(dit) => donor_contribution += dit,
                         }
                     }
                 }
