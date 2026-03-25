@@ -1,5 +1,7 @@
 use crate::config::boundary_conditions::define_boundary_conditions;
 use crate::config::boundary_conditions::BoundaryConditions;
+use crate::config::capture_cross_section::define_capture_cross_section;
+use crate::config::capture_cross_section::CaptureCrossSectionConfig;
 use crate::config::fixcharge::define_bulk_fixed_charge;
 use crate::config::fixcharge::define_interface_fixed_charge;
 use crate::config::fixcharge::BulkFixedCharge;
@@ -24,6 +26,7 @@ pub struct Configuration {
     pub interface_fixed_charge: InterfaceFixedCharge,
     pub continuous_interface_states: ContinuousInterfaceStatesConfig,
     pub discrete_interface_states: DiscreteInterfaceStatesConfig,
+    pub capture_cross_section: CaptureCrossSectionConfig,
     pub mesh_params: MeshParams,
     pub boundary_conditions: BoundaryConditions,
     pub sim_settings: SimSettings,
@@ -49,6 +52,8 @@ impl ConfigurationBuilder {
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
         let (continuous_interface_states, discrete_interface_states) =
             define_interface_states(&device_structure);
+        let capture_cross_section =
+            define_capture_cross_section(&continuous_interface_states, &discrete_interface_states);
         let mesh_params = define_mesh_params(&device_structure);
         let boundary_conditions = define_boundary_conditions(&device_structure, &measurement);
 
@@ -59,6 +64,7 @@ impl ConfigurationBuilder {
             interface_fixed_charge,
             continuous_interface_states,
             discrete_interface_states,
+            capture_cross_section,
             mesh_params,
             boundary_conditions,
             sim_settings,
