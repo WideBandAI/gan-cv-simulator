@@ -154,7 +154,7 @@ mod tests {
         let model = CaptureCrossSectionModel::Constant { sigma: sigma_m2 };
         match model {
             CaptureCrossSectionModel::Constant { sigma } => {
-                assert!((sigma - 1e-20).abs() < 1e-30);
+                assert_eq!(sigma, sigma_m2);
             }
             _ => panic!("Expected Constant"),
         }
@@ -175,9 +175,9 @@ mod tests {
                 e_mid,
                 e_slope,
             } => {
-                assert!((sigma_mid - 1e-20).abs() < 1e-30);
-                assert!((e_mid - 0.5).abs() < 1e-10);
-                assert!((e_slope - 0.1).abs() < 1e-10);
+                assert_eq!(sigma_mid, sigma_mid_m2);
+                assert_eq!(e_mid, 0.5);
+                assert_eq!(e_slope, 0.1);
             }
             _ => panic!("Expected EnergyDependent"),
         }
