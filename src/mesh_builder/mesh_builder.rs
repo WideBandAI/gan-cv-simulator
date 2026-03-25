@@ -57,7 +57,8 @@ pub enum InterfaceStates {
 pub struct InterfaceStatesDistribution {
     pub id: usize,
     pub potential: Vec<f64>,
-    pub dit: Vec<TrapStatesType>,
+    pub acceptor_dit: Vec<f64>,
+    pub donor_dit: Vec<f64>,
 }
 
 #[derive(Debug)]
@@ -136,7 +137,8 @@ impl MeshStructure {
         let mut interfacestates = InterfaceStatesDistribution {
             id: struct_idx,
             potential: Vec::new(),
-            dit: Vec::new(),
+            acceptor_dit: Vec::new(),
+            donor_dit: Vec::new(),
         };
 
         let mut has_states = false;
@@ -148,15 +150,33 @@ impl MeshStructure {
                 let digsmodel = configuration.continuous_interface_states.parameters[i];
                 let mut potential = 0.0;
                 loop {
-                    let dit = digsmodel.continuous_states(potential).unwrap();
+                    let trap_state = digsmodel.continuous_states(potential).unwrap();
                     interfacestates.potential.push(potential);
-                    interfacestates.dit.push(dit);
+                    match trap_state {
+                        TrapStatesType::AcceptorLike(dit) => {
+                            interfacestates.acceptor_dit.push(dit);
+                            interfacestates.donor_dit.push(0.0);
+                        }
+                        TrapStatesType::DonorLike(dit) => {
+                            interfacestates.acceptor_dit.push(0.0);
+                            interfacestates.donor_dit.push(dit);
+                        }
+                    }
                     potential += configuration.mesh_params.energy_step;
                     if potential >= digsmodel.bandgap {
+                        let trap_state_end =
+                            digsmodel.continuous_states(digsmodel.bandgap).unwrap();
                         interfacestates.potential.push(digsmodel.bandgap);
-                        interfacestates
-                            .dit
-                            .push(digsmodel.continuous_states(digsmodel.bandgap).unwrap());
+                        match trap_state_end {
+                            TrapStatesType::AcceptorLike(dit) => {
+                                interfacestates.acceptor_dit.push(dit);
+                                interfacestates.donor_dit.push(0.0);
+                            }
+                            TrapStatesType::DonorLike(dit) => {
+                                interfacestates.acceptor_dit.push(0.0);
+                                interfacestates.donor_dit.push(dit);
+                            }
+                        }
                         break;
                     }
                 }
