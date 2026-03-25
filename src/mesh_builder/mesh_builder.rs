@@ -45,12 +45,26 @@ pub struct BulkProperties {
 pub struct InterfaceProperties {
     pub fixcharge_density: FixChargeDensity,
     pub interface_states: InterfaceStates,
+    pub capture_cross_section: CaptureCrossSection,
 }
 
 #[derive(Debug)]
 pub enum InterfaceStates {
     Distribution(InterfaceStatesDistribution),
     None,
+}
+
+#[derive(Debug)]
+pub enum CaptureCrossSection {
+    Distribution(CaptureCrossSectionDistribution),
+    None,
+}
+
+#[derive(Debug)]
+pub struct CaptureCrossSectionDistribution {
+    pub id: usize,
+    pub potential: Vec<f64>,
+    pub capture_cross_section: Vec<f64>,
 }
 
 #[derive(Debug)]
