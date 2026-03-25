@@ -176,6 +176,7 @@ mod tests {
                 e_slope,
             } => {
                 assert_eq!(sigma_mid, sigma_mid_m2);
+                // No arithmetic is applied to e_mid/e_slope; stored bits are identical to input literals.
                 assert_eq!(e_mid, 0.5);
                 assert_eq!(e_slope, 0.1);
             }
