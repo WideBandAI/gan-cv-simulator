@@ -5,7 +5,6 @@ use crate::constants::units::CM_TO_M;
 use crate::utils::{
     get_input, get_parsed_input_with_default, get_parsed_input_with_default_nonnegative,
 };
-use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy)]
 pub enum CaptureCrossSectionModel {
@@ -36,7 +35,7 @@ fn collect_interface_ids(
         .iter()
         .chain(discrete.interface_id.iter())
         .copied()
-        .collect::<BTreeSet<u32>>()
+        .collect::<std::collections::BTreeSet<u32>>()
         .into_iter()
         .collect()
 }
