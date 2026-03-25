@@ -433,6 +433,7 @@ pub fn build(configuration: &Configuration) -> MeshStructure {
 mod tests {
     use super::*;
     use crate::config::boundary_conditions::BoundaryConditions;
+    use crate::config::capture_cross_section::CaptureCrossSectionConfig;
     use crate::config::fixcharge::{BulkFixedCharge, InterfaceFixedCharge};
     use crate::config::interface_states::{
         ContinuousInterfaceStatesConfig, DiscreteInterfaceStatesConfig,
@@ -508,7 +509,7 @@ mod tests {
                     num_layers.saturating_sub(1)
                 ],
             },
-            capture_cross_section: crate::config::capture_cross_section::CaptureCrossSectionConfig {
+            capture_cross_section: CaptureCrossSectionConfig {
                 interface_id: vec![],
                 model: vec![],
             },

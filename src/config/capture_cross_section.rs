@@ -1,6 +1,6 @@
 use crate::config::interface_states::{ContinuousInterfaceStatesConfig, DiscreteInterfaceStatesConfig};
 use crate::constants::units::CM_TO_M;
-use crate::utils::{get_input, get_parsed_input_with_default_nonnegative};
+use crate::utils::{get_input, get_parsed_input_with_default, get_parsed_input_with_default_nonnegative};
 
 #[derive(Debug, Clone, Copy)]
 pub enum CaptureCrossSectionModel {
@@ -83,7 +83,7 @@ fn get_capture_cross_section_model(interface_id: u32) -> CaptureCrossSectionMode
                     &format!("Enter E_mid (eV) for interface {}: default is 0.5 ", interface_id),
                     0.5,
                 );
-                let e_slope: f64 = get_parsed_input_with_default_nonnegative(
+                let e_slope: f64 = get_parsed_input_with_default(
                     &format!("Enter E_slope (eV) for interface {}: default is 0.1 ", interface_id),
                     0.1,
                 );
