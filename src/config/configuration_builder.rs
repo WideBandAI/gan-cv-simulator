@@ -1,11 +1,11 @@
 use crate::config::boundary_conditions::define_boundary_conditions;
 use crate::config::boundary_conditions::BoundaryConditions;
+use crate::config::capture_cross_section::define_capture_cross_section;
+use crate::config::capture_cross_section::CaptureCrossSectionConfig;
 use crate::config::fixcharge::define_bulk_fixed_charge;
 use crate::config::fixcharge::define_interface_fixed_charge;
 use crate::config::fixcharge::BulkFixedCharge;
 use crate::config::fixcharge::InterfaceFixedCharge;
-use crate::config::capture_cross_section::define_capture_cross_section;
-use crate::config::capture_cross_section::CaptureCrossSectionConfig;
 use crate::config::interface_states::define_interface_states;
 use crate::config::interface_states::ContinuousInterfaceStatesConfig;
 use crate::config::interface_states::DiscreteInterfaceStatesConfig;

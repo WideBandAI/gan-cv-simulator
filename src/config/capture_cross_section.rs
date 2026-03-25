@@ -1,6 +1,10 @@
-use crate::config::interface_states::{ContinuousInterfaceStatesConfig, DiscreteInterfaceStatesConfig};
+use crate::config::interface_states::{
+    ContinuousInterfaceStatesConfig, DiscreteInterfaceStatesConfig,
+};
 use crate::constants::units::CM_TO_M;
-use crate::utils::{get_input, get_parsed_input_with_default, get_parsed_input_with_default_nonnegative};
+use crate::utils::{
+    get_input, get_parsed_input_with_default, get_parsed_input_with_default_nonnegative,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum CaptureCrossSectionModel {
@@ -8,7 +12,11 @@ pub enum CaptureCrossSectionModel {
     Constant { sigma: f64 },
     /// Energy-dependent model: σ(E) = σ_mid * exp((E - E_mid) / E_slope) [m²] (stored in SI units)
     /// Positive e_slope: cross-section increases for E > E_mid.
-    EnergyDependent { sigma_mid: f64, e_mid: f64, e_slope: f64 },
+    EnergyDependent {
+        sigma_mid: f64,
+        e_mid: f64,
+        e_slope: f64,
+    },
 }
 
 #[derive(Debug)]
@@ -67,7 +75,10 @@ fn get_capture_cross_section_model(interface_id: u32) -> CaptureCrossSectionMode
         match input.trim().to_lowercase().as_str() {
             "c" | "" => {
                 let sigma_cm2: f64 = get_parsed_input_with_default_nonnegative(
-                    &format!("Enter sigma (cm^2) for interface {}: default is 1e-16 ", interface_id),
+                    &format!(
+                        "Enter sigma (cm^2) for interface {}: default is 1e-16 ",
+                        interface_id
+                    ),
                     1e-16,
                 );
                 return CaptureCrossSectionModel::Constant {
@@ -76,15 +87,24 @@ fn get_capture_cross_section_model(interface_id: u32) -> CaptureCrossSectionMode
             }
             "e" => {
                 let sigma_mid_cm2: f64 = get_parsed_input_with_default_nonnegative(
-                    &format!("Enter sigma_mid (cm^2) for interface {}: default is 1e-16 ", interface_id),
+                    &format!(
+                        "Enter sigma_mid (cm^2) for interface {}: default is 1e-16 ",
+                        interface_id
+                    ),
                     1e-16,
                 );
                 let e_mid: f64 = get_parsed_input_with_default_nonnegative(
-                    &format!("Enter E_mid (eV) for interface {}: default is 0.5 ", interface_id),
+                    &format!(
+                        "Enter E_mid (eV) for interface {}: default is 0.5 ",
+                        interface_id
+                    ),
                     0.5,
                 );
                 let e_slope: f64 = get_parsed_input_with_default(
-                    &format!("Enter E_slope (eV) for interface {}: default is 0.1 ", interface_id),
+                    &format!(
+                        "Enter E_slope (eV) for interface {}: default is 0.1 ",
+                        interface_id
+                    ),
                     0.1,
                 );
                 return CaptureCrossSectionModel::EnergyDependent {
@@ -116,7 +136,13 @@ mod tests {
         DiscreteInterfaceStatesConfig {
             interface_id: ids,
             parameters: vec![
-                vec![DiscreteModel::new(1.0, 0.5, 0.1, DiscreteStateType::DonorLike, 1.0)];
+                vec![DiscreteModel::new(
+                    1.0,
+                    0.5,
+                    0.1,
+                    DiscreteStateType::DonorLike,
+                    1.0
+                )];
                 n
             ],
         }
@@ -145,7 +171,11 @@ mod tests {
             e_slope: 0.1,
         };
         match model {
-            CaptureCrossSectionModel::EnergyDependent { sigma_mid, e_mid, e_slope } => {
+            CaptureCrossSectionModel::EnergyDependent {
+                sigma_mid,
+                e_mid,
+                e_slope,
+            } => {
                 assert!((sigma_mid - 1e-20).abs() < 1e-30);
                 assert!((e_mid - 0.5).abs() < 1e-10);
                 assert!((e_slope - 0.1).abs() < 1e-10);
