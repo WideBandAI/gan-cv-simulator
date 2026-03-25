@@ -141,44 +141,83 @@ impl MeshStructure {
             donor_dit: Vec::new(),
         };
 
-        let mut has_states = false;
-        for i in 0..configuration.continuous_interface_states.interface_id.len() {
-            if configuration.continuous_interface_states.interface_id[i]
-                == struct_idx.try_into().unwrap()
-            {
-                has_states = true;
-                let digsmodel = configuration.continuous_interface_states.parameters[i];
-                let mut potential = 0.0;
-                loop {
-                    let trap_state = digsmodel.continuous_states(potential).unwrap();
-                    interfacestates.potential.push(potential);
-                    match trap_state {
-                        TrapStatesType::AcceptorLike(dit) => {
-                            interfacestates.acceptor_dit.push(dit);
-                            interfacestates.donor_dit.push(0.0);
-                        }
-                        TrapStatesType::DonorLike(dit) => {
-                            interfacestates.acceptor_dit.push(0.0);
-                            interfacestates.donor_dit.push(dit);
+        let has_continuous = configuration
+            .continuous_interface_states
+            .interface_id
+            .iter()
+            .any(|&id| id == struct_idx as u32);
+        let has_discrete = configuration
+            .discrete_interface_states
+            .interface_id
+            .iter()
+            .any(|&id| id == struct_idx as u32);
+        let has_states = has_continuous || has_discrete;
+
+        if has_states {
+            let bandgap = configuration
+                .continuous_interface_states
+                .interface_id
+                .iter()
+                .position(|&id| id == struct_idx as u32)
+                .map(|i| configuration.continuous_interface_states.parameters[i].bandgap)
+                .or_else(|| {
+                    configuration
+                        .discrete_interface_states
+                        .interface_id
+                        .iter()
+                        .position(|&id| id == struct_idx as u32)
+                        .and_then(|i| {
+                            configuration.discrete_interface_states.parameters[i]
+                                .first()
+                                .map(|m| m.bandgap)
+                        })
+                })
+                .unwrap_or(configuration.device_structure.bandgap_energy[struct_idx]);
+
+            let mut potential = 0.0;
+            loop {
+                let mut acceptor_contribution = 0.0;
+                let mut donor_contribution = 0.0;
+
+                // Continuous states contribution (independent)
+                for i in 0..configuration.continuous_interface_states.interface_id.len() {
+                    if configuration.continuous_interface_states.interface_id[i]
+                        == struct_idx as u32
+                    {
+                        match configuration.continuous_interface_states.parameters[i]
+                            .continuous_states(potential)
+                            .unwrap()
+                        {
+                            TrapStatesType::AcceptorLike(dit) => acceptor_contribution += dit,
+                            TrapStatesType::DonorLike(dit) => donor_contribution += dit,
                         }
                     }
-                    potential += configuration.mesh_params.energy_step;
-                    if potential >= digsmodel.bandgap {
-                        let trap_state_end =
-                            digsmodel.continuous_states(digsmodel.bandgap).unwrap();
-                        interfacestates.potential.push(digsmodel.bandgap);
-                        match trap_state_end {
-                            TrapStatesType::AcceptorLike(dit) => {
-                                interfacestates.acceptor_dit.push(dit);
-                                interfacestates.donor_dit.push(0.0);
-                            }
-                            TrapStatesType::DonorLike(dit) => {
-                                interfacestates.acceptor_dit.push(0.0);
-                                interfacestates.donor_dit.push(dit);
+                }
+
+                // Discrete states contribution (independent)
+                for j in 0..configuration.discrete_interface_states.interface_id.len() {
+                    if configuration.discrete_interface_states.interface_id[j] == struct_idx as u32
+                    {
+                        for discrete_model in &configuration.discrete_interface_states.parameters[j]
+                        {
+                            match discrete_model.discrete_states(potential).unwrap() {
+                                TrapStatesType::AcceptorLike(dit) => acceptor_contribution += dit,
+                                TrapStatesType::DonorLike(dit) => donor_contribution += dit,
                             }
                         }
-                        break;
                     }
+                }
+
+                interfacestates.potential.push(potential);
+                interfacestates.acceptor_dit.push(acceptor_contribution);
+                interfacestates.donor_dit.push(donor_contribution);
+
+                if potential >= bandgap {
+                    break;
+                }
+                potential += configuration.mesh_params.energy_step;
+                if potential > bandgap {
+                    potential = bandgap;
                 }
             }
         }
@@ -440,7 +479,8 @@ mod tests {
                         1.0,
                         1.0,
                         1.0,
-                        DiscreteStateType::DonorLike
+                        DiscreteStateType::DonorLike,
+                        1.0,
                     )];
                     num_layers.saturating_sub(1)
                 ],

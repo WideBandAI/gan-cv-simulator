@@ -492,6 +492,7 @@ mod tests {
                 }),
                 PropertyType::Interface(InterfaceProperties {
                     fixcharge_density: FixChargeDensity::Interface(interface_fixcharge),
+                    interface_states: crate::mesh_builder::mesh_builder::InterfaceStates::None,
                 }),
                 PropertyType::Bulk(BulkProperties {
                     mass_electron: 0.2,

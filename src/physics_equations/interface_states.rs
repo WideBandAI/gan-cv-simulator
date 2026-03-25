@@ -259,9 +259,9 @@ mod tests {
         let ditmax = 1.0;
         let ed = 1.5;
         let fwhm = 0.2;
-        let model = DiscreteModel::new(ditmax, ed, fwhm, DiscreteStateType::DonorLike);
+        let model = DiscreteModel::new(ditmax, ed, fwhm, DiscreteStateType::DonorLike, 3.0);
         let potential = 1.6;
-        match model.discrete_states(potential) {
+        match model.discrete_states(potential).unwrap() {
             TrapStatesType::DonorLike(dit) => {
                 let sigma = fwhm.powi(2) / (4.0 * 2.0_f64.ln());
                 let expected_dit = ditmax * (-(potential - ed).powi(2) / sigma).exp();
@@ -276,9 +276,9 @@ mod tests {
         let ditmax = 2.0;
         let ed = 1.0;
         let fwhm = 0.3;
-        let model = DiscreteModel::new(ditmax, ed, fwhm, DiscreteStateType::AcceptorLike);
+        let model = DiscreteModel::new(ditmax, ed, fwhm, DiscreteStateType::AcceptorLike, 3.0);
         let potential = 0.8;
-        match model.discrete_states(potential) {
+        match model.discrete_states(potential).unwrap() {
             TrapStatesType::AcceptorLike(dit) => {
                 let sigma = fwhm.powi(2) / (4.0 * 2.0_f64.ln());
                 let expected_dit = ditmax * (-(potential - ed).powi(2) / sigma).exp();
@@ -293,9 +293,9 @@ mod tests {
         let ditmax = 3.0;
         let ed = 2.0;
         let fwhm = 0.1;
-        let model = DiscreteModel::new(ditmax, ed, fwhm, DiscreteStateType::DonorLike);
+        let model = DiscreteModel::new(ditmax, ed, fwhm, DiscreteStateType::DonorLike, 3.0);
         let potential = ed; // peak
-        match model.discrete_states(potential) {
+        match model.discrete_states(potential).unwrap() {
             TrapStatesType::DonorLike(dit) => {
                 assert!((dit - ditmax).abs() < 1e-10);
             }
