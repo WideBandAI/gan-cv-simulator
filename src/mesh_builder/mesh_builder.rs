@@ -154,25 +154,11 @@ impl MeshStructure {
         let has_states = has_continuous || has_discrete;
 
         if has_states {
-            let bandgap = configuration
-                .continuous_interface_states
-                .interface_id
-                .iter()
-                .position(|&id| id == struct_idx as u32)
-                .map(|i| configuration.continuous_interface_states.parameters[i].bandgap)
-                .or_else(|| {
-                    configuration
-                        .discrete_interface_states
-                        .interface_id
-                        .iter()
-                        .position(|&id| id == struct_idx as u32)
-                        .and_then(|i| {
-                            configuration.discrete_interface_states.parameters[i]
-                                .first()
-                                .map(|m| m.bandgap)
-                        })
-                })
-                .unwrap_or(configuration.device_structure.bandgap_energy[struct_idx]);
+                .unwrap_or_else(|| {
+                    let device_structure = &configuration.device_structure;
+                    device_structure.bandgap_energy[struct_idx]
+                        .min(device_structure.bandgap_energy[struct_idx + 1])
+                });
 
             let mut potential = 0.0;
             loop {
