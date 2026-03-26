@@ -1,5 +1,3 @@
-use anyhow::bail;
-
 use crate::config::configuration_builder::Configuration;
 use crate::physics_equations::capture_cross_section::capture_cross_section_distribution;
 use crate::physics_equations::interface_states::TrapStatesType;
@@ -44,33 +42,12 @@ pub struct BulkProperties {
     pub bandgap_energy: f64,
 }
 
-impl BulkProperties {
-    pub fn fixcharge_density(&self) -> anyhow::Result<&FixChargeDensity> {
-        match &self.fixcharge_density {
-            FixChargeDensity::Bulk(_) => Ok(&self.fixcharge_density),
-            FixChargeDensity::Interface(_) => {
-                bail!("Invalid fixcharge density type")
-            }
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct InterfaceProperties {
     pub fixcharge_density: FixChargeDensity,
     pub interface_states: InterfaceStates,
 }
 
-impl InterfaceProperties {
-    pub fn fixcharge_density(&self) -> anyhow::Result<&FixChargeDensity> {
-        match &self.fixcharge_density {
-            FixChargeDensity::Interface(_) => Ok(&self.fixcharge_density),
-            FixChargeDensity::Bulk(_) => {
-                bail!("Invalid fixcharge density type")
-            }
-        }
-    }
-}
 
 #[derive(Debug)]
 pub enum InterfaceStates {
