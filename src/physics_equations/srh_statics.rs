@@ -114,8 +114,8 @@ impl SRHStatics {
         capture_cross_section: f64,
     ) -> f64 {
         let tau = self.electron_emission_time(potential, capture_cross_section);
-        let det = 1.0 - (-time / tau).exp();
-        det
+        let tau = self.electron_emission_time(potential, capture_cross_section);
+        1.0 - (-time / tau).exp()
     }
 }
 
