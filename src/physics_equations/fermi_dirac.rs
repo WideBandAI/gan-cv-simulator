@@ -58,8 +58,7 @@ impl FermiDiracStatics {
     /// let result = fds.fermi_dirac(0.5);
     /// ```
     pub fn fermi_dirac(&self, potential: f64) -> f64 {
-        let fermi_dirac = 1.0 / (1.0 + (potential * self.q_per_kbt).exp());
-        fermi_dirac
+        1.0 / (1.0 + (potential * self.q_per_kbt).exp())
     }
 }
 
