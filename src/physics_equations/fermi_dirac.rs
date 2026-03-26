@@ -1,7 +1,7 @@
 use crate::constants::physics::*;
 
 #[derive(Debug)]
-pub struct FermiDiracStatics {
+pub struct FermiDiracStatistics {
     temperature: f64,
     q_per_kbt: f64,
 }
@@ -21,10 +21,10 @@ pub struct FermiDiracStatics {
 /// ```
 /// use crate::...;
 ///
-/// let fds = FermiDiracStatics::new(300.0);
+/// let fds = FermiDiracStatistics::new(300.0);
 /// let result = fds.fermi_dirac(0.5);
 /// ```
-impl FermiDiracStatics {
+impl FermiDiracStatistics {
     pub fn new(temperature: f64) -> Self {
         Self {
             temperature,
@@ -73,14 +73,14 @@ mod tests {
     #[test_case(0.5, 1000.0, 0.003012 ; "above_fermi_level_returns_near_zero")]
     #[test_case(-0.5, 1000.0, 0.99699 ; "below_fermi_level_returns_near_one")]
     fn test_fermi_dirac(potential: f64, temperature: f64, expected: f64) {
-        let fds = FermiDiracStatics::new(temperature);
+        let fds = FermiDiracStatistics::new(temperature);
         let result = fds.fermi_dirac(potential);
         assert!(relative_eq!(result, expected, max_relative = 1e-3));
     }
 
     #[test]
     fn test_fermi_dirac_symmetry() {
-        let fds = FermiDiracStatics::new(300.0);
+        let fds = FermiDiracStatistics::new(300.0);
         let potential = 0.3;
         assert!(relative_eq!(
             fds.fermi_dirac(potential) + fds.fermi_dirac(-potential),
@@ -91,20 +91,20 @@ mod tests {
 
     #[test]
     fn test_get_temperature() {
-        let fds = FermiDiracStatics::new(300.0);
+        let fds = FermiDiracStatistics::new(300.0);
         assert_eq!(fds.get_temperature(), 300.0);
     }
 
     #[test]
     fn test_set_temperature_updates_value() {
-        let mut fds = FermiDiracStatics::new(300.0);
+        let mut fds = FermiDiracStatistics::new(300.0);
         fds.set_temperature(500.0);
         assert_eq!(fds.get_temperature(), 500.0);
     }
 
     #[test]
     fn test_set_temperature_changes_fermi_dirac_result() {
-        let mut fds = FermiDiracStatics::new(300.0);
+        let mut fds = FermiDiracStatistics::new(300.0);
         let result_300 = fds.fermi_dirac(0.5);
         fds.set_temperature(1000.0);
         let result_1000 = fds.fermi_dirac(0.5);

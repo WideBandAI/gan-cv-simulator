@@ -2,7 +2,7 @@ use crate::constants::physics::*;
 use crate::physics_equations::band_density::ConductionBandDensity;
 
 #[derive(Debug)]
-pub struct SRHStatics {
+pub struct SRHStatistics {
     temperature: f64,
     q_per_kbt: f64,
     thermal_velocity: f64,
@@ -26,9 +26,9 @@ pub struct SRHStatics {
 /// ```
 /// use crate::...;
 ///
-/// let srh = RHStatics::new(temp, GAN_MASS_COEFF * M_ELECTRON, THERMAL_VELOCITY)
+/// let srh = RHStatistics::new(temp, GAN_MASS_COEFF * M_ELECTRON, THERMAL_VELOCITY)
 /// ```
-impl SRHStatics {
+impl SRHStatistics {
     pub fn new(temperature: f64, mass_electron: f64, thermal_velocity: f64) -> Self {
         let conduction_band_density =
             ConductionBandDensity::new(temperature).conduction_band_density(mass_electron);
@@ -128,8 +128,8 @@ mod tests {
     const THERMAL_VELOCITY: f64 = 2.6e5; // m/s, typical for GaN
     const GAN_MASS_COEFF: f64 = 0.20;
 
-    fn make_srh(temp: f64) -> SRHStatics {
-        SRHStatics::new(temp, GAN_MASS_COEFF * M_ELECTRON, THERMAL_VELOCITY)
+    fn make_srh(temp: f64) -> SRHStatistics {
+        SRHStatistics::new(temp, GAN_MASS_COEFF * M_ELECTRON, THERMAL_VELOCITY)
     }
 
     #[test]
