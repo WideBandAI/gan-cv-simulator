@@ -141,8 +141,8 @@ impl MeshStructure {
             .capture_cross_section
             .interface_id
             .iter()
-            .position(|&id| id == struct_idx as u32)
-            .map(|i| &configuration.capture_cross_section.model[i]);
+            .zip(configuration.capture_cross_section.model.iter())
+            .find_map(|(&id, model)| (id == struct_idx as u32).then_some(model));
 
         let mut interfacestates = InterfaceStatesDistribution {
             id: struct_idx,
