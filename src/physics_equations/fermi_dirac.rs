@@ -20,7 +20,8 @@ pub struct FermiDiracStatics {
 /// ```
 /// use crate::...;
 ///
-/// let _ = new();
+/// let fds = FermiDiracStatics::new(300.0);
+/// let result = fds.fermi_dirac(0.5);
 /// ```
 impl FermiDiracStatics {
     pub fn new(temperature: f64) -> Self {
@@ -54,7 +55,7 @@ impl FermiDiracStatics {
     /// ```
     /// use crate::...;
     ///
-    /// let _ = fermi_dirac();
+    /// let result = fds.fermi_dirac(0.5);
     /// ```
     pub fn fermi_dirac(&self, potential: f64) -> f64 {
         let fermi_dirac = 1.0 / (1.0 + (potential * self.q_per_kbt).exp());
