@@ -9,6 +9,24 @@ pub struct SRHStatics {
     conduction_band_density: f64,
 }
 
+/// SRH statics
+///
+/// # Arguments
+///
+/// - `temperature` (`f64`) - temperature in K.
+/// - `mass_electron` (`f64`) - mass of electron in kg.
+/// - `thermal_velocity` (`f64`) - thermal velocity.
+///
+/// # Returns
+///
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let _ = new();
+/// ```
 impl SRHStatics {
     pub fn new(temperature: f64, mass_electron: f64, thermal_velocity: f64) -> Self {
         let conduction_band_density =
@@ -45,12 +63,49 @@ impl SRHStatics {
             ConductionBandDensity::new(self.temperature).conduction_band_density(mass_electron);
     }
 
+    /// Electron emission time in sec
+    ///
+    /// # Arguments
+    ///
+    /// - `potential` (`f64`) - Ec - Et in eV. Et is the trap energy level.
+    /// - `capture_cross_section` (`f64`) - capture cross-section in m².
+    ///
+    /// # Returns
+    ///
+    /// - `f64` - electron emission time in sec.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = electron_emission_time();
+    /// ```
     pub fn electron_emission_time(&self, potential: f64, capture_cross_section: f64) -> f64 {
         let tau = (potential * self.q_per_kbt).exp()
             / (self.thermal_velocity * capture_cross_section * self.conduction_band_density);
         tau
     }
 
+    /// Effective emission coefficient
+    ///
+    /// # Arguments
+    ///
+    /// - `time` (`f64`) - time in sec.
+    /// - `potential` (`f64`) - Ec - Et in eV. Et is the trap energy level.
+    /// - `capture_cross_section` (`f64`) - capture cross-section in m².
+    ///
+    /// # Returns
+    ///
+    /// - `f64` - effective emission coefficient.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::...;
+    ///
+    /// let _ = effective_emission_coefficient();
+    /// ```
     pub fn effective_emission_coefficient(
         &self,
         time: f64,
