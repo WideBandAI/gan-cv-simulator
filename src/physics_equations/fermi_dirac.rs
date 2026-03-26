@@ -14,6 +14,7 @@ pub struct FermiDiracStatics {
 ///
 /// # Returns
 ///
+/// - `f64` - electron probability in the conduction band.
 ///
 /// # Examples
 ///
