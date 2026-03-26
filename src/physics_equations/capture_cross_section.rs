@@ -18,8 +18,9 @@ pub fn capture_cross_section_distribution(model: &CaptureCrossSectionModel, ener
             e_mid,
             e_slope,
         } => {
-            if e_slope.abs() < f64::EPSILON {
-                if (energy - e_mid).abs() < f64::EPSILON {
+            // e_slope == 0.0: degenerate case (delta-like trap) — return sigma_mid only at e_mid, 0.0 elsewhere
+            if *e_slope == 0.0 {
+                if energy == *e_mid {
                     *sigma_mid
                 } else {
                     0.0
@@ -57,7 +58,7 @@ mod tests {
         };
         // At energy == e_mid, exp(0) == 1, so result == sigma_mid
         let result = capture_cross_section_distribution(&model, e_mid);
-        assert!((result - sigma_mid).abs() < 1e-40);
+        assert_eq!(result, sigma_mid);
     }
 
     #[test]
@@ -102,7 +103,7 @@ mod tests {
             e_slope: 0.0,
         };
         let result = capture_cross_section_distribution(&model, e_mid);
-        assert!((result - sigma_mid).abs() < 1e-40);
+        assert_eq!(result, sigma_mid);
     }
 
     #[test]
@@ -114,7 +115,9 @@ mod tests {
             e_mid,
             e_slope: 0.0,
         };
-        let result = capture_cross_section_distribution(&model, 0.0);
-        assert_eq!(result, 0.0);
+        let result_below = capture_cross_section_distribution(&model, 0.0);
+        assert_eq!(result_below, 0.0);
+        let result_above = capture_cross_section_distribution(&model, 1.0);
+        assert_eq!(result_above, 0.0);
     }
 }
