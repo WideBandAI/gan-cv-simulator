@@ -82,9 +82,8 @@ impl SRHStatics {
     /// let _ = electron_emission_time();
     /// ```
     pub fn electron_emission_time(&self, potential: f64, capture_cross_section: f64) -> f64 {
-        let tau = (potential * self.q_per_kbt).exp()
-            / (self.thermal_velocity * capture_cross_section * self.conduction_band_density);
-        tau
+        (potential * self.q_per_kbt).exp()
+            / (self.thermal_velocity * capture_cross_section * self.conduction_band_density)
     }
 
     /// Effective emission coefficient
