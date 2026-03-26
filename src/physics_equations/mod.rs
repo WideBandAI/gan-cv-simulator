@@ -5,4 +5,4 @@ pub mod electron_density;
 pub mod equilibrium_potential;
 pub mod fermi_dirac;
 pub mod interface_states;
-pub mod srh_statics;
+pub mod srh_statistics;

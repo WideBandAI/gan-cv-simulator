@@ -10,7 +10,7 @@ pub struct SRHStatistics {
     conduction_band_density: f64,
 }
 
-/// SRH statics
+/// SRH statistics
 ///
 /// # Arguments
 ///

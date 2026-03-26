@@ -6,7 +6,7 @@ pub struct FermiDiracStatistics {
     q_per_kbt: f64,
 }
 
-/// Fermi-Dirac statics
+/// Fermi-Dirac statistics
 ///
 /// # Arguments
 ///
@@ -41,7 +41,7 @@ impl FermiDiracStatistics {
         self.temperature
     }
 
-    /// fermi-dirac statics
+    /// fermi-dirac statistics
     ///
     /// # Arguments
     ///
