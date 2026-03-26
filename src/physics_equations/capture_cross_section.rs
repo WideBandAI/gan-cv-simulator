@@ -17,7 +17,17 @@ pub fn capture_cross_section_distribution(model: &CaptureCrossSectionModel, ener
             sigma_mid,
             e_mid,
             e_slope,
-        } => sigma_mid * ((energy - e_mid) / e_slope).exp(),
+        } => {
+            if e_slope.abs() < f64::EPSILON {
+                if (energy - e_mid).abs() < f64::EPSILON {
+                    *sigma_mid
+                } else {
+                    0.0
+                }
+            } else {
+                sigma_mid * ((energy - e_mid) / e_slope).exp()
+            }
+        }
     }
 }
 
@@ -80,5 +90,31 @@ mod tests {
         let expected = sigma_mid * ((e_mid - e_slope - e_mid) / e_slope).exp();
         assert_eq!(result_below, expected);
         assert!(result_below < sigma_mid);
+    }
+
+    #[test]
+    fn test_energy_dependent_model_e_slope_zero_at_e_mid_returns_sigma_mid() {
+        let sigma_mid = 1e-16_f64 * CM_TO_M.powi(2);
+        let e_mid = 0.5;
+        let model = CaptureCrossSectionModel::EnergyDependent {
+            sigma_mid,
+            e_mid,
+            e_slope: 0.0,
+        };
+        let result = capture_cross_section_distribution(&model, e_mid);
+        assert!((result - sigma_mid).abs() < 1e-40);
+    }
+
+    #[test]
+    fn test_energy_dependent_model_e_slope_zero_away_from_e_mid_returns_zero() {
+        let sigma_mid = 1e-16_f64 * CM_TO_M.powi(2);
+        let e_mid = 0.5;
+        let model = CaptureCrossSectionModel::EnergyDependent {
+            sigma_mid,
+            e_mid,
+            e_slope: 0.0,
+        };
+        let result = capture_cross_section_distribution(&model, 0.0);
+        assert_eq!(result, 0.0);
     }
 }
