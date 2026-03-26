@@ -1,4 +1,5 @@
 use crate::config::configuration_builder::Configuration;
+use crate::physics_equations::capture_cross_section::capture_cross_section_distribution;
 use crate::physics_equations::interface_states::TrapStatesType;
 
 #[derive(Debug)]
@@ -59,6 +60,7 @@ pub struct InterfaceStatesDistribution {
     pub potential: Vec<f64>,
     pub acceptor_dit: Vec<f64>,
     pub donor_dit: Vec<f64>,
+    pub capture_cross_section: Vec<f64>,
 }
 
 #[derive(Debug)]
@@ -134,11 +136,19 @@ impl MeshStructure {
         ));
         self.depth.push(depth);
 
+        let capture_cross_section_model = configuration
+            .capture_cross_section
+            .interface_id
+            .iter()
+            .zip(configuration.capture_cross_section.model.iter())
+            .find_map(|(&id, model)| (id == struct_idx as u32).then_some(model));
+
         let mut interfacestates = InterfaceStatesDistribution {
             id: struct_idx,
             potential: Vec::new(),
             acceptor_dit: Vec::new(),
             donor_dit: Vec::new(),
+            capture_cross_section: Vec::new(),
         };
 
         let has_continuous = configuration
@@ -231,9 +241,14 @@ impl MeshStructure {
                     }
                 }
 
+                let sigma = capture_cross_section_model
+                    .map(|m| capture_cross_section_distribution(m, potential))
+                    .unwrap_or(0.0);
+
                 interfacestates.potential.push(potential);
                 interfacestates.acceptor_dit.push(acceptor_contribution);
                 interfacestates.donor_dit.push(donor_contribution);
+                interfacestates.capture_cross_section.push(sigma);
 
                 if potential >= bandgap {
                     break;
