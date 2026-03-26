@@ -26,7 +26,7 @@ pub struct SRHStatics {
 /// ```
 /// use crate::...;
 ///
-/// let _ = new();
+/// let srh = RHStatics::new(temp, GAN_MASS_COEFF * M_ELECTRON, THERMAL_VELOCITY)
 /// ```
 impl SRHStatics {
     pub fn new(temperature: f64, mass_electron: f64, thermal_velocity: f64) -> Self {
@@ -113,7 +113,6 @@ impl SRHStatics {
         potential: f64,
         capture_cross_section: f64,
     ) -> f64 {
-        let tau = self.electron_emission_time(potential, capture_cross_section);
         let tau = self.electron_emission_time(potential, capture_cross_section);
         1.0 - (-time / tau).exp()
     }
