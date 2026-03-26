@@ -48,7 +48,6 @@ pub struct InterfaceProperties {
     pub interface_states: InterfaceStates,
 }
 
-
 #[derive(Debug)]
 pub enum InterfaceStates {
     Distribution(InterfaceStatesDistribution),
