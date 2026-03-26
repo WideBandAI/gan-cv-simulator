@@ -1,6 +1,6 @@
 use crate::config::capture_cross_section::CaptureCrossSectionModel;
 
-/// Compute the capture cross-section [m²] for the given model and trap energy.
+/// capture_cross_section_distribution the capture cross-section [m²] for the given model and trap energy.
 ///
 /// # Arguments
 ///
@@ -10,7 +10,7 @@ use crate::config::capture_cross_section::CaptureCrossSectionModel;
 /// # Returns
 ///
 /// - `f64` - Capture cross-section in m².
-pub fn compute(model: &CaptureCrossSectionModel, energy: f64) -> f64 {
+pub fn capture_cross_section_distribution(model: &CaptureCrossSectionModel, energy: f64) -> f64 {
     match model {
         CaptureCrossSectionModel::Constant { sigma } => *sigma,
         CaptureCrossSectionModel::EnergyDependent {
@@ -30,9 +30,9 @@ mod tests {
     fn test_constant_model_returns_sigma_regardless_of_energy() {
         let sigma_m2 = 1e-16_f64 * CM_TO_M.powi(2);
         let model = CaptureCrossSectionModel::Constant { sigma: sigma_m2 };
-        assert_eq!(compute(&model, 0.0), sigma_m2);
-        assert_eq!(compute(&model, 1.0), sigma_m2);
-        assert_eq!(compute(&model, 3.3), sigma_m2);
+        assert_eq!(capture_cross_section_distribution(&model, 0.0), sigma_m2);
+        assert_eq!(capture_cross_section_distribution(&model, 1.0), sigma_m2);
+        assert_eq!(capture_cross_section_distribution(&model, 3.3), sigma_m2);
     }
 
     #[test]
@@ -46,7 +46,7 @@ mod tests {
             e_slope,
         };
         // At energy == e_mid, exp(0) == 1, so result == sigma_mid
-        let result = compute(&model, e_mid);
+        let result = capture_cross_section_distribution(&model, e_mid);
         assert!((result - sigma_mid).abs() < 1e-40);
     }
 
@@ -60,7 +60,7 @@ mod tests {
             e_mid,
             e_slope,
         };
-        let result_above = compute(&model, e_mid + e_slope);
+        let result_above = capture_cross_section_distribution(&model, e_mid + e_slope);
         let expected = sigma_mid * ((e_mid + e_slope - e_mid) / e_slope).exp();
         assert_eq!(result_above, expected);
         assert!(result_above > sigma_mid);
@@ -76,7 +76,7 @@ mod tests {
             e_mid,
             e_slope,
         };
-        let result_below = compute(&model, e_mid - e_slope);
+        let result_below = capture_cross_section_distribution(&model, e_mid - e_slope);
         let expected = sigma_mid * ((e_mid - e_slope - e_mid) / e_slope).exp();
         assert_eq!(result_below, expected);
         assert!(result_below < sigma_mid);

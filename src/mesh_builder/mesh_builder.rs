@@ -1,7 +1,7 @@
 use anyhow::bail;
 
 use crate::config::configuration_builder::Configuration;
-use crate::physics_equations::capture_cross_section::compute as compute_capture_cross_section;
+use crate::physics_equations::capture_cross_section::capture_cross_section_distribution;
 use crate::physics_equations::interface_states::TrapStatesType;
 
 #[derive(Debug)]
@@ -266,7 +266,7 @@ impl MeshStructure {
                 }
 
                 let sigma = capture_cross_section_model
-                    .map(|m| compute_capture_cross_section(m, potential))
+                    .map(|m| capture_cross_section_distribution(m, potential))
                     .unwrap_or(0.0);
 
                 interfacestates.potential.push(potential);
