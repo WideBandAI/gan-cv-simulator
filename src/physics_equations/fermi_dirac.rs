@@ -61,3 +61,53 @@ impl FermiDiracStatics {
         fermi_dirac
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use approx::relative_eq;
+    use test_case::test_case;
+
+    #[test_case(0.0, 300.0, 0.5 ; "at_fermi_level_returns_0_5")]
+    #[test_case(0.5, 1000.0, 0.003012 ; "above_fermi_level_returns_near_zero")]
+    #[test_case(-0.5, 1000.0, 0.99699 ; "below_fermi_level_returns_near_one")]
+    fn test_fermi_dirac(potential: f64, temperature: f64, expected: f64) {
+        let fds = FermiDiracStatics::new(temperature);
+        let result = fds.fermi_dirac(potential);
+        assert!(relative_eq!(result, expected, max_relative = 1e-3));
+    }
+
+    #[test]
+    fn test_fermi_dirac_symmetry() {
+        let fds = FermiDiracStatics::new(300.0);
+        let potential = 0.3;
+        assert!(relative_eq!(
+            fds.fermi_dirac(potential) + fds.fermi_dirac(-potential),
+            1.0,
+            max_relative = 1e-10
+        ));
+    }
+
+    #[test]
+    fn test_get_temperature() {
+        let fds = FermiDiracStatics::new(300.0);
+        assert_eq!(fds.get_temperature(), 300.0);
+    }
+
+    #[test]
+    fn test_set_temperature_updates_value() {
+        let mut fds = FermiDiracStatics::new(300.0);
+        fds.set_temperature(500.0);
+        assert_eq!(fds.get_temperature(), 500.0);
+    }
+
+    #[test]
+    fn test_set_temperature_changes_fermi_dirac_result() {
+        let mut fds = FermiDiracStatics::new(300.0);
+        let result_300 = fds.fermi_dirac(0.5);
+        fds.set_temperature(1000.0);
+        let result_1000 = fds.fermi_dirac(0.5);
+        // Higher temperature → smaller exponent → higher occupation probability above Fermi level
+        assert!(result_1000 > result_300);
+    }
+}
