@@ -6,6 +6,7 @@ pub struct SRHStatics {
     temperature: f64,
     q_per_kbt: f64,
     thermal_velocity: f64,
+    mass_electron: f64,
     conduction_band_density: f64,
 }
 
@@ -35,6 +36,7 @@ impl SRHStatics {
             temperature,
             q_per_kbt: Q_ELECTRON / (K_BOLTZMANN * temperature),
             thermal_velocity,
+            mass_electron,
             conduction_band_density,
         }
     }
@@ -43,7 +45,7 @@ impl SRHStatics {
         self.temperature = temperature;
         self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
         self.conduction_band_density =
-            ConductionBandDensity::new(temperature).conduction_band_density(M_ELECTRON);
+            ConductionBandDensity::new(temperature).conduction_band_density(self.mass_electron);
     }
 
     pub fn get_temperature(&self) -> f64 {
