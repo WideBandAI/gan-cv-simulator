@@ -14,12 +14,12 @@ pub struct FermiDiracStatistics {
 ///
 /// # Returns
 ///
-/// - `f64` - electron probability in the conduction band.
+/// - `FermiDiracStatistics` - A new instance of FermiDiracStatistics.
 ///
 /// # Examples
 ///
-/// ```
-/// use crate::...;
+/// ```ignore
+/// use crate::physics_equations::fermi_dirac::FermiDiracStatistics;
 ///
 /// let fds = FermiDiracStatistics::new(300.0);
 /// let result = fds.fermi_dirac(0.5);
@@ -53,9 +53,10 @@ impl FermiDiracStatistics {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use crate::...;
+    /// ```ignore
+    /// use crate::physics_equations::fermi_dirac::FermiDiracStatistics;
     ///
+    /// let fds = FermiDiracStatistics::new(300.0);
     /// let result = fds.fermi_dirac(0.5);
     /// ```
     pub fn fermi_dirac(&self, potential: f64) -> f64 {

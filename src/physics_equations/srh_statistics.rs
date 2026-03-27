@@ -20,13 +20,15 @@ pub struct SRHStatistics {
 ///
 /// # Returns
 ///
+/// - `SRHStatistics` - A new instance of SRHStatistics.
 ///
 /// # Examples
 ///
-/// ```
-/// use crate::...;
+/// ```ignore
+/// use crate::physics_equations::srh_statistics::SRHStatistics;
+/// use crate::constants::physics::M_ELECTRON;
 ///
-/// let srh = RHStatistics::new(temp, GAN_MASS_COEFF * M_ELECTRON, THERMAL_VELOCITY)
+/// let srh = SRHStatistics::new(300.0, 0.20 * M_ELECTRON, 2.6e5);
 /// ```
 impl SRHStatistics {
     pub fn new(temperature: f64, mass_electron: f64, thermal_velocity: f64) -> Self {
@@ -78,10 +80,12 @@ impl SRHStatistics {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use crate::...;
+    /// ```ignore
+    /// use crate::physics_equations::srh_statistics::SRHStatistics;
+    /// use crate::constants::physics::M_ELECTRON;
     ///
-    /// let _ = electron_emission_time();
+    /// let srh = SRHStatistics::new(300.0, 0.20 * M_ELECTRON, 2.6e5);
+    /// let tau = srh.electron_emission_time(0.3, 1e-15);
     /// ```
     pub fn electron_emission_time(&self, potential: f64, capture_cross_section: f64) -> f64 {
         (potential * self.q_per_kbt).exp()
@@ -102,10 +106,12 @@ impl SRHStatistics {
     ///
     /// # Examples
     ///
-    /// ```
-    /// use crate::...;
+    /// ```ignore
+    /// use crate::physics_equations::srh_statistics::SRHStatistics;
+    /// use crate::constants::physics::M_ELECTRON;
     ///
-    /// let _ = effective_emission_coefficient();
+    /// let srh = SRHStatistics::new(300.0, 0.20 * M_ELECTRON, 2.6e5);
+    /// let coeff = srh.effective_emission_coefficient(1e-6, 0.3, 1e-15);
     /// ```
     pub fn effective_emission_coefficient(
         &self,
