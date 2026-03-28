@@ -15,6 +15,19 @@ pub struct Potential {
 }
 
 #[derive(Debug)]
+pub struct InterfaceStates {
+    pub id: Vec<usize>,
+    pub distribution: Vec<InterfaceStateDistribution>,
+}
+
+#[derive(Debug)]
+pub struct InterfaceStateDistribution {
+    pub potential: Vec<f64>,
+    pub occupied_acceptor_states: Vec<f64>,
+    pub occupied_donor_states: Vec<f64>,
+}
+
+#[derive(Debug)]
 pub struct PoissonSolver {
     pub potential: Potential,
     pub mesh_structure: MeshStructure,
