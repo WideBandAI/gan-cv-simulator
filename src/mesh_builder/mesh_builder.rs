@@ -527,6 +527,7 @@ mod tests {
             capture_cross_section: CaptureCrossSectionConfig {
                 interface_id: vec![],
                 model: vec![],
+                thermal_velocity: 2.6e3,
             },
             mesh_params: MeshParams {
                 layer_id: (0..mesh_lengths.len() as u32).collect(),

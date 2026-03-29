@@ -23,6 +23,7 @@ pub enum CaptureCrossSectionModel {
 pub struct CaptureCrossSectionConfig {
     pub interface_id: Vec<u32>,
     pub model: Vec<CaptureCrossSectionModel>,
+    pub thermal_velocity: f64,
 }
 
 /// Collect the sorted, deduplicated union of interface IDs that have any interface states.
@@ -59,10 +60,21 @@ pub fn define_capture_cross_section(
         })
         .unzip();
 
+    let thermal_velocity = get_thermal_velocity();
+
     CaptureCrossSectionConfig {
         interface_id,
         model,
+        thermal_velocity,
     }
+}
+
+fn get_thermal_velocity() -> f64 {
+    let v_cm_s: f64 = get_parsed_input_with_default_nonnegative(
+        "Enter thermal velocity (cm/s): default is 2.6e7 ",
+        2.6e7,
+    );
+    v_cm_s * CM_TO_M
 }
 
 fn get_capture_cross_section_model(interface_id: u32) -> CaptureCrossSectionModel {
