@@ -2,6 +2,8 @@ use crate::constants::physics::*;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
+use crate::physics_equations::fermi_dirac::FermiDiracStatistics;
+use crate::physics_equations::srh_statistics::SRHStatistics;
 
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
@@ -35,6 +37,12 @@ pub struct PoissonSolver {
     electron_density_model: Box<dyn ElectronDensity>,
     donor_activation_model: DonorActivation,
     parallel_use: bool,
+    pub simulation_phase: SimulationPhase,
+    pub interface_srh: Vec<Option<SRHStatistics>>,
+    pub previous_phase_occupation: Vec<Option<Vec<f64>>>,
+    #[allow(dead_code)]
+    fermi_dirac: FermiDiracStatistics,
+    pub stress_relief_time: f64,
 }
 
 /// Poisson equation solver using Successive Over-Relaxation (SOR) method.
@@ -70,6 +78,8 @@ impl PoissonSolver {
         convergence_threshold: f64,
         max_iterations: usize,
         parallel_use: bool,
+        thermal_velocity: f64,
+        stress_relief_time: f64,
     ) -> Self {
         let n = mesh_structure.id.len();
         let potential = Potential {
@@ -80,11 +90,21 @@ impl PoissonSolver {
             interface_occupation: vec![None; n],
         };
 
-        let red_indices: Vec<usize> = (1..mesh_structure.id.len() - 1)
+        let red_indices: Vec<usize> = (1..n - 1)
             .filter(|i| i % 2 == 1)
             .collect();
-        let black_indices: Vec<usize> = (1..mesh_structure.id.len() - 1)
+        let black_indices: Vec<usize> = (1..n - 1)
             .filter(|i| i % 2 == 0)
+            .collect();
+        let interface_srh: Vec<Option<SRHStatistics>> = (0..n)
+            .map(|idx| {
+                if matches!(mesh_structure.id[idx], IDX::Interface(_)) {
+                    let mass_electron = mesh_structure.mass_electron(idx + 1);
+                    Some(SRHStatistics::new(temperature, mass_electron, thermal_velocity))
+                } else {
+                    None
+                }
+            })
             .collect();
         Self {
             potential,
@@ -98,6 +118,11 @@ impl PoissonSolver {
             electron_density_model: Box::new(BoltzmannApproximation::new(temperature)),
             donor_activation_model: DonorActivation::new(temperature),
             parallel_use,
+            simulation_phase: SimulationPhase::Stress,
+            interface_srh,
+            previous_phase_occupation: vec![None; n],
+            fermi_dirac: FermiDiracStatistics::new(temperature),
+            stress_relief_time,
         }
     }
 
@@ -532,7 +557,7 @@ mod tests {
     fn test_new_initializes_potential_with_initial_value() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let initial_potential = 0.5;
-        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false);
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false, 0.0, 0.0);
 
         assert_eq!(solver.potential.potential.len(), 4);
         for &p in &solver.potential.potential {
@@ -550,7 +575,7 @@ mod tests {
     fn test_new_copies_depth_from_mesh() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let expected_depth = mesh.depth.clone();
-        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
+        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false, 0.0, 0.0);
 
         assert_eq!(solver.potential.depth, expected_depth);
     }
@@ -564,7 +589,7 @@ mod tests {
     fn test_set_boundary_conditions_surface() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let delta_ec_0 = mesh.delta_conduction_band(0); // 0.0
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false, 0.0, 0.0);
 
         let gate_voltage = 1.0;
         let barrier_height = 0.8;
@@ -589,7 +614,7 @@ mod tests {
     fn test_set_boundary_conditions_bottom() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let n = mesh.id.len();
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false, 0.0, 0.0);
 
         let ec_ef_bottom = 0.3;
         solver.set_boundary_conditions(0.0, ec_ef_bottom);
@@ -619,7 +644,7 @@ mod tests {
         // donor_concentration=0 → ionized_donor=0
         // fixcharge=0 → rho=0 完全にゼロ電荷
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 100_000, false);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 100_000, false, 0.0, 0.0);
         solver.set_boundary_conditions(0.5, 0.1); // surface=0.5, bottom=0.1
 
         let iters = solver.solve_poisson(); // panic しないこと
@@ -669,7 +694,7 @@ mod tests {
     #[test]
     fn test_solve_poisson_returns_one_iteration_if_threshold_large() {
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, f64::MAX, 1000, false);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, f64::MAX, 1000, false, 0.0, 0.0);
         solver.set_boundary_conditions(0.0, 0.2);
 
         let iters = solver.solve_poisson();
@@ -684,7 +709,7 @@ mod tests {
     #[test]
     fn test_solve_poisson_runs_full_iterations_if_threshold_negative() {
         let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, -1.0, 123, false);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, -1.0, 123, false, 0.0, 0.0);
         solver.set_boundary_conditions(0.0, 0.5);
 
         let iters = solver.solve_poisson();
@@ -709,7 +734,7 @@ mod tests {
         let mesh = make_interface_mesh(eps, 0.0);
 
         // potential: Surface=0.0, Bulk=0.2, Interface=0.0, Bulk=0.4, Bottom=0.0
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1, false);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1, false, 0.0, 0.0);
         solver.potential.potential[0] = 0.0;
         solver.potential.potential[1] = 0.2;
         solver.potential.potential[2] = 0.0; // interface の現在値
@@ -741,11 +766,11 @@ mod tests {
             s.potential.potential[4] = 0.0;
         };
 
-        let mut s0 = PoissonSolver::new(mesh_no_charge, 0.0, 300.0, 1.0, 1e-6, 1, false);
+        let mut s0 = PoissonSolver::new(mesh_no_charge, 0.0, 300.0, 1.0, 1e-6, 1, false, 0.0, 0.0);
         set_potentials(&mut s0);
         let delta_no_charge = s0.solve_interface(2);
 
-        let mut s1 = PoissonSolver::new(mesh_with_charge, 0.0, 300.0, 1.0, 1e-6, 1, false);
+        let mut s1 = PoissonSolver::new(mesh_with_charge, 0.0, 300.0, 1.0, 1e-6, 1, false, 0.0, 0.0);
         set_potentials(&mut s1);
         let delta_with_charge = s1.solve_interface(2);
 
@@ -769,7 +794,7 @@ mod tests {
         let uniform_pot = 5.0; // 高いポテンシャル → electron_density ≈ 0
         let mesh = make_simple_mesh(0.2, eps, 0.0, 0.0);
 
-        let mut solver = PoissonSolver::new(mesh, uniform_pot, 300.0, 1.0, 1e-6, 1, false);
+        let mut solver = PoissonSolver::new(mesh, uniform_pot, 300.0, 1.0, 1e-6, 1, false, 0.0, 0.0);
         // 全ノードを同じ値に揃える
         for p in solver.potential.potential.iter_mut() {
             *p = uniform_pot;
@@ -791,7 +816,7 @@ mod tests {
         // donor_concentration=0 → ionized_donor ≈ 0, electron_density ≈ 0 (高ポテンシャル时)
         let mesh = make_simple_mesh(0.2, eps, 0.0, 0.0);
 
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1, false);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1, false, 0.0, 0.0);
         solver.potential.potential[0] = 0.0;
         solver.potential.potential[1] = 5.0; // 高いポテンシャル → rho≈0
         solver.potential.potential[2] = 1.0;
@@ -813,7 +838,7 @@ mod tests {
         let bulk_fixcharge = 1.0 / Q_ELECTRON;
         let mesh = make_simple_insulator_mesh(eps, bulk_fixcharge);
         let initial_potential = 0.0;
-        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false);
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false, 0.0, 0.0);
         let delta_poisson = solver.solve_bulk(1);
 
         assert!(
@@ -830,7 +855,7 @@ mod tests {
         let interface_fixcharge = 1.0 / Q_ELECTRON;
         let mesh = make_interface_mesh(eps, interface_fixcharge);
         let initial_potential = 1.0;
-        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false);
+        let solver = PoissonSolver::new(mesh, initial_potential, 300.0, 1.0, 1e-6, 1000, false, 0.0, 0.0);
         let delta_poisson = solver.solve_interface(2);
 
         assert!(
@@ -849,10 +874,38 @@ mod tests {
     fn test_potential_interface_occupation_initialized_with_none() {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let n = mesh.id.len();
-        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
+        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false, 0.0, 0.0);
         assert_eq!(solver.potential.interface_occupation.len(), n);
         for occ in &solver.potential.interface_occupation {
             assert!(occ.is_none());
         }
+    }
+
+    /// interface ノードに対して SRHStatistics が Some で初期化されること
+    #[test]
+    fn test_new_interface_srh_some_for_interface_nodes() {
+        let mesh = make_interface_mesh(10.0 * EPSILON_0, 0.0);
+        // make_interface_mesh: [Surface, Bulk(0), Interface(0), Bulk(1), Bottom]
+        // Interface は idx=2
+        let solver = PoissonSolver::new(
+            mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false,
+            2.6e5, // thermal_velocity
+            0.0,   // stress_relief_time
+        );
+        assert!(solver.interface_srh[0].is_none(), "Surface should be None");
+        assert!(solver.interface_srh[1].is_none(), "Bulk should be None");
+        assert!(solver.interface_srh[2].is_some(), "Interface(0) should be Some");
+        assert!(solver.interface_srh[3].is_none(), "Bulk should be None");
+        assert!(solver.interface_srh[4].is_none(), "Bottom should be None");
+    }
+
+    /// simulation_phase が Stress で初期化されること
+    #[test]
+    fn test_new_simulation_phase_is_stress() {
+        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
+        let solver = PoissonSolver::new(
+            mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false, 2.6e5, 0.0,
+        );
+        assert_eq!(solver.simulation_phase, SimulationPhase::Stress);
     }
 }

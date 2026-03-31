@@ -38,6 +38,8 @@ fn main() -> anyhow::Result<()> {
         config.sim_settings.convergence_criterion,
         config.sim_settings.max_iterations,
         config.sim_settings.parallel_use,
+        config.capture_cross_section.thermal_velocity,
+        config.measurement.stress.stress_relief_time,
     );
     let mut cv_solver = CVSolver::new(
         poisson_solver,
