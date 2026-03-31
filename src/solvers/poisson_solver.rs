@@ -1,5 +1,4 @@
 use crate::constants::physics::*;
-use crate::mesh_builder::mesh_builder::PropertyType;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
