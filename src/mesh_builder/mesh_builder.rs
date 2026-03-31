@@ -372,6 +372,14 @@ impl MeshStructure {
             _ => FixChargeDensity::Bulk(0.0),
         }
     }
+
+    /// Get the interface states at the given mesh index.
+    pub fn interface_states(&self, idx: usize) -> Option<&InterfaceStates> {
+        match &self.property_type[idx] {
+            PropertyType::Interface(p) => Some(&p.interface_states),
+            _ => None,
+        }
+    }
 }
 
 /// Build mesh structure

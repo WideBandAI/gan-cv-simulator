@@ -76,6 +76,7 @@ impl CVSolver {
         let start = self.measurement.voltage.start;
         let end = self.measurement.voltage.end;
         let step = self.measurement.voltage.step;
+        let num_meas_points = ((end - start) / step).abs() + 1.0;
 
         if step == 0.0 {
             panic!("voltage step cannot be zero");
@@ -85,11 +86,13 @@ impl CVSolver {
         let mut gate_voltage = start;
         let forward = step > 0.0;
         let mut index = 0;
+        let time_step = self.measurement.time.measurement_time / num_meas_points;
         while (forward && gate_voltage <= end) || (!forward && gate_voltage >= end) {
-            self.set_dc_save_potential(gate_voltage, index)?;
+            self.set_dc_save_potential(gate_voltage, time_step * index as f64, index)?;
             let capacitance = self.solve_cv(gate_voltage)?;
             println!(
-                "Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
+                "Meas Time: {:.3e} s, Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
+                time_step * index as f64,
                 gate_voltage,
                 capacitance * F_TO_NF * M2_TO_CM2
             );
@@ -114,9 +117,14 @@ impl CVSolver {
         Ok(())
     }
 
-    fn set_dc_save_potential(&mut self, gate_voltage: f64, index: usize) -> anyhow::Result<()> {
+    fn set_dc_save_potential(
+        &mut self,
+        gate_voltage: f64,
+        time_step: f64,
+        index: usize,
+    ) -> anyhow::Result<()> {
         self.set_gate_voltage(gate_voltage);
-        self.poisson_solver.solve_poisson();
+        self.poisson_solver.solve_poisson(time_step);
 
         let profile = self.poisson_solver.get_potential_profile();
         let filename = format!("{}_potential_{:.3}V.csv", index, gate_voltage);
@@ -132,9 +140,9 @@ impl CVSolver {
 
     fn solve_cv(&mut self, gate_voltage: f64) -> anyhow::Result<f64> {
         let electron_density_vg_plus_ac =
-            self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage);
+            self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage, 0.0);
         let electron_density_vg_minus_ac =
-            self.electron_density_at_vg(gate_voltage - self.measurement.ac_voltage);
+            self.electron_density_at_vg(gate_voltage - self.measurement.ac_voltage, 0.0);
 
         let capacitance = Q_ELECTRON * (electron_density_vg_plus_ac - electron_density_vg_minus_ac)
             / (2.0 * self.measurement.ac_voltage);
@@ -162,9 +170,9 @@ impl CVSolver {
     ///
     /// let _ = electron_density_at_vg();
     /// ```
-    fn electron_density_at_vg(&mut self, gate_voltage: f64) -> f64 {
+    fn electron_density_at_vg(&mut self, gate_voltage: f64, time_step: f64) -> f64 {
         self.set_gate_voltage(gate_voltage);
-        self.poisson_solver.solve_poisson();
+        self.poisson_solver.solve_poisson(time_step);
         let potential_at_vg = self.poisson_solver.get_potential_profile();
         let mut total_electron_density = 0.0; // in m2
         for idx in 1..potential_at_vg.depth.len() - 1 {
@@ -319,7 +327,8 @@ mod tests {
     ) -> CVSolver {
         let eps = 10.0 * EPSILON_0;
         let mesh = make_cv_mesh(mass_electron, eps, donor_concentration, 0.0);
-        let poisson_solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false, 0.0, 0.0);
+        let poisson_solver =
+            PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false, 0.0, 0.0);
         let measurement = make_measurement(voltage_start, voltage_end, voltage_step, ac_voltage);
         let bc = make_boundary_conditions(barrier_height, ec_ef_bottom);
         let temp_dir = TempDir::new().unwrap();
