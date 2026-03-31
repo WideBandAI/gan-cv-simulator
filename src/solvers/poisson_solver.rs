@@ -1,4 +1,5 @@
 use crate::constants::physics::*;
+use crate::mesh_builder::mesh_builder::PropertyType;
 use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
@@ -6,25 +7,20 @@ use crate::physics_equations::electron_density::{BoltzmannApproximation, Electro
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum SimulationPhase {
+    Stress,
+    Relief,
+    Measurement,
+}
+
 #[derive(Debug, Clone)]
 pub struct Potential {
     pub depth: Vec<f64>,
     pub potential: Vec<f64>,
     pub electron_density: Vec<f64>,
     pub ionized_donor_concentration: Vec<f64>,
-}
-
-#[derive(Debug)]
-pub struct InterfaceStates {
-    pub id: Vec<usize>,
-    pub distribution: Vec<InterfaceStateDistribution>,
-}
-
-#[derive(Debug)]
-pub struct InterfaceStateDistribution {
-    pub potential: Vec<f64>,
-    pub occupied_acceptor_states: Vec<f64>,
-    pub occupied_donor_states: Vec<f64>,
+    pub interface_occupation: Vec<Option<Vec<f64>>>,
 }
 
 #[derive(Debug)]
@@ -76,12 +72,15 @@ impl PoissonSolver {
         max_iterations: usize,
         parallel_use: bool,
     ) -> Self {
+        let n = mesh_structure.id.len();
         let potential = Potential {
             depth: mesh_structure.depth.clone(),
-            potential: vec![initial_potential; mesh_structure.id.len()],
-            electron_density: vec![0.0; mesh_structure.id.len()],
-            ionized_donor_concentration: vec![0.0; mesh_structure.id.len()],
+            potential: vec![initial_potential; n],
+            electron_density: vec![0.0; n],
+            ionized_donor_concentration: vec![0.0; n],
+            interface_occupation: vec![None; n],
         };
+
         let red_indices: Vec<usize> = (1..mesh_structure.id.len() - 1)
             .filter(|i| i % 2 == 1)
             .collect();
@@ -840,5 +839,21 @@ mod tests {
             "interface delta should be affected by fixcharge: {} (expected -0.5)",
             delta_poisson
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // interface_occupation フィールド初期化テスト
+    // -----------------------------------------------------------------------
+
+    /// Potential の interface_occupation がメッシュ長と同じサイズで初期化されること
+    #[test]
+    fn test_potential_interface_occupation_initialized_with_none() {
+        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
+        let n = mesh.id.len();
+        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
+        assert_eq!(solver.potential.interface_occupation.len(), n);
+        for occ in &solver.potential.interface_occupation {
+            assert!(occ.is_none());
+        }
     }
 }
