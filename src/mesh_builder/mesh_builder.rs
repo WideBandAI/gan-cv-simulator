@@ -164,6 +164,7 @@ impl MeshStructure {
         let has_states = has_continuous || has_discrete;
 
         if has_states {
+            // get bandgap for this interface
             let bandgap = configuration
                 .continuous_interface_states
                 .interface_id
@@ -188,6 +189,7 @@ impl MeshStructure {
                         .min(device_structure.bandgap_energy[struct_idx + 1])
                 });
 
+            // get the continuous state parameters for this interface
             let continuous_param = if has_continuous {
                 let idx = configuration
                     .continuous_interface_states
@@ -200,6 +202,7 @@ impl MeshStructure {
                 None
             };
 
+            // get the discrete state parameters for this interface
             let discrete_params = if has_discrete {
                 let idx = configuration
                     .discrete_interface_states
