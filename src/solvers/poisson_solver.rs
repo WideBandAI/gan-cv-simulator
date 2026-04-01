@@ -1,7 +1,9 @@
 use crate::constants::physics::*;
-use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure, IDX};
+use crate::mesh_builder::mesh_builder::{FixChargeDensity, InterfaceStates, MeshStructure, IDX};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
+use crate::physics_equations::fermi_dirac::FermiDiracStatistics;
+use crate::physics_equations::srh_statistics::SRHStatistics;
 
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
@@ -19,6 +21,7 @@ pub struct PoissonSolver {
     pub potential: Potential,
     pub mesh_structure: MeshStructure,
     pub temperature: f64,
+    pub time_step: f64,
     sor_relaxation_factor: f64,
     red_indices: Vec<usize>,
     black_indices: Vec<usize>,
@@ -27,6 +30,9 @@ pub struct PoissonSolver {
     electron_density_model: Box<dyn ElectronDensity>,
     donor_activation_model: DonorActivation,
     parallel_use: bool,
+    pub interface_srh: Vec<Option<SRHStatistics>>,
+    pub previous_phase_occupation: Vec<Option<Vec<f64>>>,
+    fermi_dirac: FermiDiracStatistics,
 }
 
 /// Poisson equation solver using Successive Over-Relaxation (SOR) method.
@@ -63,22 +69,45 @@ impl PoissonSolver {
         max_iterations: usize,
         parallel_use: bool,
     ) -> Self {
+        let n = mesh_structure.id.len();
         let potential = Potential {
             depth: mesh_structure.depth.clone(),
-            potential: vec![initial_potential; mesh_structure.id.len()],
-            electron_density: vec![0.0; mesh_structure.id.len()],
-            ionized_donor_concentration: vec![0.0; mesh_structure.id.len()],
+            potential: vec![initial_potential; n],
+            electron_density: vec![0.0; n],
+            ionized_donor_concentration: vec![0.0; n],
         };
-        let red_indices: Vec<usize> = (1..mesh_structure.id.len() - 1)
-            .filter(|i| i % 2 == 1)
-            .collect();
-        let black_indices: Vec<usize> = (1..mesh_structure.id.len() - 1)
-            .filter(|i| i % 2 == 0)
+
+        let red_indices: Vec<usize> = (1..n - 1).filter(|i| i % 2 == 1).collect();
+        let black_indices: Vec<usize> = (1..n - 1).filter(|i| i % 2 == 0).collect();
+        let interface_srh: Vec<Option<SRHStatistics>> = (0..n)
+            .map(|idx| {
+                if matches!(mesh_structure.id[idx], IDX::Interface(_)) {
+                    let mass_electron = mesh_structure.mass_electron(idx + 1);
+                    let thermal_velocity = mesh_structure
+                        .interface_states(idx)
+                        .and_then(|states| {
+                            if let InterfaceStates::Distribution(d) = states {
+                                Some(d.thermal_velocity)
+                            } else {
+                                None
+                            }
+                        })
+                        .unwrap_or(0.0);
+                    Some(SRHStatistics::new(
+                        temperature,
+                        mass_electron,
+                        thermal_velocity,
+                    ))
+                } else {
+                    None
+                }
+            })
             .collect();
         Self {
             potential,
             mesh_structure,
             temperature,
+            time_step: 0.0,
             sor_relaxation_factor,
             red_indices,
             black_indices,
@@ -87,6 +116,9 @@ impl PoissonSolver {
             electron_density_model: Box::new(BoltzmannApproximation::new(temperature)),
             donor_activation_model: DonorActivation::new(temperature),
             parallel_use,
+            interface_srh,
+            previous_phase_occupation: vec![None; n],
+            fermi_dirac: FermiDiracStatistics::new(temperature),
         }
     }
 
@@ -131,6 +163,14 @@ impl PoissonSolver {
         self.temperature = temperature;
         self.donor_activation_model.set_temperature(temperature);
         self.electron_density_model.set_temperature(temperature);
+        self.fermi_dirac.set_temperature(temperature);
+        for srh in self.interface_srh.iter_mut().flatten() {
+            srh.set_temperature(temperature);
+        }
+    }
+
+    fn set_time_step(&mut self, time_step: f64) {
+        self.time_step = time_step;
     }
 
     /// Solve poisson equation
@@ -142,7 +182,8 @@ impl PoissonSolver {
     ///
     /// let _ = solve_poisson();
     /// ```
-    pub fn solve_poisson(&mut self) -> usize {
+    pub fn solve_poisson(&mut self, time_step: f64) -> usize {
+        self.set_time_step(time_step);
         let pb = ProgressBar::new(self.max_iterations as u64);
         pb.set_style(
             ProgressStyle::default_bar()
@@ -241,6 +282,59 @@ impl PoissonSolver {
         }
     }
 
+    fn compute_occupation_probability(&self, idx: usize) -> Vec<f64> {
+        let dist = match self.mesh_structure.interface_states(idx) {
+            Some(InterfaceStates::Distribution(d)) => d,
+            _ => return Vec::new(),
+        };
+        let srh = match &self.interface_srh[idx] {
+            Some(s) => s,
+            None => return Vec::new(),
+        };
+        let phi_node = self.potential.potential[idx];
+
+        let prev = self.previous_phase_occupation[idx].as_ref();
+
+        dist.potential
+            .iter()
+            .zip(dist.capture_cross_section.iter())
+            .enumerate()
+            .map(|(k, (&et, &sigma))| {
+                let eff_emission = srh.effective_emission_coefficient(self.time_step, et, sigma);
+
+                let f_prev = prev.map(|v| v[k]).unwrap_or(0.0);
+                let f_eq = self.fermi_dirac.fermi_dirac(phi_node - et);
+
+                (f_prev * (1.0 - eff_emission) + f_eq).min(1.0)
+            })
+            .collect()
+    }
+
+    fn compute_qit_density(&self, idx: usize) -> f64 {
+        let dist = match self.mesh_structure.interface_states(idx) {
+            Some(InterfaceStates::Distribution(d)) => d,
+            _ => return 0.0,
+        };
+        let n = dist.potential.len();
+        if n == 0 {
+            return 0.0;
+        }
+        let occ = self.compute_occupation_probability(idx);
+        occ.iter()
+            .enumerate()
+            .map(|(k, &f)| {
+                let de = if k + 1 < n {
+                    dist.potential[k + 1] - dist.potential[k]
+                } else if n >= 2 {
+                    dist.potential[n - 1] - dist.potential[n - 2]
+                } else {
+                    1.0
+                };
+                (-dist.acceptor_dit[k] * f + dist.donor_dit[k] * (1.0 - f)) * de
+            })
+            .sum()
+    }
+
     fn solve_bulk(&self, idx: usize) -> f64 {
         let upper_mesh_length = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
         let lower_mesh_length = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
@@ -282,9 +376,11 @@ impl PoissonSolver {
             _ => 0.0,
         };
 
+        let qit = self.compute_qit_density(idx);
+
         let delta_potential = (c_upper * self.potential.potential[idx - 1]
             + c_lower * self.potential.potential[idx + 1]
-            - Q_ELECTRON * fixcharge_density)
+            - Q_ELECTRON * (fixcharge_density + qit))
             / (c_upper + c_lower)
             - self.potential.potential[idx];
         delta_potential
@@ -300,6 +396,7 @@ impl PoissonSolver {
     pub fn get_potential_profile(&mut self) -> Potential {
         self.calculate_electron_density();
         self.calculate_ionized_donor_concentration();
+        self.calculate_interface_occupation();
         self.potential.clone()
     }
 
@@ -332,6 +429,17 @@ impl PoissonSolver {
                     self.potential.potential[idx] + self.mesh_structure.delta_conduction_band(idx)
                         - self.mesh_structure.energy_level_donor(idx),
                 );
+        }
+    }
+
+    fn calculate_interface_occupation(&mut self) {
+        for idx in 0..self.mesh_structure.id.len() {
+            if matches!(self.mesh_structure.id[idx], IDX::Interface(_)) {
+                let occupation = self.compute_occupation_probability(idx);
+                self.previous_phase_occupation[idx] = Some(occupation);
+            } else {
+                self.previous_phase_occupation[idx] = None;
+            }
         }
     }
 }
@@ -512,6 +620,76 @@ mod tests {
         }
     }
 
+    use crate::mesh_builder::mesh_builder::{InterfaceStates, InterfaceStatesDistribution};
+
+    fn make_interface_mesh_with_states(
+        permittivity: f64,
+        acceptor_dit_val: f64,
+        donor_dit_val: f64,
+    ) -> MeshStructure {
+        // energy grid: 0.0, 0.5, 1.0 eV (Ec-Et)
+        let et_grid = vec![0.0, 0.5, 1.0];
+        let n = et_grid.len();
+        MeshStructure {
+            id: vec![
+                IDX::Surface,
+                IDX::Bulk(0),
+                IDX::Interface(0),
+                IDX::Bulk(1),
+                IDX::Bottom,
+            ],
+            name: vec![
+                "Surface".to_string(),
+                "Bulk0".to_string(),
+                "Interface".to_string(),
+                "Bulk1".to_string(),
+                "Bottom".to_string(),
+            ],
+            depth: vec![0.0, 1e-9, 2e-9, 3e-9, 4e-9],
+            property_type: vec![
+                PropertyType::Surface(SurfaceProperties {
+                    permittivity: 0.0,
+                    delta_conduction_band: 0.0,
+                    bandgap_energy: 1.0,
+                }),
+                PropertyType::Bulk(BulkProperties {
+                    mass_electron: 0.2,
+                    permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration: 0.0,
+                    energy_level_donor: 0.05,
+                    fixcharge_density: FixChargeDensity::Bulk(0.0),
+                    bandgap_energy: 1.0,
+                }),
+                PropertyType::Interface(InterfaceProperties {
+                    fixcharge_density: FixChargeDensity::Interface(0.0),
+                    interface_states: InterfaceStates::Distribution(InterfaceStatesDistribution {
+                        id: 0,
+                        potential: et_grid,
+                        acceptor_dit: vec![acceptor_dit_val; n],
+                        donor_dit: vec![donor_dit_val; n],
+                        capture_cross_section: vec![1e-15; n],
+                        thermal_velocity: 2.6e5,
+                    }),
+                }),
+                PropertyType::Bulk(BulkProperties {
+                    mass_electron: 0.2 * M_ELECTRON,
+                    permittivity,
+                    delta_conduction_band: 0.0,
+                    donor_concentration: 0.0,
+                    energy_level_donor: 0.05,
+                    fixcharge_density: FixChargeDensity::Bulk(0.0),
+                    bandgap_energy: 1.0,
+                }),
+                PropertyType::Bottom(BottomProperties {
+                    permittivity: 0.0,
+                    delta_conduction_band: 0.0,
+                    bandgap_energy: 1.0,
+                }),
+            ],
+        }
+    }
+
     // -----------------------------------------------------------------------
     // new()
     // -----------------------------------------------------------------------
@@ -611,7 +789,7 @@ mod tests {
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 100_000, false);
         solver.set_boundary_conditions(0.5, 0.1); // surface=0.5, bottom=0.1
 
-        let iters = solver.solve_poisson(); // panic しないこと
+        let iters = solver.solve_poisson(0.0); // panic しないこと
         assert!(
             iters <= solver.max_iterations,
             "iterations should not exceed max"
@@ -661,7 +839,7 @@ mod tests {
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, f64::MAX, 1000, false);
         solver.set_boundary_conditions(0.0, 0.2);
 
-        let iters = solver.solve_poisson();
+        let iters = solver.solve_poisson(0.0);
         assert_eq!(
             iters, 1,
             "solver should stop after first iteration with huge threshold"
@@ -676,7 +854,7 @@ mod tests {
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, -1.0, 123, false);
         solver.set_boundary_conditions(0.0, 0.5);
 
-        let iters = solver.solve_poisson();
+        let iters = solver.solve_poisson(0.0);
         assert_eq!(iters, solver.max_iterations);
     }
 
@@ -826,6 +1004,136 @@ mod tests {
             relative_eq!(delta_poisson, -0.5, max_relative = 1e-6),
             "interface delta should be affected by fixcharge: {} (expected -0.5)",
             delta_poisson
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // interface_srh フィールド初期化テスト
+    // -----------------------------------------------------------------------
+
+    /// interface ノードに対して SRHStatistics が Some で初期化されること
+    #[test]
+    fn test_new_interface_srh_some_for_interface_nodes() {
+        let mesh = make_interface_mesh(10.0 * EPSILON_0, 0.0);
+        // make_interface_mesh: [Surface, Bulk(0), Interface(0), Bulk(1), Bottom]
+        // Interface は idx=2
+        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
+        assert!(solver.interface_srh[0].is_none(), "Surface should be None");
+        assert!(solver.interface_srh[1].is_none(), "Bulk should be None");
+        assert!(
+            solver.interface_srh[2].is_some(),
+            "Interface(0) should be Some"
+        );
+        assert!(solver.interface_srh[3].is_none(), "Bulk should be None");
+        assert!(solver.interface_srh[4].is_none(), "Bottom should be None");
+    }
+
+    // -----------------------------------------------------------------------
+    // compute_occupation_probability()
+    // -----------------------------------------------------------------------
+
+    /// Stress フェーズ: φ_node = Et_grid[k] のとき f = 0.5
+    #[test]
+    fn test_compute_occupation_stress_at_fermi_level() {
+        let mesh = make_interface_mesh_with_states(10.0 * EPSILON_0, 1e16, 0.0);
+        // Interface は idx=2, et_grid = [0.0, 0.5, 1.0]
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
+        // φ_node = 0.5 → Et - Ef = 0.5 - 0.5 = 0.0 at k=1 → FD(0) = 0.5
+        solver.potential.potential[2] = 0.5;
+        let occ = solver.compute_occupation_probability(2);
+        assert_eq!(occ.len(), 3);
+        assert!(
+            relative_eq!(occ[1], 0.5, epsilon = 1e-10),
+            "f at Fermi level should be 0.5, got {}",
+            occ[1]
+        );
+    }
+
+    /// Stress フェーズ: Et >> Ef (φ_node - Et_grid[k] >> 0) のとき f ≈ 0
+    #[test]
+    fn test_compute_occupation_stress_trap_above_fermi() {
+        let mesh = make_interface_mesh_with_states(10.0 * EPSILON_0, 1e16, 0.0);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
+        // φ_node = 0.5, Et_grid[2] = 1.0 → φ - Et = -0.5 → FD(-0.5) ≈ 1.0
+        // φ_node = 0.5, Et_grid[0] = 0.0 → φ - Et = 0.5 → FD(0.5) ≈ 0 (300K: 0.5eV >> kT≈0.026eV)
+        solver.potential.potential[2] = 0.5;
+        let occ = solver.compute_occupation_probability(2);
+        assert!(
+            occ[0] < 1e-5,
+            "trap at Ec (well above Ef) should be nearly unoccupied, got {}",
+            occ[0]
+        );
+        assert!(
+            occ[2] > 1.0 - 1e-5,
+            "trap at Ev (well below Ef) should be nearly occupied, got {}",
+            occ[2]
+        );
+    }
+
+    /// non-Interface ノードに対して空 Vec が返ること
+    #[test]
+    fn test_compute_occupation_returns_empty_for_non_interface() {
+        let mesh = make_interface_mesh_with_states(10.0 * EPSILON_0, 1e16, 0.0);
+        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
+        let occ = solver.compute_occupation_probability(1); // Bulk node
+        assert!(occ.is_empty());
+    }
+
+    // -----------------------------------------------------------------------
+    // solve_interface() — Dit あり
+    // -----------------------------------------------------------------------
+
+    /// acceptor-like Dit があるとき、solve_interface の delta_potential が
+    /// Dit なしより大きくなること（負電荷 → 界面ポテンシャル上昇方向）
+    #[test]
+    fn test_solve_interface_acceptor_dit_increases_delta() {
+        let eps = 10.0 * EPSILON_0;
+
+        // Dit なし
+        let mesh_no_dit = make_interface_mesh(eps, 0.0);
+        let mut s0 = PoissonSolver::new(mesh_no_dit, 0.0, 300.0, 1.0, 1e-6, 1, false);
+        s0.potential.potential[1] = 0.3;
+        s0.potential.potential[2] = 0.0;
+        s0.potential.potential[3] = 0.3;
+        let delta_no_dit = s0.solve_interface(2);
+
+        // acceptor-like Dit あり、φ_node = 0.0 → FD(0 - 0) = 0.5 at Et=0
+        // Qit = -Dit * f * dE < 0 → 正電荷効果 → delta が小さくなる (or larger?)
+        // acceptor占有 → 負電荷 → 分子が増加 → delta_potential 増加
+        let mesh_with_dit = make_interface_mesh_with_states(eps, 1e20, 0.0);
+        let mut s1 = PoissonSolver::new(mesh_with_dit, 0.0, 300.0, 1.0, 1e-6, 1, false);
+        s1.potential.potential[1] = 0.3;
+        s1.potential.potential[2] = 0.0;
+        s1.potential.potential[3] = 0.3;
+        let delta_with_dit = s1.solve_interface(2);
+
+        // acceptor-like 占有 → 負電荷 → Q_ELECTRON * (fixcharge + qit) が減少 →
+        // 分子増加 → delta 増加
+        assert!(
+            delta_with_dit > delta_no_dit,
+            "acceptor Dit should increase delta: {} vs {}",
+            delta_with_dit,
+            delta_no_dit
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // set_temperature() — interface_srh 伝播テスト
+    // -----------------------------------------------------------------------
+
+    /// set_temperature 後、interface_srh の温度も更新されること
+    /// （SRHStatistics に get_temperature が存在するので確認する）
+    #[test]
+    fn test_set_temperature_propagates_to_interface_srh() {
+        let mesh = make_interface_mesh_with_states(10.0 * EPSILON_0, 1e16, 0.0);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
+        solver.set_temperature(400.0);
+
+        let srh = solver.interface_srh[2].as_ref().unwrap();
+        assert!(
+            relative_eq!(srh.get_temperature(), 400.0, epsilon = 1e-10),
+            "SRHStatistics temperature should be 400.0, got {}",
+            srh.get_temperature()
         );
     }
 }

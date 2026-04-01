@@ -76,20 +76,39 @@ impl CVSolver {
         let start = self.measurement.voltage.start;
         let end = self.measurement.voltage.end;
         let step = self.measurement.voltage.step;
+        let num_meas_points = ((end - start) / step).abs() + 1.0;
 
         if step == 0.0 {
             panic!("voltage step cannot be zero");
         }
 
+        self.set_dc(self.measurement.stress.stress_voltage, 0.0);
+        println!(
+            "Applied stress voltage: {:.3} V",
+            self.measurement.stress.stress_voltage
+        );
+
+        self.set_dc(
+            self.measurement.stress.stress_relief_voltage,
+            self.measurement.stress.stress_relief_time,
+        );
+        println!(
+            "Applied stress relief voltage: {:.3} V for {:.3} s\n",
+            self.measurement.stress.stress_relief_voltage,
+            self.measurement.stress.stress_relief_time
+        );
+
         // determine loop direction based on sign of step
         let mut gate_voltage = start;
         let forward = step > 0.0;
         let mut index = 0;
+        let time_step = self.measurement.time.measurement_time / num_meas_points;
         while (forward && gate_voltage <= end) || (!forward && gate_voltage >= end) {
-            self.set_dc_save_potential(gate_voltage, index)?;
+            self.set_dc_save_potential(gate_voltage, time_step * index as f64, index)?;
             let capacitance = self.solve_cv(gate_voltage)?;
             println!(
-                "Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
+                "Meas Time: {:.3} s, Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
+                time_step * index as f64,
                 gate_voltage,
                 capacitance * F_TO_NF * M2_TO_CM2
             );
@@ -114,9 +133,20 @@ impl CVSolver {
         Ok(())
     }
 
-    fn set_dc_save_potential(&mut self, gate_voltage: f64, index: usize) -> anyhow::Result<()> {
+    fn set_dc(&mut self, gate_voltage: f64, time_step: f64) {
         self.set_gate_voltage(gate_voltage);
-        self.poisson_solver.solve_poisson();
+        self.poisson_solver.solve_poisson(time_step);
+        _ = self.poisson_solver.get_potential_profile();
+    }
+
+    fn set_dc_save_potential(
+        &mut self,
+        gate_voltage: f64,
+        time_step: f64,
+        index: usize,
+    ) -> anyhow::Result<()> {
+        self.set_gate_voltage(gate_voltage);
+        self.poisson_solver.solve_poisson(time_step);
 
         let profile = self.poisson_solver.get_potential_profile();
         let filename = format!("{}_potential_{:.3}V.csv", index, gate_voltage);
@@ -132,9 +162,9 @@ impl CVSolver {
 
     fn solve_cv(&mut self, gate_voltage: f64) -> anyhow::Result<f64> {
         let electron_density_vg_plus_ac =
-            self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage);
+            self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage, 0.0);
         let electron_density_vg_minus_ac =
-            self.electron_density_at_vg(gate_voltage - self.measurement.ac_voltage);
+            self.electron_density_at_vg(gate_voltage - self.measurement.ac_voltage, 0.0);
 
         let capacitance = Q_ELECTRON * (electron_density_vg_plus_ac - electron_density_vg_minus_ac)
             / (2.0 * self.measurement.ac_voltage);
@@ -162,9 +192,9 @@ impl CVSolver {
     ///
     /// let _ = electron_density_at_vg();
     /// ```
-    fn electron_density_at_vg(&mut self, gate_voltage: f64) -> f64 {
+    fn electron_density_at_vg(&mut self, gate_voltage: f64, time_step: f64) -> f64 {
         self.set_gate_voltage(gate_voltage);
-        self.poisson_solver.solve_poisson();
+        self.poisson_solver.solve_poisson(time_step);
         let potential_at_vg = self.poisson_solver.get_potential_profile();
         let mut total_electron_density = 0.0; // in m2
         for idx in 1..potential_at_vg.depth.len() - 1 {
@@ -491,7 +521,7 @@ mod tests {
             0.0, 1.0, 0.1, 0.02,
         );
 
-        let electron_density = cv_solver.electron_density_at_vg(0.5);
+        let electron_density = cv_solver.electron_density_at_vg(0.5, 0.0);
         assert!(
             relative_eq!(electron_density, 0.0, epsilon = 1e-30),
             "electron density should be zero with mass_electron=0: {}",

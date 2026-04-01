@@ -17,7 +17,7 @@ use crate::solvers::cv_solver::CVSolver;
 use crate::solvers::poisson_solver::PoissonSolver;
 
 fn main() -> anyhow::Result<()> {
-    println!("Starting C-V simulation with the following parameters:");
+    println!("GaN C-V Simulator");
     let config = ConfigurationBuilder::from_interactive().build();
     println!("{:#?}", config);
     let output_dir = format!("outputs/{}", config.sim_settings.sim_name);

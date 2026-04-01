@@ -30,3 +30,4 @@ target
 *.csv
 *.png
 docs/superpowers/*
+*.txt

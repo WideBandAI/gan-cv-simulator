@@ -61,6 +61,7 @@ pub struct InterfaceStatesDistribution {
     pub acceptor_dit: Vec<f64>,
     pub donor_dit: Vec<f64>,
     pub capture_cross_section: Vec<f64>,
+    pub thermal_velocity: f64,
 }
 
 #[derive(Debug)]
@@ -149,6 +150,7 @@ impl MeshStructure {
             acceptor_dit: Vec::new(),
             donor_dit: Vec::new(),
             capture_cross_section: Vec::new(),
+            thermal_velocity: 0.0, // This will be set later if there are interface states
         };
 
         let has_continuous = configuration
@@ -164,6 +166,19 @@ impl MeshStructure {
         let has_states = has_continuous || has_discrete;
 
         if has_states {
+            if let Some(idx) = configuration
+                .capture_cross_section
+                .interface_id
+                .iter()
+                .position(|&id| id == struct_idx as u32)
+            {
+                interfacestates.thermal_velocity =
+                    configuration.capture_cross_section.thermal_velocity[idx];
+            } else {
+                panic!("Interface {} has states but no capture cross section model defined. This is a configuration error.", struct_idx);
+            }
+
+            // get bandgap for this interface
             let bandgap = configuration
                 .continuous_interface_states
                 .interface_id
@@ -188,6 +203,7 @@ impl MeshStructure {
                         .min(device_structure.bandgap_energy[struct_idx + 1])
                 });
 
+            // get the continuous state parameters for this interface
             let continuous_param = if has_continuous {
                 let idx = configuration
                     .continuous_interface_states
@@ -200,6 +216,7 @@ impl MeshStructure {
                 None
             };
 
+            // get the discrete state parameters for this interface
             let discrete_params = if has_discrete {
                 let idx = configuration
                     .discrete_interface_states
@@ -369,6 +386,14 @@ impl MeshStructure {
             _ => FixChargeDensity::Bulk(0.0),
         }
     }
+
+    /// Get the interface states at the given mesh index.
+    pub fn interface_states(&self, idx: usize) -> Option<&InterfaceStates> {
+        match &self.property_type[idx] {
+            PropertyType::Interface(p) => Some(&p.interface_states),
+            _ => None,
+        }
+    }
 }
 
 /// Build mesh structure
@@ -448,7 +473,9 @@ pub fn build(configuration: &Configuration) -> MeshStructure {
 mod tests {
     use super::*;
     use crate::config::boundary_conditions::BoundaryConditions;
-    use crate::config::capture_cross_section::CaptureCrossSectionConfig;
+    use crate::config::capture_cross_section::{
+        CaptureCrossSectionConfig, CaptureCrossSectionModel,
+    };
     use crate::config::fixcharge::{BulkFixedCharge, InterfaceFixedCharge};
     use crate::config::interface_states::{
         ContinuousInterfaceStatesConfig, DiscreteInterfaceStatesConfig,
@@ -525,8 +552,12 @@ mod tests {
                 ],
             },
             capture_cross_section: CaptureCrossSectionConfig {
-                interface_id: vec![],
-                model: vec![],
+                interface_id: (0..num_layers.saturating_sub(1) as u32).collect(),
+                model: vec![
+                    CaptureCrossSectionModel::Constant { sigma: 1e-15 };
+                    num_layers.saturating_sub(1)
+                ],
+                thermal_velocity: vec![2.6e5; num_layers.saturating_sub(1)],
             },
             mesh_params: MeshParams {
                 layer_id: (0..mesh_lengths.len() as u32).collect(),

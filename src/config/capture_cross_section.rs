@@ -5,6 +5,7 @@ use crate::constants::units::CM_TO_M;
 use crate::utils::{
     get_input, get_parsed_input_with_default, get_parsed_input_with_default_nonnegative,
 };
+use itertools::Itertools;
 
 #[derive(Debug, Clone, Copy)]
 pub enum CaptureCrossSectionModel {
@@ -23,6 +24,7 @@ pub enum CaptureCrossSectionModel {
 pub struct CaptureCrossSectionConfig {
     pub interface_id: Vec<u32>,
     pub model: Vec<CaptureCrossSectionModel>,
+    pub thermal_velocity: Vec<f64>,
 }
 
 /// Collect the sorted, deduplicated union of interface IDs that have any interface states.
@@ -48,21 +50,38 @@ pub fn define_capture_cross_section(
 
     if !interface_ids.is_empty() {
         println!("Define capture cross-section parameters.");
-    }
 
-    let (interface_id, model) = interface_ids
-        .iter()
-        .map(|&id| {
-            println!("Interface {}:", id);
-            let model = get_capture_cross_section_model(id);
-            (id, model)
-        })
-        .unzip();
+        let (interface_id, model, thermal_velocity): (Vec<_>, Vec<_>, Vec<_>) = interface_ids
+            .iter()
+            .map(|&id| {
+                println!("Interface {}:", id);
+                let model = get_capture_cross_section_model(id);
+                let thermal_velocity = get_thermal_velocity();
+                (id, model, thermal_velocity)
+            })
+            .multiunzip();
 
-    CaptureCrossSectionConfig {
-        interface_id,
-        model,
+        CaptureCrossSectionConfig {
+            interface_id,
+            model,
+            thermal_velocity,
+        }
+    } else {
+        println!("No interfaces with states defined, skipping capture cross-section parameters.");
+        CaptureCrossSectionConfig {
+            interface_id: vec![],
+            model: vec![],
+            thermal_velocity: vec![],
+        }
     }
+}
+
+fn get_thermal_velocity() -> f64 {
+    let v_cm_s: f64 = get_parsed_input_with_default_nonnegative(
+        "Enter thermal velocity (cm/s): default is 2.6e7 ",
+        2.6e7,
+    );
+    v_cm_s * CM_TO_M
 }
 
 fn get_capture_cross_section_model(interface_id: u32) -> CaptureCrossSectionModel {

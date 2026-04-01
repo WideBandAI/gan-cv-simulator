@@ -45,6 +45,7 @@ impl ConfigurationBuilder {
 
     /// Build configuration from interactive CLI input
     pub fn from_interactive() -> Self {
+        println!("Starting C-V simulation with the following parameters:");
         let sim_settings = define_sim_settings();
         let measurement = define_measurement();
         let device_structure = define_structure();

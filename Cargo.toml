@@ -13,6 +13,7 @@ readme = "README.md"
 anyhow = "1.0.95"
 approx = "0.5.1"
 indicatif = "0.18.4"
+itertools = "0.14.0"
 plotters = { version = "0.3.7", features = ["fontconfig-dlopen"] }
 rand = "0.8.5"
 rayon = "1.11.0"
