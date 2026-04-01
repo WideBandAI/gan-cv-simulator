@@ -1,4 +1,5 @@
 use crate::config::structure::DeviceStructure;
+use crate::constants::units::CM2_TO_M2;
 use crate::physics_equations::interface_states::DIGSModel;
 use crate::physics_equations::interface_states::DiscreteModel;
 use crate::physics_equations::interface_states::DiscreteStateType;
@@ -93,6 +94,7 @@ fn configure_continuous_interface_states(
         &format!("Enter Dit0 (cm^-2) for interface {}: default is 1e12 ", i),
         1e12,
     );
+    let dit0 = dit0 * CM2_TO_M2; // Convert to m^-2 for internal use
     let nssec: f64 = get_parsed_input_with_default_nonnegative(
         &format!("Enter nssec for interface {}: default is 10 ", i),
         10.0,
@@ -141,6 +143,7 @@ fn configure_discrete_interface_states(
             ),
             1e12,
         );
+        let ditmax = ditmax * CM2_TO_M2; // Convert to m^-2 for internal use
         let ed: f64 = get_parsed_input_with_default_nonnegative(
             &format!(
                 "Enter |Ec - Ed| (eV) for interface {} discrete trap {}: default is 0.5 ",
