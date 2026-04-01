@@ -349,8 +349,7 @@ mod tests {
     ) -> CVSolver {
         let eps = 10.0 * EPSILON_0;
         let mesh = make_cv_mesh(mass_electron, eps, donor_concentration, 0.0);
-        let poisson_solver =
-            PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false);
+        let poisson_solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false);
         let measurement = make_measurement(voltage_start, voltage_end, voltage_step, ac_voltage);
         let bc = make_boundary_conditions(barrier_height, ec_ef_bottom);
         let temp_dir = TempDir::new().unwrap();
