@@ -350,7 +350,7 @@ mod tests {
         let eps = 10.0 * EPSILON_0;
         let mesh = make_cv_mesh(mass_electron, eps, donor_concentration, 0.0);
         let poisson_solver =
-            PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false, 0.0, 0.0);
+            PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false);
         let measurement = make_measurement(voltage_start, voltage_end, voltage_step, ac_voltage);
         let bc = make_boundary_conditions(barrier_height, ec_ef_bottom);
         let temp_dir = TempDir::new().unwrap();
@@ -371,7 +371,7 @@ mod tests {
     fn test_new_initializes_fields_correctly() {
         let eps = 10.0 * EPSILON_0;
         let mesh = make_cv_mesh(0.2, eps, 1e22, 0.0);
-        let poisson_solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false, 0.0, 0.0);
+        let poisson_solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-6, 1000, false);
         let measurement = make_measurement(-2.0, 2.0, 0.1, 0.02);
         let bc = make_boundary_conditions(1.0, 0.1);
         let temp_dir = TempDir::new().unwrap();
@@ -522,7 +522,7 @@ mod tests {
             0.0, 1.0, 0.1, 0.02,
         );
 
-        let electron_density = cv_solver.electron_density_at_vg(0.5);
+        let electron_density = cv_solver.electron_density_at_vg(0.5, 0.0);
         assert!(
             relative_eq!(electron_density, 0.0, epsilon = 1e-30),
             "electron density should be zero with mass_electron=0: {}",
