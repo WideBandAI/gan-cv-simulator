@@ -82,6 +82,22 @@ impl CVSolver {
             panic!("voltage step cannot be zero");
         }
 
+        self.set_dc(self.measurement.stress.stress_voltage, 0.0);
+        println!(
+            "Applied stress voltage: {:.3} V",
+            self.measurement.stress.stress_voltage
+        );
+
+        self.set_dc(
+            self.measurement.stress.stress_relief_voltage,
+            self.measurement.stress.stress_relief_time,
+        );
+        println!(
+            "Applied stress relief voltage: {:.3} V for {:.3} s\n",
+            self.measurement.stress.stress_relief_voltage,
+            self.measurement.stress.stress_relief_time
+        );
+
         // determine loop direction based on sign of step
         let mut gate_voltage = start;
         let forward = step > 0.0;
@@ -91,7 +107,7 @@ impl CVSolver {
             self.set_dc_save_potential(gate_voltage, time_step * index as f64, index)?;
             let capacitance = self.solve_cv(gate_voltage)?;
             println!(
-                "Meas Time: {:.3e} s, Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
+                "Meas Time: {:.3} s, Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
                 time_step * index as f64,
                 gate_voltage,
                 capacitance * F_TO_NF * M2_TO_CM2
@@ -115,6 +131,12 @@ impl CVSolver {
             &self.save_dir,
         )?;
         Ok(())
+    }
+
+    fn set_dc(&mut self, gate_voltage: f64, time_step: f64) {
+        self.set_gate_voltage(gate_voltage);
+        self.poisson_solver.solve_poisson(time_step);
+        _ = self.poisson_solver.get_potential_profile();
     }
 
     fn set_dc_save_potential(
