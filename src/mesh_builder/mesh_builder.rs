@@ -473,7 +473,9 @@ pub fn build(configuration: &Configuration) -> MeshStructure {
 mod tests {
     use super::*;
     use crate::config::boundary_conditions::BoundaryConditions;
-    use crate::config::capture_cross_section::{CaptureCrossSectionConfig, CaptureCrossSectionModel};
+    use crate::config::capture_cross_section::{
+        CaptureCrossSectionConfig, CaptureCrossSectionModel,
+    };
     use crate::config::fixcharge::{BulkFixedCharge, InterfaceFixedCharge};
     use crate::config::interface_states::{
         ContinuousInterfaceStatesConfig, DiscreteInterfaceStatesConfig,
