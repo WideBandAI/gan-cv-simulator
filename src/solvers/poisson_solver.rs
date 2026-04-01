@@ -377,7 +377,6 @@ impl PoissonSolver {
         };
 
         let qit = self.compute_qit_density(idx);
-        //println!("qit: {:.2e}", qit);
 
         let delta_potential = (c_upper * self.potential.potential[idx - 1]
             + c_lower * self.potential.potential[idx + 1]
