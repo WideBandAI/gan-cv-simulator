@@ -61,6 +61,7 @@ pub struct InterfaceStatesDistribution {
     pub acceptor_dit: Vec<f64>,
     pub donor_dit: Vec<f64>,
     pub capture_cross_section: Vec<f64>,
+    pub thermal_velocity: f64,
 }
 
 #[derive(Debug)]
@@ -149,6 +150,7 @@ impl MeshStructure {
             acceptor_dit: Vec::new(),
             donor_dit: Vec::new(),
             capture_cross_section: Vec::new(),
+            thermal_velocity: 0.0, // This will be set later if there are interface states
         };
 
         let has_continuous = configuration
@@ -164,6 +166,18 @@ impl MeshStructure {
         let has_states = has_continuous || has_discrete;
 
         if has_states {
+            if let Some(idx) = configuration
+                .capture_cross_section
+                .interface_id
+                .iter()
+                .position(|&id| id == struct_idx as u32)
+            {
+                interfacestates.thermal_velocity =
+                    configuration.capture_cross_section.thermal_velocity[idx];
+            } else {
+                panic!("Interface {} has states but no capture cross section model defined. This is a configuration error.", struct_idx);
+            }
+
             // get bandgap for this interface
             let bandgap = configuration
                 .continuous_interface_states

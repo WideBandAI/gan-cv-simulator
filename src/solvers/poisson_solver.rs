@@ -33,7 +33,6 @@ pub struct PoissonSolver {
     parallel_use: bool,
     pub interface_srh: Vec<Option<SRHStatistics>>,
     pub previous_phase_occupation: Vec<Option<Vec<f64>>>,
-    #[allow(dead_code)]
     fermi_dirac: FermiDiracStatistics,
 }
 
@@ -70,7 +69,6 @@ impl PoissonSolver {
         convergence_threshold: f64,
         max_iterations: usize,
         parallel_use: bool,
-        thermal_velocity: f64,
     ) -> Self {
         let n = mesh_structure.id.len();
         let potential = Potential {
@@ -87,6 +85,16 @@ impl PoissonSolver {
             .map(|idx| {
                 if matches!(mesh_structure.id[idx], IDX::Interface(_)) {
                     let mass_electron = mesh_structure.mass_electron(idx + 1);
+                    let thermal_velocity = mesh_structure
+                        .interface_states(idx)
+                        .and_then(|states| {
+                            if let InterfaceStates::Distribution(d) = states {
+                                Some(d.thermal_velocity)
+                            } else {
+                                None
+                            }
+                        })
+                        .unwrap_or(0.0);
                     Some(SRHStatistics::new(
                         temperature,
                         mass_electron,
