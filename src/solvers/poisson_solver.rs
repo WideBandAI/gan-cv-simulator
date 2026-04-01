@@ -14,7 +14,6 @@ pub struct Potential {
     pub potential: Vec<f64>,
     pub electron_density: Vec<f64>,
     pub ionized_donor_concentration: Vec<f64>,
-    pub interface_occupation: Vec<Option<Vec<f64>>>,
 }
 
 #[derive(Debug)]
@@ -76,7 +75,6 @@ impl PoissonSolver {
             potential: vec![initial_potential; n],
             electron_density: vec![0.0; n],
             ionized_donor_concentration: vec![0.0; n],
-            interface_occupation: vec![None; n],
         };
 
         let red_indices: Vec<usize> = (1..n - 1).filter(|i| i % 2 == 1).collect();
@@ -379,6 +377,7 @@ impl PoissonSolver {
         };
 
         let qit = self.compute_qit_density(idx);
+        //println!("qit: {:.2e}", qit);
 
         let delta_potential = (c_upper * self.potential.potential[idx - 1]
             + c_lower * self.potential.potential[idx + 1]
@@ -437,10 +436,10 @@ impl PoissonSolver {
     fn calculate_interface_occupation(&mut self) {
         for idx in 0..self.mesh_structure.id.len() {
             if matches!(self.mesh_structure.id[idx], IDX::Interface(_)) {
-                let occ = self.compute_occupation_probability(idx);
-                if !occ.is_empty() {
-                    self.potential.interface_occupation[idx] = Some(occ);
-                }
+                let occupation = self.compute_occupation_probability(idx);
+                self.previous_phase_occupation[idx] = Some(occupation);
+            } else {
+                self.previous_phase_occupation[idx] = None;
             }
         }
     }
