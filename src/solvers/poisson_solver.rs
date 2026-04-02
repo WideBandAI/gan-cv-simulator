@@ -291,7 +291,8 @@ impl PoissonSolver {
             Some(s) => s,
             None => return Vec::new(),
         };
-        let phi_node = self.potential.potential[idx];
+        let phi_node =
+            self.potential.potential[idx] + self.mesh_structure.delta_conduction_band(idx);
 
         let prev = self.previous_phase_occupation[idx].as_ref();
 
