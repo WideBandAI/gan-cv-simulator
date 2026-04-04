@@ -192,12 +192,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let save_dir = temp_dir.path().to_str().unwrap();
 
-        let mesh = make_mesh_with_interface(
-            vec![1.0],
-            vec![1e16],
-            vec![2e16],
-            vec![1e-15],
-        );
+        let mesh = make_mesh_with_interface(vec![1.0], vec![1e16], vec![2e16], vec![1e-15]);
         let occupation: Vec<Option<Vec<f64>>> = vec![None, Some(vec![0.4]), None];
 
         save_interface_states(&mesh, &occupation, 0.0, save_dir).unwrap();
