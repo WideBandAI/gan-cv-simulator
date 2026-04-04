@@ -46,6 +46,7 @@ pub struct BulkProperties {
 pub struct InterfaceProperties {
     pub fixcharge_density: FixChargeDensity,
     pub interface_states: InterfaceStates,
+    pub delta_conduction_band: f64,
 }
 
 #[derive(Debug)]
@@ -283,12 +284,17 @@ impl MeshStructure {
             InterfaceStates::None
         };
 
+        let interface_delta_conduction_band = configuration.device_structure.delta_conduction_band
+            [struct_idx]
+            .min(configuration.device_structure.delta_conduction_band[struct_idx + 1]);
+
         self.property_type
             .push(PropertyType::Interface(InterfaceProperties {
                 fixcharge_density: FixChargeDensity::Interface(
                     configuration.interface_fixed_charge.charge_density[struct_idx],
                 ),
                 interface_states,
+                delta_conduction_band: interface_delta_conduction_band,
             }));
     }
 
@@ -340,7 +346,7 @@ impl MeshStructure {
             PropertyType::Surface(p) => p.delta_conduction_band,
             PropertyType::Bulk(p) => p.delta_conduction_band,
             PropertyType::Bottom(p) => p.delta_conduction_band,
-            PropertyType::Interface(_) => 0.0,
+            PropertyType::Interface(p) => p.delta_conduction_band, // This will be set to the minimum of the two adjacent layers during interface node creation
         }
     }
 
