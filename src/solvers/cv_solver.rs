@@ -163,6 +163,7 @@ impl CVSolver {
             &self.poisson_solver.previous_phase_occupation,
             gate_voltage,
             &self.save_dir,
+            index,
         )?;
         Ok(())
     }

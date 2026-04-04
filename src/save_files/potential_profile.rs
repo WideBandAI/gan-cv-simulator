@@ -13,15 +13,8 @@ pub fn save_potential_profile(
     save_dir: &str,
     filename: &str,
 ) -> anyhow::Result<()> {
-    // Guard against path traversal by disallowing `..` components.
-    // We allow absolute paths as tempfile::TempDir generates them.
+    super::validate_save_dir(save_dir)?;
     let save_dir_path = std::path::Path::new(save_dir);
-    if save_dir_path
-        .components()
-        .any(|c| matches!(c, std::path::Component::ParentDir))
-    {
-        anyhow::bail!("Invalid save directory: contains path traversal components.");
-    }
 
     let filename = match std::path::Path::new(filename).file_name() {
         Some(name) if name == std::path::Path::new(filename) => name,

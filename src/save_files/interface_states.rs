@@ -8,18 +8,14 @@ pub fn save_interface_states(
     previous_phase_occupation: &[Option<Vec<f64>>],
     gate_voltage: f64,
     save_dir: &str,
+    index: usize,
 ) -> anyhow::Result<()> {
-    // Guard against path traversal by disallowing `..` components.
-    // We allow absolute paths as tempfile::TempDir generates them.
-    let save_dir_path = std::path::Path::new(save_dir);
-    if save_dir_path
-        .components()
-        .any(|c| matches!(c, std::path::Component::ParentDir))
-    {
-        anyhow::bail!("Invalid save directory: contains path traversal components.");
-    }
+    super::validate_save_dir(save_dir)?;
 
+    let save_dir_path = std::path::Path::new(save_dir);
     let interface_states_dir = save_dir_path.join("interface_states");
+
+    let mut dir_created = false;
 
     for idx in 0..mesh_structure.id.len() {
         if !matches!(mesh_structure.id[idx], IDX::Interface(_)) {
@@ -40,15 +36,21 @@ pub fn save_interface_states(
             continue;
         }
 
-        fs::create_dir_all(&interface_states_dir).map_err(|e| {
-            anyhow::anyhow!(
-                "Failed to create output directory '{}': {}. Please check permissions and try again.",
-                interface_states_dir.display(),
-                e
-            )
-        })?;
+        if !dir_created {
+            fs::create_dir_all(&interface_states_dir).map_err(|e| {
+                anyhow::anyhow!(
+                    "Failed to create output directory '{}': {}. Please check permissions and try again.",
+                    interface_states_dir.display(),
+                    e
+                )
+            })?;
+            dir_created = true;
+        }
 
-        let filename = format!("{}_interfacestates_{:.3}V.csv", dist.id, gate_voltage);
+        let filename = format!(
+            "{}_{}_interfacestates_{:.3}V.csv",
+            index, dist.id, gate_voltage
+        );
         let file_path = interface_states_dir.join(&filename);
 
         let mut file = fs::File::create(&file_path).map_err(|e| {
@@ -178,12 +180,12 @@ mod tests {
         );
         let occupation: Vec<Option<Vec<f64>>> = vec![None, Some(vec![0.3, 0.5, 0.7]), None];
 
-        save_interface_states(&mesh, &occupation, 1.5, save_dir).unwrap();
+        save_interface_states(&mesh, &occupation, 1.5, save_dir, 0).unwrap();
 
         let file_path = temp_dir
             .path()
             .join("interface_states")
-            .join("0_interfacestates_1.500V.csv");
+            .join("0_0_interfacestates_1.500V.csv");
         assert!(file_path.exists(), "CSV file should be created");
     }
 
@@ -195,12 +197,12 @@ mod tests {
         let mesh = make_mesh_with_interface(vec![1.0], vec![1e16], vec![2e16], vec![1e-15]);
         let occupation: Vec<Option<Vec<f64>>> = vec![None, Some(vec![0.4]), None];
 
-        save_interface_states(&mesh, &occupation, 0.0, save_dir).unwrap();
+        save_interface_states(&mesh, &occupation, 0.0, save_dir, 1).unwrap();
 
         let file_path = temp_dir
             .path()
             .join("interface_states")
-            .join("0_interfacestates_0.000V.csv");
+            .join("1_0_interfacestates_0.000V.csv");
         let content = std::fs::read_to_string(file_path).unwrap();
         let lines: Vec<&str> = content.lines().collect();
 
@@ -221,7 +223,7 @@ mod tests {
         let mesh = make_mesh_no_interface();
         let occupation: Vec<Option<Vec<f64>>> = vec![None, None, None];
 
-        save_interface_states(&mesh, &occupation, 0.0, save_dir).unwrap();
+        save_interface_states(&mesh, &occupation, 0.0, save_dir, 0).unwrap();
 
         let interface_dir = temp_dir.path().join("interface_states");
         assert!(
@@ -234,7 +236,7 @@ mod tests {
     fn test_save_path_traversal_rejected() {
         let mesh = make_mesh_no_interface();
         let occupation: Vec<Option<Vec<f64>>> = vec![None, None, None];
-        let result = save_interface_states(&mesh, &occupation, 0.0, "../evil");
+        let result = save_interface_states(&mesh, &occupation, 0.0, "../evil", 0);
         assert!(result.is_err());
     }
 
@@ -252,7 +254,7 @@ mod tests {
         // occupation is None for the interface node
         let occupation: Vec<Option<Vec<f64>>> = vec![None, None, None];
 
-        save_interface_states(&mesh, &occupation, 1.0, save_dir).unwrap();
+        save_interface_states(&mesh, &occupation, 1.0, save_dir, 0).unwrap();
 
         let interface_dir = temp_dir.path().join("interface_states");
         assert!(
