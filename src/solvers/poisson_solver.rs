@@ -602,6 +602,7 @@ mod tests {
                 PropertyType::Interface(InterfaceProperties {
                     fixcharge_density: FixChargeDensity::Interface(interface_fixcharge),
                     interface_states: crate::mesh_builder::mesh_builder::InterfaceStates::None,
+                    delta_conduction_band: 0.0,
                 }),
                 PropertyType::Bulk(BulkProperties {
                     mass_electron: 0.2,
@@ -672,6 +673,7 @@ mod tests {
                         capture_cross_section: vec![1e-15; n],
                         thermal_velocity: 2.6e5,
                     }),
+                    delta_conduction_band: 0.0,
                 }),
                 PropertyType::Bulk(BulkProperties {
                     mass_electron: 0.2 * M_ELECTRON,

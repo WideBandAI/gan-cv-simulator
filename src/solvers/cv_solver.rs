@@ -4,6 +4,7 @@ use crate::constants::physics::Q_ELECTRON;
 use crate::constants::units::{F_TO_NF, M2_TO_CM2};
 use crate::plot::cv::plot_cv_curves;
 use crate::save_files::cv_curves::save_cv_curves;
+use crate::save_files::interface_states::save_interface_states;
 use crate::save_files::potential_profile::save_potential_profile;
 use crate::solvers::poisson_solver::PoissonSolver;
 
@@ -156,6 +157,12 @@ impl CVSolver {
             gate_voltage,
             &self.save_dir,
             &filename,
+        )?;
+        save_interface_states(
+            &self.poisson_solver.mesh_structure,
+            &self.poisson_solver.previous_phase_occupation,
+            gate_voltage,
+            &self.save_dir,
         )?;
         Ok(())
     }
