@@ -62,7 +62,7 @@ pub struct InterfaceStatesDistribution {
     pub acceptor_dit: Vec<f64>,
     pub donor_dit: Vec<f64>,
     pub capture_cross_section: Vec<f64>,
-    pub thermal_velocity: f64,
+    pub mass_electron: f64, // effective mass at interface (kg), used to compute thermal velocity in SRHStatistics
 }
 
 #[derive(Debug)]
@@ -151,7 +151,7 @@ impl MeshStructure {
             acceptor_dit: Vec::new(),
             donor_dit: Vec::new(),
             capture_cross_section: Vec::new(),
-            thermal_velocity: 0.0, // This will be set later if there are interface states
+            mass_electron: 0.0, // This will be set later if there are interface states
         };
 
         let has_continuous = configuration
@@ -173,8 +173,8 @@ impl MeshStructure {
                 .iter()
                 .position(|&id| id == struct_idx as u32)
             {
-                interfacestates.thermal_velocity =
-                    configuration.capture_cross_section.thermal_velocity[idx];
+                interfacestates.mass_electron =
+                    configuration.capture_cross_section.mass_electron[idx];
             } else {
                 panic!("Interface {} has states but no capture cross section model defined. This is a configuration error.", struct_idx);
             }
@@ -483,6 +483,7 @@ mod tests {
         CaptureCrossSectionConfig, CaptureCrossSectionModel,
     };
     use crate::config::fixcharge::{BulkFixedCharge, InterfaceFixedCharge};
+    use crate::constants::physics::M_ELECTRON;
     use crate::config::interface_states::{
         ContinuousInterfaceStatesConfig, DiscreteInterfaceStatesConfig,
     };
@@ -563,7 +564,7 @@ mod tests {
                     CaptureCrossSectionModel::Constant { sigma: 1e-15 };
                     num_layers.saturating_sub(1)
                 ],
-                thermal_velocity: vec![2.6e5; num_layers.saturating_sub(1)],
+                mass_electron: vec![0.2 * M_ELECTRON; num_layers.saturating_sub(1)],
             },
             mesh_params: MeshParams {
                 layer_id: (0..mesh_lengths.len() as u32).collect(),

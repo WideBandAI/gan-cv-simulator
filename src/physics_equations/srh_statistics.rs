@@ -16,7 +16,6 @@ pub struct SRHStatistics {
 ///
 /// - `temperature` (`f64`) - temperature in K.
 /// - `mass_electron` (`f64`) - mass of electron in kg.
-/// - `thermal_velocity` (`f64`) - thermal velocity.
 ///
 /// # Returns
 ///
@@ -28,16 +27,16 @@ pub struct SRHStatistics {
 /// use crate::physics_equations::srh_statistics::SRHStatistics;
 /// use crate::constants::physics::M_ELECTRON;
 ///
-/// let srh = SRHStatistics::new(300.0, 0.20 * M_ELECTRON, 2.6e5);
+/// let srh = SRHStatistics::new(300.0, 0.20 * M_ELECTRON);
 /// ```
 impl SRHStatistics {
-    pub fn new(temperature: f64, mass_electron: f64, thermal_velocity: f64) -> Self {
+    pub fn new(temperature: f64, mass_electron: f64) -> Self {
         let conduction_band_density =
             ConductionBandDensity::new(temperature).conduction_band_density(mass_electron);
         Self {
             temperature,
             q_per_kbt: Q_ELECTRON / (K_BOLTZMANN * temperature),
-            thermal_velocity,
+            thermal_velocity: (3.0 * K_BOLTZMANN * temperature / mass_electron).sqrt(),
             mass_electron,
             conduction_band_density,
         }
@@ -48,23 +47,18 @@ impl SRHStatistics {
         self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
         self.conduction_band_density =
             ConductionBandDensity::new(temperature).conduction_band_density(self.mass_electron);
+        self.thermal_velocity = (3.0 * K_BOLTZMANN * temperature / self.mass_electron).sqrt();
     }
 
     pub fn get_temperature(&self) -> f64 {
         self.temperature
     }
 
-    pub fn set_thermal_velocity(&mut self, thermal_velocity: f64) {
-        self.thermal_velocity = thermal_velocity;
-    }
-
-    pub fn get_thermal_velocity(&self) -> f64 {
-        self.thermal_velocity
-    }
-
     pub fn set_mass_electron(&mut self, mass_electron: f64) {
+        self.mass_electron = mass_electron;
         self.conduction_band_density =
             ConductionBandDensity::new(self.temperature).conduction_band_density(mass_electron);
+        self.thermal_velocity = (3.0 * K_BOLTZMANN * self.temperature / mass_electron).sqrt();
     }
 
     /// Electron emission time in sec
@@ -84,7 +78,7 @@ impl SRHStatistics {
     /// use crate::physics_equations::srh_statistics::SRHStatistics;
     /// use crate::constants::physics::M_ELECTRON;
     ///
-    /// let srh = SRHStatistics::new(300.0, 0.20 * M_ELECTRON, 2.6e5);
+    /// let srh = SRHStatistics::new(300.0, 0.20 * M_ELECTRON);
     /// let tau = srh.electron_emission_time(0.3, 1e-15);
     /// ```
     pub fn electron_emission_time(&self, potential: f64, capture_cross_section: f64) -> f64 {
@@ -110,7 +104,7 @@ impl SRHStatistics {
     /// use crate::physics_equations::srh_statistics::SRHStatistics;
     /// use crate::constants::physics::M_ELECTRON;
     ///
-    /// let srh = SRHStatistics::new(300.0, 0.20 * M_ELECTRON, 2.6e5);
+    /// let srh = SRHStatistics::new(300.0, 0.20 * M_ELECTRON);
     /// let coeff = srh.effective_emission_coefficient(1e-6, 0.3, 1e-15);
     /// ```
     pub fn effective_emission_coefficient(
@@ -131,11 +125,10 @@ mod tests {
     use approx::relative_eq;
     use test_case::test_case;
 
-    const THERMAL_VELOCITY: f64 = 2.6e5; // m/s, typical for GaN
     const GAN_MASS_COEFF: f64 = 0.20;
 
     fn make_srh(temp: f64) -> SRHStatistics {
-        SRHStatistics::new(temp, GAN_MASS_COEFF * M_ELECTRON, THERMAL_VELOCITY)
+        SRHStatistics::new(temp, GAN_MASS_COEFF * M_ELECTRON)
     }
 
     #[test]
@@ -147,7 +140,8 @@ mod tests {
     #[test]
     fn test_new_thermal_velocity() {
         let srh = make_srh(300.0);
-        assert_eq!(srh.get_thermal_velocity(), THERMAL_VELOCITY);
+        let expected = (3.0 * K_BOLTZMANN * 300.0 / (GAN_MASS_COEFF * M_ELECTRON)).sqrt();
+        assert!(approx::relative_eq!(srh.thermal_velocity, expected, max_relative = 1e-10));
     }
 
     #[test]
@@ -155,13 +149,6 @@ mod tests {
         let mut srh = make_srh(300.0);
         srh.set_temperature(400.0);
         assert_eq!(srh.get_temperature(), 400.0);
-    }
-
-    #[test]
-    fn test_set_thermal_velocity() {
-        let mut srh = make_srh(300.0);
-        srh.set_thermal_velocity(3.0e5);
-        assert_eq!(srh.get_thermal_velocity(), 3.0e5);
     }
 
     // potential=0 のとき exp 項が 1 になるので tau = 1 / (v_th * sigma * Nc)
@@ -172,7 +159,8 @@ mod tests {
         let sigma = 1e-15;
         let tau = srh.electron_emission_time(0.0, sigma);
         let nc_gan_300k = 2.244486e24_f64;
-        let expected = 1.0 / (THERMAL_VELOCITY * sigma * nc_gan_300k);
+        let v_th = (3.0 * K_BOLTZMANN * 300.0 / (GAN_MASS_COEFF * M_ELECTRON)).sqrt();
+        let expected = 1.0 / (v_th * sigma * nc_gan_300k);
         assert!(relative_eq!(tau, expected, max_relative = 1e-5));
     }
 
@@ -246,5 +234,21 @@ mod tests {
         let tau_400k = srh.electron_emission_time(potential, sigma);
         // 高温では q_per_kbt が小さくなり exp 項が減少するため tau が短くなる
         assert!(tau_400k < tau_300k);
+    }
+
+    #[test]
+    fn test_thermal_velocity_computed_from_mass_and_temperature() {
+        let temperature = 300.0_f64;
+        let mass = GAN_MASS_COEFF * M_ELECTRON;
+        let srh = SRHStatistics::new(temperature, mass);
+        // thermal_velocity = sqrt(3*KB*T/m) が emission_time に反映されているか確認
+        // tau = 1 / (v_th * sigma * Nc) @ potential=0
+        let sigma = 1e-15_f64;
+        let tau = srh.electron_emission_time(0.0, sigma);
+        let expected_v_th = (3.0 * K_BOLTZMANN * temperature / mass).sqrt();
+        // Nc at 300K, m=0.2*M_e (from existing tests: 2.244486e24 m^-3)
+        let nc = 2.244486e24_f64;
+        let expected_tau = 1.0 / (expected_v_th * sigma * nc);
+        assert!(relative_eq!(tau, expected_tau, max_relative = 1e-4));
     }
 }

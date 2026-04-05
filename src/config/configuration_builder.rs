@@ -53,8 +53,11 @@ impl ConfigurationBuilder {
         let interface_fixed_charge = define_interface_fixed_charge(&device_structure);
         let (continuous_interface_states, discrete_interface_states) =
             define_interface_states(&device_structure);
-        let capture_cross_section =
-            define_capture_cross_section(&continuous_interface_states, &discrete_interface_states);
+        let capture_cross_section = define_capture_cross_section(
+            &continuous_interface_states,
+            &discrete_interface_states,
+            &device_structure,
+        );
         let mesh_params = define_mesh_params(&device_structure);
         let boundary_conditions = define_boundary_conditions(&device_structure, &measurement);
 
