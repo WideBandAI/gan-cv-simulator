@@ -315,7 +315,7 @@ impl PoissonSolver {
             .collect()
     }
 
-    pub fn compute_qit_density(&self, idx: usize) -> f64 {
+    fn compute_qit_density(&self, idx: usize) -> f64 {
         let dist = match self.mesh_structure.interface_states(idx) {
             Some(InterfaceStates::Distribution(d)) => d,
             _ => return 0.0,
