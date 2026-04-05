@@ -306,12 +306,16 @@ impl PoissonSolver {
                 let f_prev = prev.map(|v| v[k]).unwrap_or(0.0);
                 let f_eq = self.fermi_dirac.fermi_dirac(phi_node - et);
 
-                (f_prev * (1.0 - eff_emission) + f_eq).min(1.0)
+                if f_eq >= f_prev {
+                    f_eq
+                } else {
+                    f_prev * (1.0 - eff_emission) + f_eq * eff_emission
+                }
             })
             .collect()
     }
 
-    fn compute_qit_density(&self, idx: usize) -> f64 {
+    pub fn compute_qit_density(&self, idx: usize) -> f64 {
         let dist = match self.mesh_structure.interface_states(idx) {
             Some(InterfaceStates::Distribution(d)) => d,
             _ => return 0.0,
@@ -378,6 +382,7 @@ impl PoissonSolver {
         };
 
         let qit = self.compute_qit_density(idx);
+        //println!("Interface idx {}: qit = {:.3e} C/m^2", idx, qit);
 
         let delta_potential = (c_upper * self.potential.potential[idx - 1]
             + c_lower * self.potential.potential[idx + 1]
