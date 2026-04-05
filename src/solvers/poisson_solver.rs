@@ -33,6 +33,11 @@ pub struct PoissonSolver {
     pub interface_srh: Vec<Option<SRHStatistics>>,
     pub previous_phase_occupation: Vec<Option<Vec<f64>>>,
     fermi_dirac: FermiDiracStatistics,
+    // Cache for `f_prev * (1 - eff_emission)` per interface node, rebuilt once per
+    // `solve_poisson()` call.  During SOR iterations these values are constant
+    // (time_step, trap energies, and previous occupation do not change), so
+    // recomputing them on every SOR step is wasteful.
+    f_floor_cache: Vec<Option<Vec<f64>>>,
 }
 
 /// Poisson equation solver using Successive Over-Relaxation (SOR) method.
@@ -121,6 +126,7 @@ impl PoissonSolver {
             interface_srh,
             previous_phase_occupation: vec![None; n],
             fermi_dirac: FermiDiracStatistics::new(temperature),
+            f_floor_cache: vec![None; n],
         }
     }
 
@@ -175,6 +181,49 @@ impl PoissonSolver {
         self.time_step = time_step;
     }
 
+    /// Pre-compute `f_prev * (1 - eff_emission)` for every trap energy level at
+    /// every interface node.  These values depend only on `time_step`, the fixed
+    /// trap parameters, and the previous-phase occupation — none of which change
+    /// during the SOR iterations — so computing them once here avoids repeating
+    /// two `exp()` evaluations per trap level per SOR step.
+    fn build_f_floor_cache(&mut self) {
+        let n = self.mesh_structure.id.len();
+        for idx in 0..n {
+            if !matches!(self.mesh_structure.id[idx], IDX::Interface(_)) {
+                self.f_floor_cache[idx] = None;
+                continue;
+            }
+            let dist = match self.mesh_structure.interface_states(idx) {
+                Some(InterfaceStates::Distribution(d)) => d,
+                _ => {
+                    self.f_floor_cache[idx] = None;
+                    continue;
+                }
+            };
+            let srh = match &self.interface_srh[idx] {
+                Some(s) => s,
+                None => {
+                    self.f_floor_cache[idx] = None;
+                    continue;
+                }
+            };
+            let prev = self.previous_phase_occupation[idx].as_ref();
+            let f_floor: Vec<f64> = dist
+                .potential
+                .iter()
+                .zip(dist.capture_cross_section.iter())
+                .enumerate()
+                .map(|(k, (&et, &sigma))| {
+                    let eff_emission =
+                        srh.effective_emission_coefficient(self.time_step, et, sigma);
+                    let f_prev = prev.map_or(0.0, |v| v[k]);
+                    f_prev * (1.0 - eff_emission)
+                })
+                .collect();
+            self.f_floor_cache[idx] = Some(f_floor);
+        }
+    }
+
     /// Solve poisson equation
     ///
     /// # Examples
@@ -186,6 +235,7 @@ impl PoissonSolver {
     /// ```
     pub fn solve_poisson(&mut self, time_step: f64) -> usize {
         self.set_time_step(time_step);
+        self.build_f_floor_cache();
         let pb = ProgressBar::new(self.max_iterations as u64);
         pb.set_style(
             ProgressStyle::default_bar()
@@ -289,28 +339,41 @@ impl PoissonSolver {
             Some(InterfaceStates::Distribution(d)) => d,
             _ => return Vec::new(),
         };
-        let srh = match &self.interface_srh[idx] {
-            Some(s) => s,
-            None => return Vec::new(),
-        };
         let phi_node =
             self.potential.potential[idx] + self.mesh_structure.delta_conduction_band(idx);
 
-        let prev = self.previous_phase_occupation[idx].as_ref();
-
-        dist.potential
-            .iter()
-            .zip(dist.capture_cross_section.iter())
-            .enumerate()
-            .map(|(k, (&et, &sigma))| {
-                let eff_emission = srh.effective_emission_coefficient(self.time_step, et, sigma);
-
-                let f_prev = prev.map(|v| v[k]).unwrap_or(0.0);
-                let f_eq = self.fermi_dirac.fermi_dirac(phi_node - et);
-
-                f_eq.max(f_prev * (1.0 - eff_emission))
-            })
-            .collect()
+        if let Some(f_floor) = &self.f_floor_cache[idx] {
+            // Fast path: use pre-computed floor values built by build_f_floor_cache().
+            dist.potential
+                .iter()
+                .enumerate()
+                .map(|(k, &et)| {
+                    let f_eq = self.fermi_dirac.fermi_dirac(phi_node - et);
+                    f_eq.max(f_floor[k])
+                })
+                .collect()
+        } else {
+            // Fallback: compute emission and floor on the fly.
+            // Used when this method is called outside of solve_poisson()
+            // (e.g. directly from tests or get_potential_profile).
+            let srh = match &self.interface_srh[idx] {
+                Some(s) => s,
+                None => return Vec::new(),
+            };
+            let prev = self.previous_phase_occupation[idx].as_ref();
+            dist.potential
+                .iter()
+                .zip(dist.capture_cross_section.iter())
+                .enumerate()
+                .map(|(k, (&et, &sigma))| {
+                    let eff_emission =
+                        srh.effective_emission_coefficient(self.time_step, et, sigma);
+                    let f_prev = prev.map_or(0.0, |v| v[k]);
+                    let f_eq = self.fermi_dirac.fermi_dirac(phi_node - et);
+                    f_eq.max(f_prev * (1.0 - eff_emission))
+                })
+                .collect()
+        }
     }
 
     fn compute_qit_density(&self, idx: usize) -> f64 {
