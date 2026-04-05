@@ -33,7 +33,7 @@ pub fn plot_cv_curves(
         .y_label_area_size(70)
         .build_cartesian_2d(xmin..xmax, ymin..ymax)?;
 
-    mesh_style(&mut chart, "Gate Voltage (V)", "Capacitance (F/cm²)")?;
+    mesh_style(&mut chart, "Gate Voltage (V)", "Capacitance (nF/cm²)")?;
 
     chart.draw_series(LineSeries::new(
         voltage.iter().zip(capacitance).map(|(&v, &c)| (v, c)),

@@ -63,9 +63,10 @@ pub fn save_interface_states(
 
         writeln!(
             file,
-            "Ec-E(eV), acceptor_like_dit (cm^-2 eV^-1), donor_like_dit (cm^-2 eV^-1), occupation_probability, qit (cm^-2 eV^-1)"
+            "Name, Ec-E(eV), acceptor_like_dit (cm^-2 eV^-1), donor_like_dit (cm^-2 eV^-1), occupation_probability, qit (cm^-2 eV^-1)"
         )?;
 
+        let layer_name = &mesh_structure.name[idx];
         for k in 0..dist.potential.len() {
             let ec_e = dist.potential[k];
             let acceptor_dit = dist.acceptor_dit[k] * M2_TO_CM2;
@@ -75,8 +76,8 @@ pub fn save_interface_states(
 
             writeln!(
                 file,
-                "{:.6}, {:.6e}, {:.6e}, {:.6}, {:.6e}",
-                ec_e, acceptor_dit, donor_dit, f, qit
+                "{}, {:.6}, {:.6e}, {:.6e}, {:.6}, {:.6e}",
+                layer_name, ec_e, acceptor_dit, donor_dit, f, qit
             )?;
         }
     }

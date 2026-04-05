@@ -306,7 +306,7 @@ impl PoissonSolver {
                 let f_prev = prev.map(|v| v[k]).unwrap_or(0.0);
                 let f_eq = self.fermi_dirac.fermi_dirac(phi_node - et);
 
-                (f_prev * (1.0 - eff_emission) + f_eq).min(1.0)
+                f_eq.max(f_prev * (1.0 - eff_emission))
             })
             .collect()
     }
