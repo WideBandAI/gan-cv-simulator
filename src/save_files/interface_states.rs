@@ -88,6 +88,7 @@ pub fn save_interface_states(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::constants::physics::M_ELECTRON;
     use crate::mesh_builder::mesh_builder::{
         BottomProperties, BulkProperties, FixChargeDensity, InterfaceProperties,
         InterfaceStatesDistribution, PropertyType, SurfaceProperties,
@@ -122,7 +123,7 @@ mod tests {
                         acceptor_dit,
                         donor_dit,
                         capture_cross_section,
-                        thermal_velocity: 2.6e5,
+                        mass_electron: 0.2 * M_ELECTRON,
                     }),
                     delta_conduction_band: 0.0,
                 }),

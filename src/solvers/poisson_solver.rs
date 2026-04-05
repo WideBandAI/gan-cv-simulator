@@ -82,22 +82,24 @@ impl PoissonSolver {
         let interface_srh: Vec<Option<SRHStatistics>> = (0..n)
             .map(|idx| {
                 if matches!(mesh_structure.id[idx], IDX::Interface(_)) {
-                    let mass_electron = mesh_structure.mass_electron(idx + 1);
-                    let thermal_velocity = mesh_structure
+                    // mass_electron of the bulk layer immediately below the interface.
+                    // Invariant: idx + 1 must be a Bulk node (mass_electron > 0).
+                    let mass_electron_bulk = mesh_structure.mass_electron(idx + 1);
+                    debug_assert!(
+                        mass_electron_bulk > 0.0,
+                        "idx + 1 must be a Bulk node with positive mass_electron"
+                    );
+                    let mass_electron_interface = mesh_structure
                         .interface_states(idx)
                         .and_then(|states| {
                             if let InterfaceStates::Distribution(d) = states {
-                                Some(d.thermal_velocity)
+                                Some(d.mass_electron)
                             } else {
                                 None
                             }
                         })
-                        .unwrap_or(0.0);
-                    Some(SRHStatistics::new(
-                        temperature,
-                        mass_electron,
-                        thermal_velocity,
-                    ))
+                        .unwrap_or(mass_electron_bulk);
+                    Some(SRHStatistics::new(temperature, mass_electron_interface))
                 } else {
                     None
                 }
@@ -591,7 +593,7 @@ mod tests {
                     bandgap_energy: 1.12,
                 }),
                 PropertyType::Bulk(BulkProperties {
-                    mass_electron: 0.2,
+                    mass_electron: 0.2 * M_ELECTRON,
                     permittivity,
                     delta_conduction_band: 0.0,
                     donor_concentration: 1e22,
@@ -605,7 +607,7 @@ mod tests {
                     delta_conduction_band: 0.0,
                 }),
                 PropertyType::Bulk(BulkProperties {
-                    mass_electron: 0.2,
+                    mass_electron: 0.2 * M_ELECTRON,
                     permittivity,
                     delta_conduction_band: 0.0,
                     donor_concentration: 1e22,
@@ -655,7 +657,7 @@ mod tests {
                     bandgap_energy: 1.0,
                 }),
                 PropertyType::Bulk(BulkProperties {
-                    mass_electron: 0.2,
+                    mass_electron: 0.2 * M_ELECTRON,
                     permittivity,
                     delta_conduction_band: 0.0,
                     donor_concentration: 0.0,
@@ -671,7 +673,7 @@ mod tests {
                         acceptor_dit: vec![acceptor_dit_val; n],
                         donor_dit: vec![donor_dit_val; n],
                         capture_cross_section: vec![1e-15; n],
-                        thermal_velocity: 2.6e5,
+                        mass_electron: 0.2 * M_ELECTRON,
                     }),
                     delta_conduction_band: 0.0,
                 }),

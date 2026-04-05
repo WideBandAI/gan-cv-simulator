@@ -1,9 +1,12 @@
 use crate::config::interface_states::{
     ContinuousInterfaceStatesConfig, DiscreteInterfaceStatesConfig,
 };
+use crate::config::structure::DeviceStructure;
+use crate::constants::physics::M_ELECTRON;
 use crate::constants::units::CM_TO_M;
 use crate::utils::{
-    get_input, get_parsed_input_with_default, get_parsed_input_with_default_nonnegative,
+    get_input, get_parsed_input, get_parsed_input_with_default,
+    get_parsed_input_with_default_nonnegative,
 };
 use itertools::Itertools;
 
@@ -24,7 +27,7 @@ pub enum CaptureCrossSectionModel {
 pub struct CaptureCrossSectionConfig {
     pub interface_id: Vec<u32>,
     pub model: Vec<CaptureCrossSectionModel>,
-    pub thermal_velocity: Vec<f64>,
+    pub mass_electron: Vec<f64>,
 }
 
 /// Collect the sorted, deduplicated union of interface IDs that have any interface states.
@@ -45,43 +48,67 @@ fn collect_interface_ids(
 pub fn define_capture_cross_section(
     continuous: &ContinuousInterfaceStatesConfig,
     discrete: &DiscreteInterfaceStatesConfig,
+    device_structure: &DeviceStructure,
 ) -> CaptureCrossSectionConfig {
     let interface_ids = collect_interface_ids(continuous, discrete);
 
     if !interface_ids.is_empty() {
         println!("Define capture cross-section parameters.");
 
-        let (interface_id, model, thermal_velocity): (Vec<_>, Vec<_>, Vec<_>) = interface_ids
+        let (interface_id, model, mass_electron): (Vec<_>, Vec<_>, Vec<_>) = interface_ids
             .iter()
             .map(|&id| {
                 println!("Interface {}:", id);
                 let model = get_capture_cross_section_model(id);
-                let thermal_velocity = get_thermal_velocity();
-                (id, model, thermal_velocity)
+                // Interface id is a boundary index (0..num_layers-1), so id+1 is always a valid layer index.
+                let lower_layer_mass = *device_structure
+                    .mass_electron
+                    .get(id as usize + 1)
+                    .expect("Interface id must be less than the number of layers minus one");
+                let me = get_mass_electron(id, lower_layer_mass);
+                (id, model, me)
             })
             .multiunzip();
 
         CaptureCrossSectionConfig {
             interface_id,
             model,
-            thermal_velocity,
+            mass_electron,
         }
     } else {
         println!("No interfaces with states defined, skipping capture cross-section parameters.");
         CaptureCrossSectionConfig {
             interface_id: vec![],
             model: vec![],
-            thermal_velocity: vec![],
+            mass_electron: vec![],
         }
     }
 }
 
-fn get_thermal_velocity() -> f64 {
-    let v_cm_s: f64 = get_parsed_input_with_default_nonnegative(
-        "Enter thermal velocity (cm/s): default is 2.6e7 ",
-        2.6e7,
-    );
-    v_cm_s * CM_TO_M
+fn get_mass_electron(interface_id: u32, lower_layer_mass_kg: f64) -> f64 {
+    loop {
+        let coeff: f64 = if lower_layer_mass_kg > 0.0 {
+            let lower_mass_coeff = lower_layer_mass_kg / M_ELECTRON;
+            get_parsed_input_with_default(
+                &format!(
+                    "Enter effective mass coefficient of electron for interface {}: default is {:.4} ",
+                    interface_id, lower_mass_coeff
+                ),
+                lower_mass_coeff,
+            )
+        } else {
+            get_parsed_input(&format!(
+                "Enter effective mass coefficient of electron for interface {}: ",
+                interface_id
+            ))
+        };
+
+        if coeff <= 0.0 {
+            println!("Invalid input. Please enter a positive value.");
+        } else {
+            return coeff * M_ELECTRON;
+        }
+    }
 }
 
 fn get_capture_cross_section_model(interface_id: u32) -> CaptureCrossSectionModel {
