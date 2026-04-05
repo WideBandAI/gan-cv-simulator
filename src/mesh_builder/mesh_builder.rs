@@ -483,7 +483,6 @@ mod tests {
         CaptureCrossSectionConfig, CaptureCrossSectionModel,
     };
     use crate::config::fixcharge::{BulkFixedCharge, InterfaceFixedCharge};
-    use crate::constants::physics::M_ELECTRON;
     use crate::config::interface_states::{
         ContinuousInterfaceStatesConfig, DiscreteInterfaceStatesConfig,
     };
@@ -491,6 +490,7 @@ mod tests {
     use crate::config::mesh::MeshParams;
     use crate::config::sim_settings::SimSettings;
     use crate::config::structure::{DeviceStructure, MaterialType};
+    use crate::constants::physics::M_ELECTRON;
     use crate::physics_equations::interface_states::{DIGSModel, DiscreteModel, DiscreteStateType};
     use approx::relative_eq;
 

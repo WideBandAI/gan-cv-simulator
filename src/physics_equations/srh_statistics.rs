@@ -143,7 +143,11 @@ mod tests {
     fn test_new_thermal_velocity() {
         let srh = make_srh(300.0);
         let expected = (3.0 * K_BOLTZMANN * 300.0 / (GAN_MASS_COEFF * M_ELECTRON)).sqrt();
-        assert!(approx::relative_eq!(srh.thermal_velocity, expected, max_relative = 1e-10));
+        assert!(approx::relative_eq!(
+            srh.thermal_velocity,
+            expected,
+            max_relative = 1e-10
+        ));
     }
 
     #[test]

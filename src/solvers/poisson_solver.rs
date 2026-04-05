@@ -85,7 +85,10 @@ impl PoissonSolver {
                     // mass_electron of the bulk layer immediately below the interface.
                     // Invariant: idx + 1 must be a Bulk node (mass_electron > 0).
                     let mass_electron_bulk = mesh_structure.mass_electron(idx + 1);
-                    debug_assert!(mass_electron_bulk > 0.0, "idx + 1 must be a Bulk node with positive mass_electron");
+                    debug_assert!(
+                        mass_electron_bulk > 0.0,
+                        "idx + 1 must be a Bulk node with positive mass_electron"
+                    );
                     let mass_electron_interface = mesh_structure
                         .interface_states(idx)
                         .and_then(|states| {
