@@ -31,6 +31,7 @@ pub struct SRHStatistics {
 /// ```
 impl SRHStatistics {
     pub fn new(temperature: f64, mass_electron: f64) -> Self {
+        debug_assert!(mass_electron > 0.0, "mass_electron must be positive");
         let conduction_band_density =
             ConductionBandDensity::new(temperature).conduction_band_density(mass_electron);
         Self {
@@ -55,6 +56,7 @@ impl SRHStatistics {
     }
 
     pub fn set_mass_electron(&mut self, mass_electron: f64) {
+        debug_assert!(mass_electron > 0.0, "mass_electron must be positive");
         self.mass_electron = mass_electron;
         self.conduction_band_density =
             ConductionBandDensity::new(self.temperature).conduction_band_density(mass_electron);
