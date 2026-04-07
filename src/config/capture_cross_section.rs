@@ -3,7 +3,7 @@ use crate::config::interface_states::{
 };
 use crate::config::structure::DeviceStructure;
 use crate::constants::physics::M_ELECTRON;
-use crate::constants::units::CM_TO_M;
+use crate::constants::units::CM2_TO_M2;
 use crate::utils::{
     get_input, get_parsed_input, get_parsed_input_with_default,
     get_parsed_input_with_default_nonnegative,
@@ -127,7 +127,7 @@ fn get_capture_cross_section_model(interface_id: u32) -> CaptureCrossSectionMode
                     1e-16,
                 );
                 return CaptureCrossSectionModel::Constant {
-                    sigma: sigma_cm2 * CM_TO_M.powi(2),
+                    sigma: sigma_cm2 * CM2_TO_M2,
                 };
             }
             "e" => {
@@ -153,7 +153,7 @@ fn get_capture_cross_section_model(interface_id: u32) -> CaptureCrossSectionMode
                     0.1,
                 );
                 return CaptureCrossSectionModel::EnergyDependent {
-                    sigma_mid: sigma_mid_cm2 * CM_TO_M.powi(2),
+                    sigma_mid: sigma_mid_cm2 * CM2_TO_M2,
                     e_mid,
                     e_slope,
                 };
@@ -196,7 +196,7 @@ mod tests {
     #[test]
     fn test_constant_model_stores_sigma_in_si_units() {
         let sigma_cm2 = 1e-16_f64;
-        let sigma_m2 = sigma_cm2 * CM_TO_M.powi(2);
+        let sigma_m2 = sigma_cm2 * CM2_TO_M2;
         let model = CaptureCrossSectionModel::Constant { sigma: sigma_m2 };
         match model {
             CaptureCrossSectionModel::Constant { sigma } => {
@@ -209,7 +209,7 @@ mod tests {
     #[test]
     fn test_energy_dependent_model_stores_sigma_mid_in_si_units() {
         let sigma_mid_cm2 = 1e-16_f64;
-        let sigma_mid_m2 = sigma_mid_cm2 * CM_TO_M.powi(2);
+        let sigma_mid_m2 = sigma_mid_cm2 * CM2_TO_M2;
         let model = CaptureCrossSectionModel::EnergyDependent {
             sigma_mid: sigma_mid_m2,
             e_mid: 0.5,

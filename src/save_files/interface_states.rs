@@ -1,4 +1,4 @@
-use crate::constants::units::PER_CM2_TO_PER_M2;
+use crate::constants::units::{M2_TO_CM2, PER_M2_TO_PER_CM2};
 use crate::mesh_builder::mesh_builder::{InterfaceStates, MeshStructure, IDX};
 use std::fs;
 use std::io::Write;
@@ -80,7 +80,7 @@ pub fn save_interface_states(
                 .and_then(|ccs| ccs.as_ref().and_then(|v| v.get(k)))
                 .cloned()
                 .unwrap_or(0.0)
-                * CM_TO_M.powi(2);
+                * M2_TO_CM2;
 
             writeln!(
                 file,
