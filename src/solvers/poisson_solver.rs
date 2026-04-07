@@ -509,6 +509,47 @@ impl PoissonSolver {
         }
     }
 
+    fn compute_off_diagonal(&self, idx: usize) -> (f64, f64) {
+        match self.mesh_structure.id[idx] {
+            IDX::Bulk(_) => {
+                let h_u = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
+                let h_l = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
+                (h_l / (h_u + h_l), h_u / (h_u + h_l))
+            }
+            IDX::Interface(_) => {
+                let h_u = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
+                let h_l = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
+                let c_u = self.mesh_structure.permittivity(idx - 1) / h_u;
+                let c_l = self.mesh_structure.permittivity(idx + 1) / h_l;
+                (c_u / (c_u + c_l), c_l / (c_u + c_l))
+            }
+            IDX::Surface | IDX::Bottom => {
+                panic!("compute_off_diagonal: boundary nodes have no off-diagonal")
+            }
+        }
+    }
+
+    fn build_residual(&self) -> Vec<f64> {
+        let n = self.mesh_structure.id.len();
+        (1..n - 1).map(|idx| self.compute_delta(idx)).collect()
+    }
+
+    fn build_jacobian(&self) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
+        let n = self.mesh_structure.id.len();
+        let m = n - 2;
+        let mut lower = vec![0.0; m];
+        let mut diag = vec![0.0; m];
+        let mut upper = vec![0.0; m];
+        for i in 0..m {
+            let idx = i + 1;
+            diag[i] = self.compute_jacobian_diagonal(idx);
+            let (sub, sup) = self.compute_off_diagonal(idx);
+            lower[i] = sub;
+            upper[i] = sup;
+        }
+        (lower, diag, upper)
+    }
+
     fn compute_dqit_dphi(&self, idx: usize) -> f64 {
         let dist = match self.mesh_structure.interface_states(idx) {
             Some(InterfaceStates::Distribution(d)) => d,
@@ -1289,6 +1330,38 @@ mod tests {
             "SRHStatistics temperature should be 400.0, got {}",
             srh.get_temperature()
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // build_residual() / build_jacobian()
+    // -----------------------------------------------------------------------
+
+    /// build_residual: ゼロ電荷・線形補間ポテンシャルで残差がゼロに近いこと
+    #[test]
+    fn test_build_residual_at_solution_is_near_zero() {
+        // depth=[0,1e-9,2e-9,3e-9], Nd=0, fixcharge=0 → 解は線形
+        // phi[0]=1.0 (surface), phi[3]=0.0 (bottom)
+        // 線形補間: phi[1]=2/3, phi[2]=1/3
+        let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false);
+        solver.set_boundary_conditions(1.0, 0.0);
+        solver.potential.potential[1] = 2.0 / 3.0;
+        solver.potential.potential[2] = 1.0 / 3.0;
+        let residual = solver.build_residual();
+        for (i, &r) in residual.iter().enumerate() {
+            assert!(r.abs() < 1e-10, "residual[{i}]={r} should be near zero");
+        }
+    }
+
+    /// build_jacobian: 均一メッシュのバルクノードで上下対角が 0.5 であること
+    #[test]
+    fn test_build_jacobian_off_diagonals_bulk() {
+        // depth=[0,1e-9,2e-9,3e-9]: h_u=h_l=1e-9 → sub=super=0.5
+        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
+        let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false);
+        let (lower, _diag, upper) = solver.build_jacobian();
+        assert!(relative_eq!(lower[0], 0.5, epsilon = 1e-12), "lower[0]={}", lower[0]);
+        assert!(relative_eq!(upper[0], 0.5, epsilon = 1e-12), "upper[0]={}", upper[0]);
     }
 
     // -----------------------------------------------------------------------
