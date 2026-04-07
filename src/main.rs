@@ -34,10 +34,8 @@ fn main() -> anyhow::Result<()> {
         mesh_structure,
         INITIAL_POTENTIAL,
         config.measurement.temperature.temperature,
-        config.sim_settings.sor_relaxation_factor,
         config.sim_settings.convergence_criterion,
         config.sim_settings.max_iterations,
-        config.sim_settings.parallel_use,
     );
     let mut cv_solver = CVSolver::new(
         poisson_solver,
