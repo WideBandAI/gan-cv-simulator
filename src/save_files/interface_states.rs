@@ -74,12 +74,7 @@ pub fn save_interface_states(
             let f = occ[k];
             let qit =
                 (-dist.acceptor_dit[k] * f + dist.donor_dit[k] * (1.0 - f)) * PER_M2_TO_PER_CM2;
-            let capture_cross_section_value = capture_cross_section
-                .get(idx)
-                .and_then(|ccs| ccs.as_ref().and_then(|v| v.get(k)))
-                .cloned()
-                .unwrap_or(0.0)
-                * M2_TO_CM2;
+            let capture_cross_section_value = dist.capture_cross_section[k] * M2_TO_CM2;
 
             writeln!(
                 file,
