@@ -6,6 +6,7 @@ use std::io::Write;
 pub fn save_interface_states(
     mesh_structure: &MeshStructure,
     previous_phase_occupation: &[Option<Vec<f64>>],
+    capture_cross_section: &[Option<Vec<f64>>],
     gate_voltage: f64,
     save_dir: &str,
     index: usize,
@@ -63,7 +64,7 @@ pub fn save_interface_states(
 
         writeln!(
             file,
-            "Name, Ec-E(eV), acceptor_like_dit (cm^-2 eV^-1), donor_like_dit (cm^-2 eV^-1), occupation_probability, qit (cm^-2 eV^-1)"
+            "Name, Ec-E(eV), acceptor_like_dit (cm^-2 eV^-1), donor_like_dit (cm^-2 eV^-1), occupation_probability, qit (cm^-2 eV^-1), capture_cross_section (cm^2)"
         )?;
 
         let layer_name = &mesh_structure.name[idx];
@@ -73,11 +74,17 @@ pub fn save_interface_states(
             let donor_dit = dist.donor_dit[k] * M2_TO_CM2;
             let f = occ[k];
             let qit = (-dist.acceptor_dit[k] * f + dist.donor_dit[k] * (1.0 - f)) * M2_TO_CM2;
+            let capture_cross_section_value = capture_cross_section
+                .get(idx)
+                .and_then(|ccs| ccs.as_ref().and_then(|v| v.get(k)))
+                .cloned()
+                .unwrap_or(0.0)
+                * M2_TO_CM2;
 
             writeln!(
                 file,
-                "{}, {:.6}, {:.6e}, {:.6e}, {:.6}, {:.6e}",
-                layer_name, ec_e, acceptor_dit, donor_dit, f, qit
+                "{}, {:.6}, {:.6e}, {:.6e}, {:.6}, {:.6e}, {:.6e}",
+                layer_name, ec_e, acceptor_dit, donor_dit, f, qit, capture_cross_section_value
             )?;
         }
     }
@@ -181,8 +188,10 @@ mod tests {
             vec![1e-15, 1e-15, 1e-15],
         );
         let occupation: Vec<Option<Vec<f64>>> = vec![None, Some(vec![0.3, 0.5, 0.7]), None];
+        let capture_cross_section = vec![None, Some(vec![1e-15, 1e-15, 1e-15]), None];
 
-        save_interface_states(&mesh, &occupation, 1.5, save_dir, 0).unwrap();
+        save_interface_states(&mesh, &occupation, &capture_cross_section, 1.5, save_dir, 0)
+            .unwrap();
 
         let file_path = temp_dir
             .path()
@@ -198,8 +207,10 @@ mod tests {
 
         let mesh = make_mesh_with_interface(vec![1.0], vec![1e16], vec![2e16], vec![1e-15]);
         let occupation: Vec<Option<Vec<f64>>> = vec![None, Some(vec![0.4]), None];
+        let capture_cross_section = vec![None, Some(vec![1e-15]), None];
 
-        save_interface_states(&mesh, &occupation, 0.0, save_dir, 1).unwrap();
+        save_interface_states(&mesh, &occupation, &capture_cross_section, 0.0, save_dir, 1)
+            .unwrap();
 
         let file_path = temp_dir
             .path()
@@ -224,8 +235,10 @@ mod tests {
 
         let mesh = make_mesh_no_interface();
         let occupation: Vec<Option<Vec<f64>>> = vec![None, None, None];
+        let capture_cross_section = vec![None, None, None];
 
-        save_interface_states(&mesh, &occupation, 0.0, save_dir, 0).unwrap();
+        save_interface_states(&mesh, &occupation, &capture_cross_section, 0.0, save_dir, 0)
+            .unwrap();
 
         let interface_dir = temp_dir.path().join("interface_states");
         assert!(
@@ -238,7 +251,15 @@ mod tests {
     fn test_save_path_traversal_rejected() {
         let mesh = make_mesh_no_interface();
         let occupation: Vec<Option<Vec<f64>>> = vec![None, None, None];
-        let result = save_interface_states(&mesh, &occupation, 0.0, "../evil", 0);
+        let capture_cross_section = vec![None, None, None];
+        let result = save_interface_states(
+            &mesh,
+            &occupation,
+            &capture_cross_section,
+            0.0,
+            "../evil",
+            0,
+        );
         assert!(result.is_err());
     }
 
@@ -255,8 +276,10 @@ mod tests {
         );
         // occupation is None for the interface node
         let occupation: Vec<Option<Vec<f64>>> = vec![None, None, None];
+        let capture_cross_section = vec![None, None, None];
 
-        save_interface_states(&mesh, &occupation, 1.0, save_dir, 0).unwrap();
+        save_interface_states(&mesh, &occupation, &capture_cross_section, 1.0, save_dir, 0)
+            .unwrap();
 
         let interface_dir = temp_dir.path().join("interface_states");
         assert!(
