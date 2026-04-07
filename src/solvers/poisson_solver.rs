@@ -509,6 +509,68 @@ impl PoissonSolver {
         }
     }
 
+    fn compute_dqit_dphi(&self, idx: usize) -> f64 {
+        let dist = match self.mesh_structure.interface_states(idx) {
+            Some(InterfaceStates::Distribution(d)) => d,
+            _ => return 0.0,
+        };
+        let n = dist.potential.len();
+        if n == 0 {
+            return 0.0;
+        }
+        let q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * self.temperature);
+        let occ = self.compute_occupation_probability(idx);
+        occ.iter()
+            .enumerate()
+            .map(|(k, &f)| {
+                let df_dphi = -f * (1.0 - f) * q_per_kbt;
+                let de = if k + 1 < n {
+                    dist.potential[k + 1] - dist.potential[k]
+                } else if n >= 2 {
+                    dist.potential[n - 1] - dist.potential[n - 2]
+                } else {
+                    1.0
+                };
+                (-dist.acceptor_dit[k] - dist.donor_dit[k]) * df_dphi * de
+            })
+            .sum()
+    }
+
+    fn compute_jacobian_diagonal(&self, idx: usize) -> f64 {
+        match self.mesh_structure.id[idx] {
+            IDX::Bulk(_) => {
+                let h_u = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
+                let h_l = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
+                let phi_eff = self.potential.potential[idx]
+                    + self.mesh_structure.delta_conduction_band(idx);
+                let n_e = self.electron_density_model.electron_density(
+                    phi_eff,
+                    self.mesh_structure.mass_electron(idx),
+                );
+                let q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * self.temperature);
+                let dn_dphi = -n_e * q_per_kbt;
+                let phi_donor = phi_eff - self.mesh_structure.energy_level_donor(idx);
+                let dnd_dphi = self.donor_activation_model.ionized_donor_dphi(
+                    self.mesh_structure.donor_concentration(idx),
+                    phi_donor,
+                );
+                let drho_dphi = -Q_ELECTRON * (dnd_dphi - dn_dphi);
+                h_u * h_l / (2.0 * self.mesh_structure.permittivity(idx)) * drho_dphi - 1.0
+            }
+            IDX::Interface(_) => {
+                let h_u = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
+                let h_l = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
+                let c_u = self.mesh_structure.permittivity(idx - 1) / h_u;
+                let c_l = self.mesh_structure.permittivity(idx + 1) / h_l;
+                let dqit_dphi = self.compute_dqit_dphi(idx);
+                -Q_ELECTRON * dqit_dphi / (c_u + c_l) - 1.0
+            }
+            IDX::Surface | IDX::Bottom => {
+                panic!("compute_jacobian_diagonal: boundary nodes have no Jacobian diagonal")
+            }
+        }
+    }
+
     fn thomas_solve(lower: &[f64], diag: &[f64], upper: &[f64], rhs: &[f64]) -> Vec<f64> {
         let n = rhs.len();
         let mut d = diag.to_vec();
@@ -1226,6 +1288,47 @@ mod tests {
             relative_eq!(srh.get_temperature(), 400.0, epsilon = 1e-10),
             "SRHStatistics temperature should be 400.0, got {}",
             srh.get_temperature()
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // compute_jacobian_diagonal()
+    // -----------------------------------------------------------------------
+
+    /// compute_jacobian_diagonal: バルクノードを有限差分で検証
+    #[test]
+    fn test_compute_jacobian_diagonal_bulk_matches_finite_difference() {
+        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false);
+        solver.potential.potential[1] = 0.5;
+
+        let idx = 1;
+        let analytical = solver.compute_jacobian_diagonal(idx);
+
+        let eps = 1e-6;
+        solver.potential.potential[idx] += eps;
+        let f_plus = solver.compute_delta(idx);
+        solver.potential.potential[idx] -= 2.0 * eps;
+        let f_minus = solver.compute_delta(idx);
+        solver.potential.potential[idx] += eps;
+        let numerical = (f_plus - f_minus) / (2.0 * eps);
+
+        assert!(
+            relative_eq!(analytical, numerical, max_relative = 1e-4),
+            "analytical={analytical}, numerical={numerical}"
+        );
+    }
+
+    /// compute_jacobian_diagonal: phi が大きい（完全電離・電子ゼロ）→ -1 に近い
+    #[test]
+    fn test_compute_jacobian_diagonal_bulk_large_phi() {
+        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
+        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 100_000, false);
+        solver.potential.potential[1] = 5.0;
+        let diag = solver.compute_jacobian_diagonal(1);
+        assert!(
+            relative_eq!(diag, -1.0, max_relative = 1e-3),
+            "diag={diag} should be near -1 at large phi"
         );
     }
 
