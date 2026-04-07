@@ -183,10 +183,8 @@ mod tests {
             vec![1e-15, 1e-15, 1e-15],
         );
         let occupation: Vec<Option<Vec<f64>>> = vec![None, Some(vec![0.3, 0.5, 0.7]), None];
-        let capture_cross_section = vec![None, Some(vec![1e-15, 1e-15, 1e-15]), None];
 
-        save_interface_states(&mesh, &occupation, &capture_cross_section, 1.5, save_dir, 0)
-            .unwrap();
+        save_interface_states(&mesh, &occupation, 1.5, save_dir, 0).unwrap();
 
         let file_path = temp_dir
             .path()
@@ -202,10 +200,8 @@ mod tests {
 
         let mesh = make_mesh_with_interface(vec![1.0], vec![1e16], vec![2e16], vec![1e-15]);
         let occupation: Vec<Option<Vec<f64>>> = vec![None, Some(vec![0.4]), None];
-        let capture_cross_section = vec![None, Some(vec![1e-15]), None];
 
-        save_interface_states(&mesh, &occupation, &capture_cross_section, 0.0, save_dir, 1)
-            .unwrap();
+        save_interface_states(&mesh, &occupation, 0.0, save_dir, 1).unwrap();
 
         let file_path = temp_dir
             .path()
@@ -230,10 +226,8 @@ mod tests {
 
         let mesh = make_mesh_no_interface();
         let occupation: Vec<Option<Vec<f64>>> = vec![None, None, None];
-        let capture_cross_section = vec![None, None, None];
 
-        save_interface_states(&mesh, &occupation, &capture_cross_section, 0.0, save_dir, 0)
-            .unwrap();
+        save_interface_states(&mesh, &occupation, 0.0, save_dir, 0).unwrap();
 
         let interface_dir = temp_dir.path().join("interface_states");
         assert!(
@@ -246,15 +240,7 @@ mod tests {
     fn test_save_path_traversal_rejected() {
         let mesh = make_mesh_no_interface();
         let occupation: Vec<Option<Vec<f64>>> = vec![None, None, None];
-        let capture_cross_section = vec![None, None, None];
-        let result = save_interface_states(
-            &mesh,
-            &occupation,
-            &capture_cross_section,
-            0.0,
-            "../evil",
-            0,
-        );
+        let result = save_interface_states(&mesh, &occupation, 0.0, "../evil", 0);
         assert!(result.is_err());
     }
 
@@ -271,10 +257,8 @@ mod tests {
         );
         // occupation is None for the interface node
         let occupation: Vec<Option<Vec<f64>>> = vec![None, None, None];
-        let capture_cross_section = vec![None, None, None];
 
-        save_interface_states(&mesh, &occupation, &capture_cross_section, 1.0, save_dir, 0)
-            .unwrap();
+        save_interface_states(&mesh, &occupation, 1.0, save_dir, 0).unwrap();
 
         let interface_dir = temp_dir.path().join("interface_states");
         assert!(
