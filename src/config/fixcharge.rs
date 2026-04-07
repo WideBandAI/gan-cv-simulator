@@ -1,5 +1,5 @@
 use crate::config::structure::DeviceStructure;
-use crate::constants::units::{CM2_TO_M2, CM3_TO_M3};
+use crate::constants::units::{PER_CM2_TO_PER_M2, PER_CM3_TO_PER_M3};
 use crate::utils::get_parsed_input_with_default;
 
 #[derive(Debug)]
@@ -52,7 +52,7 @@ pub fn define_bulk_fixed_charge(device_structure: &DeviceStructure) -> BulkFixed
         bulkfixedcharge.layer_id.push(device_structure.id[i]);
         bulkfixedcharge
             .charge_density
-            .push(charge_density * CM3_TO_M3); // Convert from C/cm^3 to C/m^3
+            .push(charge_density * PER_CM3_TO_PER_M3); // Convert from C/cm^3 to C/m^3
     }
     bulkfixedcharge
 }
@@ -102,7 +102,7 @@ pub fn define_interface_fixed_charge(device_structure: &DeviceStructure) -> Inte
         interfacefixedcharge.interface_id.push(i as u32);
         interfacefixedcharge
             .charge_density
-            .push(charge_density * CM2_TO_M2); // Convert from C/cm^2 to C/m^2
+            .push(charge_density * PER_CM2_TO_PER_M2); // Convert from C/cm^2 to C/m^2
     }
     interfacefixedcharge
 }

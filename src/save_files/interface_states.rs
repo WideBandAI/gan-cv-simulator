@@ -1,4 +1,4 @@
-use crate::constants::units::M2_TO_CM2;
+use crate::constants::units::PER_CM2_TO_PER_M2;
 use crate::mesh_builder::mesh_builder::{InterfaceStates, MeshStructure, IDX};
 use std::fs;
 use std::io::Write;
@@ -70,16 +70,17 @@ pub fn save_interface_states(
         let layer_name = &mesh_structure.name[idx];
         for k in 0..dist.potential.len() {
             let ec_e = dist.potential[k];
-            let acceptor_dit = dist.acceptor_dit[k] * M2_TO_CM2;
-            let donor_dit = dist.donor_dit[k] * M2_TO_CM2;
+            let acceptor_dit = dist.acceptor_dit[k] * PER_M2_TO_PER_CM2;
+            let donor_dit = dist.donor_dit[k] * PER_M2_TO_PER_CM2;
             let f = occ[k];
-            let qit = (-dist.acceptor_dit[k] * f + dist.donor_dit[k] * (1.0 - f)) * M2_TO_CM2;
+            let qit =
+                (-dist.acceptor_dit[k] * f + dist.donor_dit[k] * (1.0 - f)) * PER_M2_TO_PER_CM2;
             let capture_cross_section_value = capture_cross_section
                 .get(idx)
                 .and_then(|ccs| ccs.as_ref().and_then(|v| v.get(k)))
                 .cloned()
                 .unwrap_or(0.0)
-                * M2_TO_CM2;
+                * CM_TO_M.powi(2);
 
             writeln!(
                 file,
