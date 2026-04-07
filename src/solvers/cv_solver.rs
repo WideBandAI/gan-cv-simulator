@@ -2,7 +2,6 @@ use crate::config::boundary_conditions::BoundaryConditions;
 use crate::config::measurement::Measurement;
 use crate::constants::physics::Q_ELECTRON;
 use crate::constants::units::{F_TO_NF, PER_M2_TO_PER_CM2};
-use crate::mesh_builder::mesh_builder::InterfaceStates;
 use crate::plot::cv::plot_cv_curves;
 use crate::save_files::cv_curves::save_cv_curves;
 use crate::save_files::interface_states::save_interface_states;
@@ -162,16 +161,6 @@ impl CVSolver {
         save_interface_states(
             &self.poisson_solver.mesh_structure,
             &self.poisson_solver.previous_phase_occupation,
-            &(0..self.poisson_solver.mesh_structure.id.len())
-                .map(
-                    |idx| match self.poisson_solver.mesh_structure.interface_states(idx) {
-                        Some(InterfaceStates::Distribution(d)) => {
-                            Some(d.capture_cross_section.clone())
-                        }
-                        _ => None,
-                    },
-                )
-                .collect::<Vec<Option<Vec<f64>>>>(),
             gate_voltage,
             &self.save_dir,
             index,
