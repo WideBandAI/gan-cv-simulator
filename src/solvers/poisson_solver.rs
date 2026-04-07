@@ -541,17 +541,19 @@ impl PoissonSolver {
             IDX::Bulk(_) => {
                 let h_u = self.mesh_structure.depth[idx] - self.mesh_structure.depth[idx - 1];
                 let h_l = self.mesh_structure.depth[idx + 1] - self.mesh_structure.depth[idx];
-                let phi_eff =
-                    self.potential.potential[idx] + self.mesh_structure.delta_conduction_band(idx);
-                let n_e = self
-                    .electron_density_model
-                    .electron_density(phi_eff, self.mesh_structure.mass_electron(idx));
+                let phi_eff = self.potential.potential[idx]
+                    + self.mesh_structure.delta_conduction_band(idx);
+                let n_e = self.electron_density_model.electron_density(
+                    phi_eff,
+                    self.mesh_structure.mass_electron(idx),
+                );
                 let q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * self.temperature);
                 let dn_dphi = -n_e * q_per_kbt;
                 let phi_donor = phi_eff - self.mesh_structure.energy_level_donor(idx);
-                let dnd_dphi = self
-                    .donor_activation_model
-                    .ionized_donor_dphi(self.mesh_structure.donor_concentration(idx), phi_donor);
+                let dnd_dphi = self.donor_activation_model.ionized_donor_dphi(
+                    self.mesh_structure.donor_concentration(idx),
+                    phi_donor,
+                );
                 let drho_dphi = -Q_ELECTRON * (dnd_dphi - dn_dphi);
                 h_u * h_l / (2.0 * self.mesh_structure.permittivity(idx)) * drho_dphi - 1.0
             }
@@ -576,11 +578,7 @@ impl PoissonSolver {
 
         // Forward sweep
         for i in 1..n {
-            debug_assert!(
-                d[i - 1].abs() > 0.0,
-                "thomas_solve: zero pivot at {}",
-                i - 1
-            );
+            debug_assert!(d[i - 1].abs() > 0.0, "thomas_solve: zero pivot at {}", i - 1);
             let factor = lower[i] / d[i - 1];
             d[i] -= factor * upper[i - 1];
             b[i] -= factor * b[i - 1];
@@ -588,11 +586,7 @@ impl PoissonSolver {
 
         // Backward substitution
         let mut x = vec![0.0; n];
-        debug_assert!(
-            d[n - 1].abs() > 0.0,
-            "thomas_solve: zero pivot at {}",
-            n - 1
-        );
+        debug_assert!(d[n - 1].abs() > 0.0, "thomas_solve: zero pivot at {}", n - 1);
         x[n - 1] = b[n - 1] / d[n - 1];
         for i in (0..n - 1).rev() {
             x[i] = (b[i] - upper[i] * x[i + 1]) / d[i];
@@ -1321,10 +1315,7 @@ mod tests {
         let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1e-8, 10_000);
         solver.set_boundary_conditions(1.0, 0.1);
         let iters = solver.solve_poisson_with_newton();
-        assert!(
-            iters < 200,
-            "NR should converge in <200 iterations, got {iters}"
-        );
+        assert!(iters < 200, "NR should converge in <200 iterations, got {iters}");
         let residual = solver.build_residual();
         let max_r = residual.iter().map(|r| r.abs()).fold(0.0_f64, f64::max);
         assert!(max_r < 1e-6, "max residual={max_r}");
@@ -1358,16 +1349,8 @@ mod tests {
         let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
         let solver = PoissonSolver::new(mesh, 0.0, 300.0, 1e-8, 100_000);
         let (lower, _diag, upper) = solver.build_jacobian();
-        assert!(
-            relative_eq!(lower[0], 0.5, epsilon = 1e-12),
-            "lower[0]={}",
-            lower[0]
-        );
-        assert!(
-            relative_eq!(upper[0], 0.5, epsilon = 1e-12),
-            "upper[0]={}",
-            upper[0]
-        );
+        assert!(relative_eq!(lower[0], 0.5, epsilon = 1e-12), "lower[0]={}", lower[0]);
+        assert!(relative_eq!(upper[0], 0.5, epsilon = 1e-12), "upper[0]={}", upper[0]);
     }
 
     // -----------------------------------------------------------------------
@@ -1422,12 +1405,15 @@ mod tests {
     #[test]
     fn test_thomas_solve_known_solution() {
         let lower = vec![0.0, -1.0, -1.0];
-        let diag = vec![2.0, 2.0, 2.0];
-        let upper = vec![-1.0, -1.0, 0.0];
-        let rhs = vec![1.0, 0.0, 1.0];
+        let diag  = vec![ 2.0,  2.0,  2.0];
+        let upper = vec![-1.0, -1.0,  0.0];
+        let rhs   = vec![ 1.0,  0.0,  1.0];
         let x = PoissonSolver::thomas_solve(&lower, &diag, &upper, &rhs);
         for (i, &xi) in x.iter().enumerate() {
-            assert!(relative_eq!(xi, 1.0, epsilon = 1e-12), "x[{i}]={xi} != 1.0");
+            assert!(
+                relative_eq!(xi, 1.0, epsilon = 1e-12),
+                "x[{i}]={xi} != 1.0"
+            );
         }
     }
 
@@ -1435,9 +1421,9 @@ mod tests {
     #[test]
     fn test_thomas_solve_single_element() {
         let lower = vec![0.0];
-        let diag = vec![3.0];
+        let diag  = vec![3.0];
         let upper = vec![0.0];
-        let rhs = vec![6.0];
+        let rhs   = vec![6.0];
         let x = PoissonSolver::thomas_solve(&lower, &diag, &upper, &rhs);
         assert!(relative_eq!(x[0], 2.0, epsilon = 1e-12));
     }
@@ -1449,9 +1435,9 @@ mod tests {
     #[test]
     fn test_thomas_solve_asymmetric() {
         let lower = vec![0.0, 2.0, 1.0];
-        let diag = vec![3.0, 4.0, 5.0];
+        let diag  = vec![3.0, 4.0, 5.0];
         let upper = vec![1.0, 1.0, 0.0];
-        let rhs = vec![5.0, 13.0, 17.0];
+        let rhs   = vec![5.0, 13.0, 17.0];
         let x = PoissonSolver::thomas_solve(&lower, &diag, &upper, &rhs);
         assert!(relative_eq!(x[0], 1.0, epsilon = 1e-10));
         assert!(relative_eq!(x[1], 2.0, epsilon = 1e-10));
