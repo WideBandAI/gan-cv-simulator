@@ -2,7 +2,7 @@ use crate::config::boundary_conditions::BoundaryConditions;
 use crate::config::measurement::Measurement;
 use crate::constants::physics::Q_ELECTRON;
 use crate::constants::units::{F_TO_NF, PER_M2_TO_PER_CM2};
-use crate::mb::InterfaceStates;
+use crate::mesh_builder::mesh_builder::InterfaceStates;
 use crate::plot::cv::plot_cv_curves;
 use crate::save_files::cv_curves::save_cv_curves;
 use crate::save_files::interface_states::save_interface_states;
