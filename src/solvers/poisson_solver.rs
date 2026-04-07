@@ -508,6 +508,30 @@ impl PoissonSolver {
             }
         }
     }
+
+    fn thomas_solve(lower: &[f64], diag: &[f64], upper: &[f64], rhs: &[f64]) -> Vec<f64> {
+        let n = rhs.len();
+        let mut d = diag.to_vec();
+        let mut b = rhs.to_vec();
+
+        // Forward sweep
+        for i in 1..n {
+            debug_assert!(d[i - 1].abs() > 0.0, "thomas_solve: zero pivot at {}", i - 1);
+            let factor = lower[i] / d[i - 1];
+            d[i] -= factor * upper[i - 1];
+            b[i] -= factor * b[i - 1];
+        }
+
+        // Backward substitution
+        let mut x = vec![0.0; n];
+        debug_assert!(d[n - 1].abs() > 0.0, "thomas_solve: zero pivot at {}", n - 1);
+        x[n - 1] = b[n - 1] / d[n - 1];
+        for i in (0..n - 1).rev() {
+            x[i] = (b[i] - upper[i] * x[i + 1]) / d[i];
+        }
+
+        x
+    }
 }
 
 #[cfg(test)]
@@ -1203,5 +1227,55 @@ mod tests {
             "SRHStatistics temperature should be 400.0, got {}",
             srh.get_temperature()
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // thomas_solve()
+    // -----------------------------------------------------------------------
+
+    /// thomas_solve: 既知の解を持つ三重対角系で検証
+    /// [2 -1  0] [x0]   [1]      解: x = [1, 1, 1]
+    /// [-1 2 -1] [x1] = [0]
+    /// [0 -1  2] [x2]   [1]
+    #[test]
+    fn test_thomas_solve_known_solution() {
+        let lower = vec![0.0, -1.0, -1.0];
+        let diag  = vec![ 2.0,  2.0,  2.0];
+        let upper = vec![-1.0, -1.0,  0.0];
+        let rhs   = vec![ 1.0,  0.0,  1.0];
+        let x = PoissonSolver::thomas_solve(&lower, &diag, &upper, &rhs);
+        for (i, &xi) in x.iter().enumerate() {
+            assert!(
+                relative_eq!(xi, 1.0, epsilon = 1e-12),
+                "x[{i}]={xi} != 1.0"
+            );
+        }
+    }
+
+    /// thomas_solve: 1要素の系
+    #[test]
+    fn test_thomas_solve_single_element() {
+        let lower = vec![0.0];
+        let diag  = vec![3.0];
+        let upper = vec![0.0];
+        let rhs   = vec![6.0];
+        let x = PoissonSolver::thomas_solve(&lower, &diag, &upper, &rhs);
+        assert!(relative_eq!(x[0], 2.0, epsilon = 1e-12));
+    }
+
+    /// thomas_solve: 非対称の三重対角系
+    /// [3 1 0] [x0]   [5]      x0=1, x1=2, x2=3
+    /// [2 4 1] [x1] = [13]     (2*1 + 4*2 + 1*3 = 13)
+    /// [0 1 5] [x2]   [17]     (1*2 + 5*3 = 17)
+    #[test]
+    fn test_thomas_solve_asymmetric() {
+        let lower = vec![0.0, 2.0, 1.0];
+        let diag  = vec![3.0, 4.0, 5.0];
+        let upper = vec![1.0, 1.0, 0.0];
+        let rhs   = vec![5.0, 13.0, 17.0];
+        let x = PoissonSolver::thomas_solve(&lower, &diag, &upper, &rhs);
+        assert!(relative_eq!(x[0], 1.0, epsilon = 1e-10));
+        assert!(relative_eq!(x[1], 2.0, epsilon = 1e-10));
+        assert!(relative_eq!(x[2], 3.0, epsilon = 1e-10));
     }
 }
