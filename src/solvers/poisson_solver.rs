@@ -209,6 +209,14 @@ impl PoissonSolver {
                 }
             };
             let prev = self.previous_phase_occupation[idx].as_ref();
+            if let Some(p) = prev {
+                debug_assert_eq!(
+                    p.len(),
+                    dist.potential.len(),
+                    "Previous occupation length must match the number of trap levels"
+                );
+            }
+
             let f_floor: Vec<f64> = dist
                 .potential
                 .iter()
