@@ -509,63 +509,6 @@ impl PoissonSolver {
         }
     }
 
-    fn solve_poisson_with_newton(&mut self) -> usize {
-        let pb = ProgressBar::new(self.max_iterations as u64);
-        pb.set_style(
-            ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos:>7}/{len:7} {msg}")
-                .unwrap(),
-        );
-
-        let n = self.mesh_structure.id.len();
-        let mut iter_count = 0;
-        let mut max_delta = 0.0;
-
-        for i in 1..=self.max_iterations {
-            iter_count = i;
-
-            let residual = self.build_residual();
-            let (lower, diag, upper) = self.build_jacobian();
-            let rhs: Vec<f64> = residual.iter().map(|&r| -r).collect();
-            let delta_phi = Self::thomas_solve(&lower, &diag, &upper, &rhs);
-
-            // Backtracking line search
-            let residual_norm: f64 = residual.iter().map(|r| r.abs()).sum();
-            let saved: Vec<f64> = self.potential.potential[1..n - 1].to_vec();
-            let mut alpha = 1.0_f64;
-            for _ in 0..10 {
-                for (j, &d) in delta_phi.iter().enumerate() {
-                    self.potential.potential[j + 1] = saved[j] + alpha * d;
-                }
-                let new_norm: f64 = self.build_residual().iter().map(|r| r.abs()).sum();
-                if new_norm <= residual_norm {
-                    break;
-                }
-                alpha /= 2.0;
-            }
-
-            max_delta = delta_phi.iter().map(|d| d.abs()).fold(0.0_f64, f64::max);
-            pb.set_message(format!("max|δφ|={:.3e}", max_delta));
-            pb.inc(1);
-
-            if max_delta <= self.convergence_threshold {
-                break;
-            }
-        }
-
-        pb.set_position(iter_count as u64);
-        if iter_count >= self.max_iterations {
-            pb.finish_with_message(format!(
-                "max|δφ|={:.3e}. Reached max iterations without convergence.",
-                max_delta
-            ));
-        } else {
-            pb.abandon_with_message(format!("max|δφ|={:.3e}. Converged.", max_delta));
-        }
-
-        iter_count
-    }
-
     fn compute_off_diagonal(&self, idx: usize) -> (f64, f64) {
         match self.mesh_structure.id[idx] {
             IDX::Bulk(_) => {
@@ -1387,36 +1330,6 @@ mod tests {
             "SRHStatistics temperature should be 400.0, got {}",
             srh.get_temperature()
         );
-    }
-
-    // -----------------------------------------------------------------------
-    // solve_poisson_with_newton()
-    // -----------------------------------------------------------------------
-
-    /// solve_poisson_with_newton: ゼロ電荷メッシュで収束後の残差がゼロに近いこと
-    #[test]
-    fn test_solve_poisson_with_newton_converges_zero_charge() {
-        let mesh = make_simple_mesh(0.0, 10.0 * EPSILON_0, 0.0, 0.0);
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-10, 1000, false);
-        solver.set_boundary_conditions(1.0, 0.0);
-        solver.solve_poisson_with_newton();
-        let residual = solver.build_residual();
-        for (i, &r) in residual.iter().enumerate() {
-            assert!(r.abs() < 1e-9, "residual[{i}]={r}");
-        }
-    }
-
-    /// solve_poisson_with_newton: バルク電荷あり（Nd=1e22）でも少ない反復で収束すること
-    #[test]
-    fn test_solve_poisson_with_newton_converges_with_bulk_charge() {
-        let mesh = make_simple_mesh(0.2, 10.0 * EPSILON_0, 1e22, 0.0);
-        let mut solver = PoissonSolver::new(mesh, 0.0, 300.0, 1.0, 1e-8, 10_000, false);
-        solver.set_boundary_conditions(1.0, 0.1);
-        let iters = solver.solve_poisson_with_newton();
-        assert!(iters < 200, "NR should converge in <200 iterations, got {iters}");
-        let residual = solver.build_residual();
-        let max_r = residual.iter().map(|r| r.abs()).fold(0.0_f64, f64::max);
-        assert!(max_r < 1e-6, "max residual={max_r}");
     }
 
     // -----------------------------------------------------------------------
