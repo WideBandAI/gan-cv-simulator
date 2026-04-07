@@ -163,14 +163,14 @@ impl CVSolver {
             &self.poisson_solver.mesh_structure,
             &self.poisson_solver.previous_phase_occupation,
             &(0..self.poisson_solver.mesh_structure.id.len())
-                .map(|idx| {
-                    match self.poisson_solver.mesh_structure.interface_states(idx) {
+                .map(
+                    |idx| match self.poisson_solver.mesh_structure.interface_states(idx) {
                         Some(InterfaceStates::Distribution(d)) => {
                             Some(d.capture_cross_section.clone())
                         }
                         _ => None,
-                    }
-                })
+                    },
+                )
                 .collect::<Vec<Option<Vec<f64>>>>(),
             gate_voltage,
             &self.save_dir,
