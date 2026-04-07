@@ -175,6 +175,7 @@ impl PoissonSolver {
         for srh in self.interface_srh.iter_mut().flatten() {
             srh.set_temperature(temperature);
         }
+        self.f_floor_cache.fill(None);
     }
 
     fn set_time_step(&mut self, time_step: f64) {
