@@ -1,7 +1,7 @@
 use crate::config::boundary_conditions::BoundaryConditions;
 use crate::config::measurement::Measurement;
 use crate::constants::physics::Q_ELECTRON;
-use crate::constants::units::{F_TO_NF, M2_TO_CM2};
+use crate::constants::units::{F_TO_NF, PER_M2_TO_PER_CM2};
 use crate::plot::cv::plot_cv_curves;
 use crate::save_files::cv_curves::save_cv_curves;
 use crate::save_files::interface_states::save_interface_states;
@@ -111,10 +111,10 @@ impl CVSolver {
                 "Meas Time: {:.3} s, Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
                 time_step * index as f64,
                 gate_voltage,
-                capacitance * F_TO_NF * M2_TO_CM2
+                capacitance * F_TO_NF * PER_M2_TO_PER_CM2
             );
             gate_voltages.push(gate_voltage);
-            capacitances.push(capacitance * F_TO_NF * M2_TO_CM2);
+            capacitances.push(capacitance * F_TO_NF * PER_M2_TO_PER_CM2);
             gate_voltage += step;
             index += 1;
         }

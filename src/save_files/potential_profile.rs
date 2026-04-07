@@ -73,11 +73,11 @@ pub fn save_potential_profile(
         let layer_name = mesh_structure.name[idx].clone();
         let depth_nm = profile.depth[idx] * M_TO_NM;
         let fix_charge_bulk = match mesh_structure.fixcharge_density(idx) {
-            FixChargeDensity::Bulk(q) => q * M3_TO_CM3, // convert from C/m^3 to C/cm^3
+            FixChargeDensity::Bulk(q) => q * PER_M3_TO_PER_CM3, // convert from C/m^3 to C/cm^3
             _ => 0.0,
         };
         let fix_charge_interface = match mesh_structure.fixcharge_density(idx) {
-            FixChargeDensity::Interface(q) => q * M2_TO_CM2, // convert from C/m^2 to C/cm^2
+            FixChargeDensity::Interface(q) => q * PER_M2_TO_PER_CM2, // convert from C/m^2 to C/cm^2
             _ => 0.0,
         };
 
@@ -124,9 +124,9 @@ pub fn save_potential_profile(
         } else {
             let ec = profile.potential[idx] + mesh_structure.delta_conduction_band(idx);
             let ev = ec - mesh_structure.bandgap_energy(idx);
-            let ns = profile.electron_density[idx] * M3_TO_CM3; // convert
-            let nd_plus = profile.ionized_donor_concentration[idx] * M3_TO_CM3; // convert from 1/m^3 to 1/cm^3
-            let nd = mesh_structure.donor_concentration(idx) * M3_TO_CM3; // convert from 1/m^3 to 1/cm^3
+            let ns = profile.electron_density[idx] * PER_M3_TO_PER_CM3; // convert
+            let nd_plus = profile.ionized_donor_concentration[idx] * PER_M3_TO_PER_CM3; // convert from 1/m^3 to 1/cm^3
+            let nd = mesh_structure.donor_concentration(idx) * PER_M3_TO_PER_CM3; // convert from 1/m^3 to 1/cm^3
             let me = mesh_structure.mass_electron(idx) / M_ELECTRON;
             let epsilon_r = mesh_structure.permittivity(idx) / EPSILON_0;
 

@@ -1,5 +1,5 @@
 use crate::constants::physics::{EPSILON_0, M_ELECTRON};
-use crate::constants::units::{CM3_TO_M3, NM_TO_M};
+use crate::constants::units::{NM_TO_M, PER_CM3_TO_PER_M3};
 use crate::utils::{get_input, get_parsed_input};
 use std::vec;
 
@@ -114,7 +114,7 @@ pub fn define_structure() -> DeviceStructure {
                 "Enter donor concentration in cm^-3 for layer {}: ",
                 n
             ));
-            device.donor_concentration.push(nd * CM3_TO_M3); // convert cm^-3 to m^-3
+            device.donor_concentration.push(nd * PER_CM3_TO_PER_M3); // convert cm^-3 to m^-3
 
             let end: f64 = get_parsed_input(&format!(
                 "Enter energy level of donor in eV (Ec-Ed) for layer {}: ",

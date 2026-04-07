@@ -1,4 +1,4 @@
-use crate::constants::units::M2_TO_CM2;
+use crate::constants::units::{M2_TO_CM2, PER_M2_TO_PER_CM2};
 use crate::mesh_builder::mesh_builder::{InterfaceStates, MeshStructure, IDX};
 use std::fs;
 use std::io::Write;
@@ -63,21 +63,23 @@ pub fn save_interface_states(
 
         writeln!(
             file,
-            "Name, Ec-E(eV), acceptor_like_dit (cm^-2 eV^-1), donor_like_dit (cm^-2 eV^-1), occupation_probability, qit (cm^-2 eV^-1)"
+            "Name, Ec-E(eV), acceptor_like_dit (cm^-2 eV^-1), donor_like_dit (cm^-2 eV^-1), occupation_probability, qit (cm^-2 eV^-1), capture_cross_section (cm^2)"
         )?;
 
         let layer_name = &mesh_structure.name[idx];
         for k in 0..dist.potential.len() {
             let ec_e = dist.potential[k];
-            let acceptor_dit = dist.acceptor_dit[k] * M2_TO_CM2;
-            let donor_dit = dist.donor_dit[k] * M2_TO_CM2;
+            let acceptor_dit = dist.acceptor_dit[k] * PER_M2_TO_PER_CM2;
+            let donor_dit = dist.donor_dit[k] * PER_M2_TO_PER_CM2;
             let f = occ[k];
-            let qit = (-dist.acceptor_dit[k] * f + dist.donor_dit[k] * (1.0 - f)) * M2_TO_CM2;
+            let qit =
+                (-dist.acceptor_dit[k] * f + dist.donor_dit[k] * (1.0 - f)) * PER_M2_TO_PER_CM2;
+            let capture_cross_section_value = dist.capture_cross_section[k] * M2_TO_CM2;
 
             writeln!(
                 file,
-                "{}, {:.6}, {:.6e}, {:.6e}, {:.6}, {:.6e}",
-                layer_name, ec_e, acceptor_dit, donor_dit, f, qit
+                "{}, {:.6}, {:.6e}, {:.6e}, {:.6}, {:.6e}, {:.6e}",
+                layer_name, ec_e, acceptor_dit, donor_dit, f, qit, capture_cross_section_value
             )?;
         }
     }

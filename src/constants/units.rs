@@ -1,14 +1,20 @@
 /// [cm^-3] → [m^-3]
-pub const CM3_TO_M3: f64 = 1.0e6;
+pub const PER_CM3_TO_PER_M3: f64 = 1.0e6;
 
 /// [m^-3] → [cm^-3]
-pub const M3_TO_CM3: f64 = 1.0e-6;
+pub const PER_M3_TO_PER_CM3: f64 = 1.0e-6;
 
 /// [cm^-2] → [m^-2]
-pub const CM2_TO_M2: f64 = 1.0e4;
+pub const PER_CM2_TO_PER_M2: f64 = 1.0e4;
 
 /// [m^-2] → [cm^-2]
-pub const M2_TO_CM2: f64 = 1.0e-4;
+pub const PER_M2_TO_PER_CM2: f64 = 1.0e-4;
+
+/// [m2] → [cm2]
+pub const M2_TO_CM2: f64 = 1.0e4;
+
+/// [cm2] → [m2]
+pub const CM2_TO_M2: f64 = 1.0e-4;
 
 /// [cm] → [m]
 pub const CM_TO_M: f64 = 1.0e-2;
