@@ -169,19 +169,10 @@ impl CVSolver {
     }
 
     fn solve_cv(&mut self, gate_voltage: f64) -> anyhow::Result<f64> {
-        // Save DC potential so AC perturbation solves both start from the same initial
-        // state, and so the next DC step warm-starts from the correct potential.
-        let dc_snapshot = self.poisson_solver.potential.potential.clone();
-
         let electron_density_vg_plus_ac =
             self.electron_density_at_vg(gate_voltage + self.measurement.ac_voltage, 0.0);
-
-        self.poisson_solver.potential.potential = dc_snapshot.clone();
-
         let electron_density_vg_minus_ac =
             self.electron_density_at_vg(gate_voltage - self.measurement.ac_voltage, 0.0);
-
-        self.poisson_solver.potential.potential = dc_snapshot;
 
         let capacitance = Q_ELECTRON * (electron_density_vg_plus_ac - electron_density_vg_minus_ac)
             / (2.0 * self.measurement.ac_voltage);
@@ -642,34 +633,5 @@ mod tests {
         let mut cv_solver = make_cv_solver(0.0, 0.0, 1.0, 0.5, 0.5, 0.5, 0.1, 0.02);
         // start == end なので1回だけ計算して終了
         cv_solver.run().unwrap();
-    }
-
-    // -----------------------------------------------------------------------
-    // solve_cv() warm-start
-    // -----------------------------------------------------------------------
-
-    /// solve_cv の後にポテンシャルがDC解に戻っていること
-    #[test]
-    fn test_solve_cv_restores_dc_potential() {
-        let mut cv_solver = make_cv_solver(0.2, 1e22, 1.0, 0.1, 0.0, 1.0, 0.1, 0.02);
-        let gate_voltage = 0.5;
-
-        // DC solve
-        cv_solver.poisson_solver.set_boundary_conditions(
-            -gate_voltage + cv_solver.boundary_conditions.barrier_height,
-            cv_solver.boundary_conditions.ec_ef_bottom,
-        );
-        cv_solver.poisson_solver.solve_poisson(0.0);
-        let dc_potential = cv_solver.poisson_solver.potential.potential.clone();
-
-        let _ = cv_solver.solve_cv(gate_voltage).unwrap();
-        let after_potential = &cv_solver.poisson_solver.potential.potential;
-
-        for (i, (&dc, &after)) in dc_potential.iter().zip(after_potential.iter()).enumerate() {
-            assert!(
-                approx::relative_eq!(dc, after, epsilon = 1e-12),
-                "potential[{i}] after solve_cv: dc={dc}, after={after}"
-            );
-        }
     }
 }
