@@ -101,7 +101,10 @@ mod tests {
     fn test_ionized_donor_dphi_large_phi_near_zero() {
         let da = DonorActivation::new(300.0);
         let result = da.ionized_donor_dphi(1e22, 5.0);
-        assert!(result.abs() < 1e10, "should be near zero at large phi: {result}");
+        assert!(
+            result.abs() < 1e10,
+            "should be near zero at large phi: {result}"
+        );
     }
 
     #[test_case(1e22, 300.0, 1.0, 1e22 ; "high-potential")]
