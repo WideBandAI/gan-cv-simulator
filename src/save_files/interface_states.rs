@@ -6,7 +6,6 @@ use std::io::Write;
 pub fn save_interface_states(
     mesh_structure: &MeshStructure,
     previous_phase_occupation: &[Option<Vec<f64>>],
-    capture_cross_section: &[Option<Vec<f64>>],
     gate_voltage: f64,
     save_dir: &str,
     index: usize,
