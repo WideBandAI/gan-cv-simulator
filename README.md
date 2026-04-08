@@ -5,7 +5,20 @@
 
 `gan-cv-simulator` is a high-performance simulation tool designed to model the Capacitance-Voltage (C-V) characteristics of n-GaN and GaN HEMT diodes. It solves the 1D Poisson equation to determine the potential profile and charge distribution across multi-layer semiconductor structures.
 
-![Simulation Result](./img/rust-gan-cv.png)
+![gan-cv-simulator_image](./img/rust-gan-cv.png)
+
+
+## Key Features: DIGS Model Integration
+The most distinctive feature of `gan-cv-simulator` is its support for the **Disorder-Induced Gap State (DIGS) model**. 
+* **Interface State Density:** It allows users to define a specific distribution for interface state densities.
+* **Potential & C-V Analysis:** Users can simulate the precise impact of these interface states on the internal potential profile and the resulting C-V characteristics.
+
+## Physical Model & Limitations
+This simulator is optimized for specific physical conditions:
+* **High-Frequency Focus:** The model focuses on the regime where **electron capture** is the dominant process, typically observed in high-frequency C-V characteristics (e.g., **1 MHz or higher**).
+* **Electron Dynamics:** It does **not** account for the full charging/discharging (emission) cycles of interface states seen in low-frequency measurements. 
+* **Comparison Guideline:** For the most accurate validation, simulation results should be compared against **high-frequency experimental C-V data**.
+
 
 ## Features
 
