@@ -62,8 +62,8 @@ The interactive CLI will prompt you for:
 
 ### Documentation
 
-  * [**Parameter Descriptions**](https://www.google.com/search?q=./docs/parameters.md): Detailed explanation of all inputs.
-  * [**Simulation Physics**](https://www.google.com/search?q=./docs/physics.md): Mathematical models and equations.
+  * [**Parameter Descriptions**](./docs/parameters.md): Detailed explanation of all inputs.
+  * [**Simulation Physics**](./docs/physics.md): Mathematical models and equations.
 
 ## Outputs
 
