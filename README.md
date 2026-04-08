@@ -40,7 +40,7 @@ Download pre-compiled binaries from the [GitHub Releases](https://github.com/Wid
 ### From Source
 
 ```bash
-git clone [https://github.com/WideBandAI/gan-cv-simulator.git](https://github.com/WideBandAI/gan-cv-simulator.git)
+git clone https://github.com/WideBandAI/gan-cv-simulator.git
 cd gan-cv-simulator
 cargo build --release
 ```
