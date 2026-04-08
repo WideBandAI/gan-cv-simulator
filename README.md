@@ -7,50 +7,43 @@
 
 ![gan-cv-simulator_image](./img/rust-gan-cv.png)
 
+## Physics & Modeling: DIGS Integration
+The most distinctive feature of this simulator is its specialized support for the **Disorder-Induced Gap State (DIGS) model**, enabling precise analysis of interface physics.
 
-## Key Features: DIGS Model Integration
-The most distinctive feature of `gan-cv-simulator` is its support for the **Disorder-Induced Gap State (DIGS) model**. 
-* **Interface State Density:** It allows users to define a specific distribution for interface state densities.
-* **Potential & C-V Analysis:** Users can simulate the precise impact of these interface states on the internal potential profile and the resulting C-V characteristics.
-
-## Physical Model & Limitations
-This simulator is optimized for specific physical conditions:
-* **High-Frequency Focus:** The model focuses on the regime where **electron capture** is the dominant process, typically observed in high-frequency C-V characteristics (e.g., **1 MHz or higher**).
-* **Electron Dynamics:** It does **not** account for the full charging/discharging (emission) cycles of interface states seen in low-frequency measurements. 
-* **Comparison Guideline:** For the most accurate validation, simulation results should be compared against **high-frequency experimental C-V data**.
+* **Interface State Density:** Define custom distributions for interface state densities to see their impact on C-V curves.
+* **High-Frequency Focus:** Optimized for the regime where **electron capture** is dominant (typically **1 MHz or higher**).
+* **Note on Limitations:** It does **not** account for the full emission cycles seen in low-frequency measurements. For the best accuracy, compare results against **high-frequency experimental data**.
 
 
-## Features
 
-- **Multi-layer Support**: Model complex heterostructures with any number of semiconductor and insulator layers.
-- **Physical Accuracy**: Accounts for donor activation, effective mass, and band offsets.
-- **Flexible Fixed Charges**: Define bulk fixed charges within layers and interface charges between layers.
-- **High Performance**: Implementation in Rust with support for parallel processing (via Rayon) for faster convergence.
-- **Interactive Configuration**: Easy-to-use CLI for defining simulation parameters.
+## Core Capabilities
+
+-   **Multi-layer Heterostructures:** Model complex stacks with any number of semiconductor and insulator layers.
+-   **Physical Precision:** Accounts for donor activation, effective mass, and band offsets.
+-   **Flexible Charge Distribution:** Define bulk fixed charges within layers and interface charges between them.
+-   **High Performance:** Built with **Rust and Rayon** for efficient parallel processing and faster convergence.
+-   **Interactive CLI:** A user-friendly command-line interface guides you through the parameter setup.
+
+---
 
 ## Installation
 
 ### From Cargo
-
 ```bash
 cargo install gan-cv-simulator
-```
+````
 
 ### Manual Installation
 
-Download the pre-compiled binaries from the [GitHub Releases](https://github.com/WideBandAI/gan-cv-simulator/releases) page.
+Download pre-compiled binaries from the [GitHub Releases](https://github.com/WideBandAI/gan-cv-simulator/releases) page.
 
 ### From Source
 
-Ensure you have the [Rust toolchain](https://rustup.rs/) installed, then:
-
 ```bash
-git clone https://github.com/WideBandAI/gan-cv-simulator.git
+git clone [https://github.com/WideBandAI/gan-cv-simulator.git](https://github.com/WideBandAI/gan-cv-simulator.git)
 cd gan-cv-simulator
 cargo build --release
 ```
-
-The binary will be located at `target/release/gan-cv-simulator`.
 
 ## Usage
 
@@ -60,28 +53,25 @@ Run the simulator from the terminal:
 gan-cv-simulator
 ```
 
-The simulator will prompt you interactively for various parameters, including:
-- Simulation settings (convergence criteria, relaxation factors)
-- Measurement conditions (temperature, voltage sweep, stress conditions)
-- Device structure (layer thickness, materials, doping)
-- Fixed charge densities (bulk and interface)
-- Interface states (continuous DIGS model, discrete Gaussian traps)
-- Capture cross-section (constant or energy-dependent)
-- Mesh discretization
-- Boundary conditions
+The interactive CLI will prompt you for:
+
+  * **Simulation & Mesh:** Convergence criteria, relaxation factors, and discretization.
+  * **Device Structure:** Layer thickness, materials, doping, and fixed charges.
+  * **Interface Physics:** Continuous DIGS model, discrete Gaussian traps, and energy-dependent capture cross-sections.
+  * **Measurement Conditions:** Temperature, voltage sweep, and stress conditions.
 
 ### Documentation
 
-For detailed information, please refer to:
-- [**Parameter Descriptions**](./docs/parameters.md): Explanation of all configuration parameters.
-- [**Simulation Physics**](./docs/physics.md): Mathematical models and physical equations used.
+  * [**Parameter Descriptions**](https://www.google.com/search?q=./docs/parameters.md): Detailed explanation of all inputs.
+  * [**Simulation Physics**](https://www.google.com/search?q=./docs/physics.md): Mathematical models and equations.
 
 ## Outputs
 
-Simulation results are saved in the `outputs/` directory under a subfolder named after your simulation. Key output files include:
-- `cv_characteristics.csv`: The calculated capacitance vs. voltage data.
-- `potential_profile.csv`: Spatial distribution of the electrostatic potential.
-- Plots generated using the `plotters` library.
+Results are saved in the `outputs/` directory:
+
+  - `cv_characteristics.csv`: Capacitance vs. Voltage data.
+  - `potential_profile.csv`: Spatial distribution of electrostatic potential.
+  - Visual plots generated using the `plotters` library.
 
 ## Citation
 
@@ -102,4 +92,4 @@ If you use this software in your research, please cite the following paper:
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+Licensed under the Apache License 2.0. See [LICENSE](https://www.google.com/search?q=LICENSE) for details.
