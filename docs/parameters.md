@@ -10,7 +10,7 @@ These settings control the overall simulation behavior and termination criteria.
 | `Simulation Name` | String | - | Name for this simulation run. Used as the output directory name. |
 | `SOR Relaxation Factor` | Float | 1.9 | Successive Over-Relaxation factor for the Poisson solver. |
 | `Convergence Criterion` | Float | 1e-6 | Convergence threshold in eV. |
-| `Max Iterations` | Integer | 500,000 | Maximum number of iterations for the solver. |
+| `Max Iterations` | Integer | 100,000 | Maximum number of iterations for the solver. |
 | `Parallel Processing` | Boolean | false | Whether to use parallel processing for the Poisson solver. |
 
 ## Measurement Parameters
@@ -69,6 +69,48 @@ These parameters define the spatial and energy discretization for the simulation
 | `Mesh Length` | Float | 0.1 | Spatial grid spacing in nm. |
 | `Mesh Layer Thickness` | Float | - | Thickness of each mesh region in nm. |
 | `Energy Step` | Float | 0.1 | Discretization step for energy levels in meV. |
+
+## Interface States
+Interface trap states can be defined at each interface between adjacent layers. Two models are supported.
+
+### Continuous Interface States (DIGS Model)
+The Disorder-Induced Gap States (DIGS) model describes a continuous distribution of traps across the bandgap.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `Dit0` | Float | 1e12 | Minimum trap density at the charge neutrality level in $cm^{-2}$. |
+| `nssec` | Float | 10 | Ratio $D_{it}(E_c) / D_{it0}$; controls the rise of acceptor-like traps toward $E_c$. |
+| `nssev` | Float | 10 | Ratio $D_{it}(E_v) / D_{it0}$; controls the rise of donor-like traps toward $E_v$. |
+| `\|Ec - Ecnl\|` | Float | 1.3 | Energy distance from the conduction band to the charge neutrality level in eV. |
+| `nd` | Float | 3 | Exponent controlling the energy dependence of donor-like states. |
+| `na` | Float | 3 | Exponent controlling the energy dependence of acceptor-like states. |
+
+### Discrete Interface States
+Discrete trap levels described by a Gaussian distribution in energy.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `Ditmax` | Float | 1e12 | Peak trap density in $cm^{-2}$. |
+| `\|Ec - Ed\|` | Float | 0.5 | Energy position of the trap level below the conduction band in eV. |
+| `FWHM` | Float | 0.3 | Full width at half maximum of the Gaussian distribution in eV. |
+| `State Type` | Enum | - | DonorLike (d) or AcceptorLike (a). |
+
+## Capture Cross-Section
+Required for each interface that has interface states. Two models are available.
+
+### Constant Model
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `sigma` | Float | 1e-16 | Capture cross-section in $cm^2$ (energy-independent). |
+
+### Energy-Dependent Model
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `sigma_mid` | Float | 1e-16 | Capture cross-section at the reference energy $E_{mid}$ in $cm^2$. |
+| `E_mid` | Float | 0.5 | Reference energy $\|E_c - E_{mid}\|$ in eV. |
+| `E_slope` | Float | 0.1 | Energy scale of the exponential variation: $\sigma(E) = \sigma_{mid} \cdot \exp\!\bigl((E - E_{mid}) / E_{slope}\bigr)$ in eV. |
+
+For each interface with states, the effective electron mass used in the thermal velocity calculation is also prompted (defaulting to the mass of the lower layer).
 
 ## Boundary Conditions
 These parameters define the potential at the device boundaries.

@@ -49,10 +49,13 @@ gan-cv-simulator
 
 The simulator will prompt you interactively for various parameters, including:
 - Simulation settings (convergence criteria, relaxation factors)
-- Measurement conditions (temperature, voltage sweep)
+- Measurement conditions (temperature, voltage sweep, stress conditions)
 - Device structure (layer thickness, materials, doping)
-- Fixed charge densities
+- Fixed charge densities (bulk and interface)
+- Interface states (continuous DIGS model, discrete Gaussian traps)
+- Capture cross-section (constant or energy-dependent)
 - Mesh discretization
+- Boundary conditions
 
 ### Documentation
 
