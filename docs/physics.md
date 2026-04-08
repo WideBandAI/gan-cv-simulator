@@ -71,102 +71,107 @@ Where:
 
 ## 4. Interface States
 
-界面（異種材料の接合面）には固定電荷やトラップ準位が存在し、C-V 特性に大きく影響する。このシミュレータでは、界面ノードにおける Poisson 方程式を別途導出し、固定界面電荷と動的なトラップ電荷の両方を考慮する。
+Fixed charges and trap states exist at heterojunction interfaces and significantly affect C-V characteristics. This simulator treats interface nodes with a separate formulation of Poisson's equation that accounts for both fixed interface charges and dynamic trap charges.
 
-### 4.1. 界面ノードの Poisson 方程式
+### 4.1. Poisson's Equation at an Interface Node
 
-界面ノード $i$ では、電気変位ベクトルの法線成分の不連続条件（Gauss の法則）を離散化する:
+At interface node $i$, the discontinuity condition for the normal component of the electric displacement field (Gauss's law) is discretized as:
 
 $$\frac{\epsilon_{i-1}}{h_u}(\phi_i - \phi_{i-1}) + \frac{\epsilon_{i+1}}{h_d}(\phi_i - \phi_{i+1}) = -q \left( N_{fixed} + N_{it} \right)$$
 
-ここで $c_u = \epsilon_{i-1}/h_u$、$c_d = \epsilon_{i+1}/h_d$ とおくと、SOR 更新式は以下になる:
+Defining $c_u = \epsilon_{i-1}/h_u$ and $c_d = \epsilon_{i+1}/h_d$, the SOR update equation becomes:
 
 $$\phi_i^{new} = \frac{c_u \phi_{i-1} + c_d \phi_{i+1} - q(N_{fixed} + N_{it})}{c_u + c_d}$$
 
-- $h_u = x_i - x_{i-1}$: 上側のメッシュ間隔
-- $h_d = x_{i+1} - x_i$: 下側のメッシュ間隔
-- $\epsilon_{i-1}$, $\epsilon_{i+1}$: 上側・下側層の誘電率 [F/m]
-- $N_{fixed}$: 固定界面電荷の面密度 [$m^{-2}$]（正の値 = 正電荷）
-- $N_{it}$: 動的トラップ電荷の面密度 [$m^{-2}$]
+Where:
+- $h_u = x_i - x_{i-1}$: mesh spacing above the interface
+- $h_d = x_{i+1} - x_i$: mesh spacing below the interface
+- $\epsilon_{i-1}$, $\epsilon_{i+1}$: permittivity of the upper and lower layers [F/m]
+- $N_{fixed}$: fixed interface charge areal density [$m^{-2}$] (positive = positive charge)
+- $N_{it}$: dynamic trap charge areal density [$m^{-2}$]
 
-### 4.2. トラップ電荷面密度
+### 4.2. Trap Charge Areal Density
 
-トラップ電荷の面密度 $N_{it}$ は、全トラップエネルギー準位について積算して求める:
+The net trap charge areal density $N_{it}$ is obtained by integrating over all trap energy levels:
 
 $$N_{it} = \sum_k \left[ -D_{it,a}(E_k) \cdot f(E_k) + D_{it,d}(E_k) \cdot \left(1 - f(E_k)\right) \right] \Delta E$$
 
-- $D_{it,a}(E_k)$: アクセプタ型トラップ密度 [$m^{-2} eV^{-1}$]—占有時に負電荷
-- $D_{it,d}(E_k)$: ドナー型トラップ密度 [$m^{-2} eV^{-1}$]—空のとき正電荷
-- $f(E_k)$: トラップ準位 $E_k$ における占有確率
-- $\Delta E$: エネルギーステップ [eV]
+Where:
+- $D_{it,a}(E_k)$: acceptor-like trap density at energy $E_k$ [$m^{-2} eV^{-1}$] — negatively charged when occupied
+- $D_{it,d}(E_k)$: donor-like trap density at energy $E_k$ [$m^{-2} eV^{-1}$] — positively charged when empty
+- $f(E_k)$: occupation probability of the trap state at energy $E_k$
+- $\Delta E$: energy step [eV]
 
-### 4.3. トラップ密度モデル
+### 4.3. Trap Density Models
 
-#### 連続モデル（DIGS モデル）
+#### Continuous Model (DIGS Model)
 
-Disorder-Induced Gap States（DIGS）モデルでは、トラップ密度が電荷中立準位 $E_{cnl}$（$= |E_c - E_{cnl}|$ で指定）を基準として指数関数的に増大する:
+In the Disorder-Induced Gap States (DIGS) model, the trap density increases exponentially from the charge neutrality level $E_{cnl}$ (specified as $|E_c - E_{cnl}|$):
 
 $$D_{it}(E) = \begin{cases}
-D_{it0} \cdot \exp\!\left[\left(\dfrac{|E_{cnl} - E|}{E_{0a}}\right)^{n_a}\right] & E < E_{cnl} \quad \text{(アクセプタ型)}\\[6pt]
-D_{it0} \cdot \exp\!\left[\left(\dfrac{|E - E_{cnl}|}{E_{0d}}\right)^{n_d}\right] & E > E_{cnl} \quad \text{(ドナー型)}
+D_{it0} \cdot \exp\!\left[\left(\dfrac{|E_{cnl} - E|}{E_{0a}}\right)^{n_a}\right] & E < E_{cnl} \quad \text{(acceptor-like)}\\[6pt]
+D_{it0} \cdot \exp\!\left[\left(\dfrac{|E - E_{cnl}|}{E_{0d}}\right)^{n_d}\right] & E > E_{cnl} \quad \text{(donor-like)}
 \end{cases}$$
 
-エネルギースケールは以下で決まる:
+The energy scale parameters are determined by:
 
 $$E_{0a} = E_{cnl} \cdot \left(\ln N_{ssec}\right)^{-1/n_a}, \qquad E_{0d} = (E_g - E_{cnl}) \cdot \left(\ln N_{ssev}\right)^{-1/n_d}$$
 
-ここで $N_{ssec} = D_{it}(E_c)/D_{it0}$、$N_{ssev} = D_{it}(E_v)/D_{it0}$ はそれぞれ伝導帯・価電子帯端におけるトラップ密度の $D_{it0}$ に対する比率である。
+Where $N_{ssec} = D_{it}(E_c)/D_{it0}$ and $N_{ssev} = D_{it}(E_v)/D_{it0}$ are the ratios of the trap density at the conduction and valence band edges relative to $D_{it0}$, respectively.
 
-#### 離散モデル（Gaussian 分布）
+#### Discrete Model (Gaussian Distribution)
 
-離散トラップ準位はエネルギー空間上でガウス分布として記述される:
+Discrete trap levels are described by a Gaussian distribution in energy:
 
 $$D_{it}(E) = D_{it,max} \cdot \exp\!\left(-\frac{(E - E_d)^2}{\sigma_g^2}\right), \qquad \sigma_g^2 = \frac{FWHM^2}{4 \ln 2}$$
 
-- $D_{it,max}$: ピークトラップ密度 [$m^{-2}$]
-- $E_d = |E_c - E_d|$: 伝導帯から測ったトラップ準位の深さ [eV]
-- $FWHM$: 分布の半値全幅 [eV]
+Where:
+- $D_{it,max}$: peak trap density [$m^{-2}$]
+- $E_d = |E_c - E_d|$: trap level depth below the conduction band [eV]
+- $FWHM$: full width at half maximum of the distribution [eV]
 
-### 4.4. 占有確率
+### 4.4. Occupation Probability
 
-トラップの占有確率は、Fermi-Dirac 平衡占有とSRH電子放出による非平衡フロアの最大値として定義される:
+The trap occupation probability is defined as the maximum of the Fermi-Dirac equilibrium occupation and a non-equilibrium floor set by SRH electron emission:
 
 $$f(E_t) = \max\!\left(f_{eq}(E_t),\; f_{prev}(E_t) \cdot \left(1 - \xi_{em}\right)\right)$$
 
-**Fermi-Dirac 平衡占有確率**:
+**Fermi-Dirac equilibrium occupation**:
 
 $$f_{eq}(E_t) = \frac{1}{1 + \exp\!\left(\dfrac{E_t - E_f}{k_B T / q}\right)}$$
 
-ここで $E_t - E_f = \phi_{node} - (E_c - E_t)$。$\phi_{node} = E_c - E_f$ は界面ノードにおける伝導帯とフェルミ準位の差（eV）である。
+Where $E_t - E_f = \phi_{node} - (E_c - E_t)$, and $\phi_{node} = E_c - E_f$ is the potential at the interface node in eV.
 
-**有効放出係数**:
+**Effective emission coefficient**:
 
 $$\xi_{em} = 1 - \exp\!\left(-\frac{t}{\tau_{em}}\right)$$
 
-**電子放出時定数**:
+**Electron emission time constant**:
 
 $$\tau_{em}(E_t) = \frac{\exp\!\left(\dfrac{E_c - E_t}{k_B T / q}\right)}{v_{th} \cdot \sigma(E_t) \cdot N_c}$$
 
-- $t$: 測定時刻（電圧ステップ積算時間） [s]
-- $v_{th} = \sqrt{3 k_B T / m^*}$: 熱速度 [m/s]
-- $\sigma(E_t)$: トラップ準位 $E_t$ における捕獲断面積 [$m^2$]
-- $N_c$: 伝導帯有効状態密度 [$m^{-3}$]
+Where:
+- $t$: measurement time (cumulative time from voltage sweep start) [s]
+- $v_{th} = \sqrt{3 k_B T / m^*}$: thermal velocity [m/s]
+- $\sigma(E_t)$: capture cross-section at trap energy $E_t$ [$m^2$]
+- $N_c$: effective density of states in the conduction band [$m^{-3}$]
 
-$f_{prev}$ は直前の電圧ステップにおける占有確率であり、バイアスを逆方向に変化させた際のヒステリシスをモデル化する。
+$f_{prev}$ is the occupation probability from the previous voltage step, modeling the hysteresis observed when the bias is swept in the reverse direction.
 
-### 4.5. 捕獲断面積モデル
+### 4.5. Capture Cross-Section Models
 
-#### 定数モデル
+#### Constant Model
 
 $$\sigma(E_t) = \sigma_0$$
 
-#### エネルギー依存モデル
+#### Energy-Dependent Model
 
 $$\sigma(E_t) = \sigma_{mid} \cdot \exp\!\left(\frac{E_t - E_{mid}}{E_{slope}}\right)$$
 
-- $\sigma_{mid}$: 基準エネルギー $E_{mid}$ における捕獲断面積 [$m^2$]
-- $E_{mid} = |E_c - E_{mid}|$: 基準エネルギーの伝導帯からの深さ [eV]
-- $E_{slope}$: 指数変化のエネルギースケール [eV]（正の値 = $E_{mid}$ より深いトラップで $\sigma$ が増大）
+Where:
+- $\sigma_{mid}$: capture cross-section at the reference energy $E_{mid}$ [$m^2$]
+- $E_{mid} = |E_c - E_{mid}|$: depth of the reference energy below the conduction band [eV]
+- $E_{slope}$: energy scale of the exponential variation [eV] (positive value = $\sigma$ increases for traps deeper than $E_{mid}$)
 
 ## 5. Capacitance Calculation
 
