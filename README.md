@@ -69,8 +69,9 @@ The interactive CLI will prompt you for:
 
 Results are saved in the `outputs/` directory:
 
-  - `cv_characteristics.csv`: Capacitance vs. Voltage data.
-  - `potential_profile.csv`: Spatial distribution of electrostatic potential.
+  - `cv_curves.csv`: Capacitance vs. Voltage data.
+  - `potential_profiles`: Spatial distribution of electrostatic potential.
+  - `interface_states`: Interface states density distribution, occupation probability and capture cross section.
   - Visual plots generated using the `plotters` library.
 
 ## Citation
