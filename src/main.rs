@@ -40,8 +40,9 @@ fn main() -> anyhow::Result<()> {
     let config_path = format!("{}/{}.json", config_dir, config.sim_settings.sim_name);
     let config_json = serde_json::to_string_pretty(&config)
         .map_err(|e| anyhow::anyhow!("Failed to serialize configuration: {}", e))?;
-    fs::write(&config_path, config_json)
-        .map_err(|e| anyhow::anyhow!("Failed to write configuration to '{}': {}", config_path, e))?;
+    fs::write(&config_path, config_json).map_err(|e| {
+        anyhow::anyhow!("Failed to write configuration to '{}': {}", config_path, e)
+    })?;
     println!("Configuration saved to '{}'.", config_path);
 
     let mesh_structure = mb::build(&config);
