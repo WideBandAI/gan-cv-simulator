@@ -18,6 +18,7 @@ plotters = { version = "0.3.7", features = ["fontconfig-dlopen"] }
 rand = "0.8.5"
 rayon = "1.11.0"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 tempfile = "3.26.0"
 test-case = "3.3.1"
 

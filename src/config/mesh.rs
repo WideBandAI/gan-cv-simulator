@@ -2,7 +2,7 @@ use crate::config::structure::DeviceStructure;
 use crate::constants::units::{M_TO_NM, MEV_TO_EV, NM_TO_M};
 use crate::utils::{get_parsed_input, get_parsed_input_with_default};
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub struct MeshParams {
     pub layer_id: Vec<u32>,
     pub length_per_layer: Vec<f64>,

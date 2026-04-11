@@ -10,7 +10,7 @@ use crate::utils::{
 };
 use itertools::Itertools;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize)]
 pub enum CaptureCrossSectionModel {
     /// Constant model: σ = σ₀ [m²] (stored in SI units)
     Constant { sigma: f64 },
@@ -23,7 +23,7 @@ pub enum CaptureCrossSectionModel {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub struct CaptureCrossSectionConfig {
     pub interface_id: Vec<u32>,
     pub model: Vec<CaptureCrossSectionModel>,

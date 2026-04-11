@@ -15,6 +15,7 @@ use crate::config::configuration_builder::ConfigurationBuilder;
 use crate::mesh::mesh_builder as mb;
 use crate::solvers::cv_solver::CVSolver;
 use crate::solvers::poisson_solver::PoissonSolver;
+use crate::utils::save_configuration;
 
 fn main() -> anyhow::Result<()> {
     println!("GaN C-V Simulator");
@@ -28,6 +29,33 @@ fn main() -> anyhow::Result<()> {
             e
         )
     })?;
+
+    let config_dir = std::path::Path::new("config");
+    std::fs::create_dir_all(config_dir).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to create config directory '{}': {}. Please check permissions and try again.",
+            config_dir.display(),
+            e
+        )
+    })?;
+
+    let sanitized_sim_name = config
+        .sim_settings
+        .sim_name
+        .replace(['/', '\\'], "_")
+        .replace("..", "_");
+    let config_filename = format!("{}.json", sanitized_sim_name);
+    let global_config_path = config_dir.join(&config_filename);
+    save_configuration(&config, &global_config_path)?;
+
+    let output_config_path = std::path::Path::new(&output_dir).join(&config_filename);
+    save_configuration(&config, &output_config_path)?;
+
+    println!(
+        "Configuration saved to '{}' and '{}'.",
+        global_config_path.display(),
+        output_config_path.display()
+    );
 
     let mesh_structure = mb::build(&config);
     let poisson_solver = PoissonSolver::new(

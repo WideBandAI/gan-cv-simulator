@@ -13,7 +13,7 @@ pub enum PotentialError {
     Negative,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize)]
 pub struct DIGSModel {
     pub dit0: f64,
     pub nssec: f64,
@@ -84,7 +84,7 @@ impl DIGSModel {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, serde::Serialize)]
 pub enum DiscreteStateType {
     DonorLike,
     AcceptorLike,
@@ -111,7 +111,7 @@ impl fmt::Display for DiscreteStateType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct DiscreteModel {
     ditmax: f64,
     ed: f64,

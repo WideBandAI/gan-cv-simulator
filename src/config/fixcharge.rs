@@ -2,13 +2,13 @@ use crate::config::structure::DeviceStructure;
 use crate::constants::units::{PER_CM2_TO_PER_M2, PER_CM3_TO_PER_M3};
 use crate::utils::get_parsed_input_with_default;
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub struct BulkFixedCharge {
     pub layer_id: Vec<u32>,       // Layer ID where the fixed charge is located
     pub charge_density: Vec<f64>, // Fixed charge density in C/m^3
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub struct InterfaceFixedCharge {
     pub interface_id: Vec<u32>,   // Interface ID between layers
     pub charge_density: Vec<f64>, // Fixed charge density in C/m^2

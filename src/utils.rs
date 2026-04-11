@@ -165,6 +165,45 @@ pub fn anti_traversal_filename(filename: &str) -> Option<String> {
     }
 }
 
+/// Save configuration as json file.
+///
+/// # Arguments
+///
+/// - config (&impl serde::Serialize) - The configuration to save.
+/// - path (impl AsRef<std::path::Path>) - The file path where the configuration will be saved.
+///
+/// # Errors
+///
+/// - If serialization of the configuration fails, an error is returned.
+///
+/// # Examples
+///
+/// use your_crate::utils::save_configuration;
+/// use serde::Serialize;
+/// #[derive(Serialize)]
+/// struct Config { name: String }
+/// let config = Config { name: "test".into() };
+/// let path = "config.json";
+/// let result = save_configuration(&config, path);
+/// assert!(result.is_ok());
+/// std::fs::remove_file(path).unwrap();
+pub fn save_configuration(
+    config: &impl serde::Serialize,
+    path: impl AsRef<std::path::Path>,
+) -> anyhow::Result<()> {
+    let path = path.as_ref();
+    let config_json = serde_json::to_string_pretty(config)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize configuration: {}", e))?;
+    std::fs::write(path, config_json).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to write configuration to '{}': {}",
+            path.display(),
+            e
+        )
+    })?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
