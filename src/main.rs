@@ -15,6 +15,7 @@ use crate::config::configuration_builder::ConfigurationBuilder;
 use crate::mesh::mesh_builder as mb;
 use crate::solvers::cv_solver::CVSolver;
 use crate::solvers::poisson_solver::PoissonSolver;
+use crate::utils::save_configuration;
 
 fn main() -> anyhow::Result<()> {
     println!("GaN C-V Simulator");
@@ -29,7 +30,7 @@ fn main() -> anyhow::Result<()> {
         )
     })?;
 
-    let config_dir = format!("{}/config", output_dir);
+    let config_dir = format!("config");
     fs::create_dir_all(&config_dir).map_err(|e| {
         anyhow::anyhow!(
             "Failed to create config directory '{}': {}. Please check permissions and try again.",
@@ -37,12 +38,16 @@ fn main() -> anyhow::Result<()> {
             e
         )
     })?;
+    let config_path = format!("{}/{}.json", output_dir, config.sim_settings.sim_name);
+    // let config_json = serde_json::to_string_pretty(&config)
+    //     .map_err(|e| anyhow::anyhow!("Failed to serialize configuration: {}", e))?;
+    // fs::write(&config_path, config_json).map_err(|e| {
+    //     anyhow::anyhow!("Failed to write configuration to '{}': {}", config_path, e)
+    // })?;
+    save_configuration(&config, &config_path)?;
+    let config_dir = format!("config");
     let config_path = format!("{}/{}.json", config_dir, config.sim_settings.sim_name);
-    let config_json = serde_json::to_string_pretty(&config)
-        .map_err(|e| anyhow::anyhow!("Failed to serialize configuration: {}", e))?;
-    fs::write(&config_path, config_json).map_err(|e| {
-        anyhow::anyhow!("Failed to write configuration to '{}': {}", config_path, e)
-    })?;
+    save_configuration(&config, &config_path)?;
     println!("Configuration saved to '{}'.", config_path);
 
     let mesh_structure = mb::build(&config);

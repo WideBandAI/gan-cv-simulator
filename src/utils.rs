@@ -165,6 +165,14 @@ pub fn anti_traversal_filename(filename: &str) -> Option<String> {
     }
 }
 
+pub fn save_configuration(config: &impl serde::Serialize, path: &str) -> anyhow::Result<()> {
+    let config_json = serde_json::to_string_pretty(config)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize configuration: {}", e))?;
+    std::fs::write(path, config_json)
+        .map_err(|e| anyhow::anyhow!("Failed to write configuration to '{}': {}", path, e))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
