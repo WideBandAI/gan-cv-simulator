@@ -129,7 +129,11 @@ impl CVSolver {
             gate_voltage: gate_voltages,
             capacitance: capacitances,
         };
-        save_cv_curves(&[cv_results.clone()], &self.save_dir, "cv_curves.csv")?;
+        save_cv_curves(
+            std::slice::from_ref(&cv_results),
+            &self.save_dir,
+            "cv_curves.csv",
+        )?;
         // plot_cv_curves(&[cv_results], &self.save_dir, "cv_curves.png")?;
         plot_cv_curves(
             &cv_results.gate_voltage,
@@ -235,7 +239,7 @@ mod tests {
     use super::*;
     use crate::config::measurement::{Stress, Temperature, Time, Voltage};
     use crate::constants::physics::EPSILON_0;
-    use crate::mesh_builder::mesh_builder::{
+    use crate::mesh::mesh_builder::{
         BottomProperties, BulkProperties, FixChargeDensity, IDX, MeshStructure, PropertyType,
         SurfaceProperties,
     };

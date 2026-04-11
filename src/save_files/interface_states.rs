@@ -1,5 +1,5 @@
 use crate::constants::units::{M2_TO_CM2, PER_M2_TO_PER_CM2};
-use crate::mesh_builder::mesh_builder::{IDX, InterfaceStates, MeshStructure};
+use crate::mesh::mesh_builder::{IDX, InterfaceStates, MeshStructure};
 use std::fs;
 use std::io::Write;
 
@@ -17,8 +17,8 @@ pub fn save_interface_states(
 
     let mut dir_created = false;
 
-    for idx in 0..mesh_structure.id.len() {
-        if !matches!(mesh_structure.id[idx], IDX::Interface(_)) {
+    for (idx, id) in mesh_structure.id.iter().enumerate() {
+        if !matches!(id, IDX::Interface(_)) {
             continue;
         }
 
@@ -67,14 +67,18 @@ pub fn save_interface_states(
         )?;
 
         let layer_name = &mesh_structure.name[idx];
-        for k in 0..dist.potential.len() {
-            let ec_e = dist.potential[k];
-            let acceptor_dit = dist.acceptor_dit[k] * PER_M2_TO_PER_CM2;
-            let donor_dit = dist.donor_dit[k] * PER_M2_TO_PER_CM2;
-            let f = occ[k];
-            let qit =
-                (-dist.acceptor_dit[k] * f + dist.donor_dit[k] * (1.0 - f)) * PER_M2_TO_PER_CM2;
-            let capture_cross_section_value = dist.capture_cross_section[k] * M2_TO_CM2;
+        for ((((&ec_e, &acceptor_dit_raw), &donor_dit_raw), &f), &ccs_raw) in dist
+            .potential
+            .iter()
+            .zip(dist.acceptor_dit.iter())
+            .zip(dist.donor_dit.iter())
+            .zip(occ.iter())
+            .zip(dist.capture_cross_section.iter())
+        {
+            let acceptor_dit = acceptor_dit_raw * PER_M2_TO_PER_CM2;
+            let donor_dit = donor_dit_raw * PER_M2_TO_PER_CM2;
+            let qit = (-acceptor_dit_raw * f + donor_dit_raw * (1.0 - f)) * PER_M2_TO_PER_CM2;
+            let capture_cross_section_value = ccs_raw * M2_TO_CM2;
 
             writeln!(
                 file,
@@ -91,7 +95,7 @@ pub fn save_interface_states(
 mod tests {
     use super::*;
     use crate::constants::physics::M_ELECTRON;
-    use crate::mesh_builder::mesh_builder::{
+    use crate::mesh::mesh_builder::{
         BottomProperties, BulkProperties, FixChargeDensity, InterfaceProperties,
         InterfaceStatesDistribution, PropertyType, SurfaceProperties,
     };

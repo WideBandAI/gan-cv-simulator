@@ -1,6 +1,6 @@
 pub mod config;
 pub mod constants;
-pub mod mesh_builder;
+pub mod mesh;
 pub mod physics_equations;
 pub mod plot;
 pub mod save_files;
@@ -12,7 +12,7 @@ use crate::constants::simulation::INITIAL_POTENTIAL;
 use std::fs;
 
 use crate::config::configuration_builder::ConfigurationBuilder;
-use crate::mesh_builder::mesh_builder as mb;
+use crate::mesh::mesh_builder as mb;
 use crate::solvers::cv_solver::CVSolver;
 use crate::solvers::poisson_solver::PoissonSolver;
 
