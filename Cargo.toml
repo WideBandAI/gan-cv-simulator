@@ -1,7 +1,7 @@
 [package]
 name = "gan-cv-simulator"
-version = "0.2.0"
-edition = "2021"
+version = "0.3.0"
+edition = "2024"
 license = "Apache-2.0"
 description = "Simulate the C-V characteristics of n-GaN and GaN HEMTs diodes."
 repository = "https://github.com/WideBandAI/gan-cv-simulator"

@@ -77,7 +77,13 @@ impl CVSolver {
         let start = self.measurement.voltage.start;
         let end = self.measurement.voltage.end;
         let step = self.measurement.voltage.step;
-        let num_meas_points = ((end - start) / step).abs() + 1.0;
+        let num_meas_points = ((end - start) / step).abs();
+
+        let time_step = if num_meas_points > 0.0 {
+            self.measurement.time.measurement_time / num_meas_points
+        } else {
+            self.measurement.time.measurement_time
+        };
 
         if step == 0.0 {
             panic!("voltage step cannot be zero");
@@ -103,7 +109,7 @@ impl CVSolver {
         let mut gate_voltage = start;
         let forward = step > 0.0;
         let mut index = 0;
-        let time_step = self.measurement.time.measurement_time / num_meas_points;
+
         while (forward && gate_voltage <= end) || (!forward && gate_voltage >= end) {
             self.set_dc_save_potential(gate_voltage, time_step * index as f64, index)?;
             let capacitance = self.solve_cv(gate_voltage)?;
@@ -230,8 +236,8 @@ mod tests {
     use crate::config::measurement::{Stress, Temperature, Time, Voltage};
     use crate::constants::physics::EPSILON_0;
     use crate::mesh_builder::mesh_builder::{
-        BottomProperties, BulkProperties, FixChargeDensity, MeshStructure, PropertyType,
-        SurfaceProperties, IDX,
+        BottomProperties, BulkProperties, FixChargeDensity, IDX, MeshStructure, PropertyType,
+        SurfaceProperties,
     };
     use approx::relative_eq;
     use tempfile::TempDir;
