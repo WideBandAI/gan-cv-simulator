@@ -49,6 +49,39 @@ pub fn get_parsed_input_with_default<T: FromStr + Clone>(prompt: &str, default: 
     }
 }
 
+pub fn get_validated_input<T, F>(prompt: &str, validate: F, error_msg: &str) -> T
+where
+    T: FromStr,
+    F: Fn(&T) -> bool,
+{
+    loop {
+        let value = get_parsed_input(prompt);
+        if validate(&value) {
+            return value;
+        }
+        println!("{}", error_msg);
+    }
+}
+
+pub fn get_validated_input_with_default<T, F>(
+    prompt: &str,
+    default: T,
+    validate: F,
+    error_msg: &str,
+) -> T
+where
+    T: FromStr + Clone,
+    F: Fn(&T) -> bool,
+{
+    loop {
+        let value = get_parsed_input_with_default(prompt, default.clone());
+        if validate(&value) {
+            return value;
+        }
+        println!("{}", error_msg);
+    }
+}
+
 pub fn get_parsed_input_with_default_nonnegative(prompt: &str, default: f64) -> f64 {
     loop {
         let input = get_parsed_input_with_default(prompt, default);
