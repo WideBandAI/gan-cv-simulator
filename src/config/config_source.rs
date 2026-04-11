@@ -13,6 +13,19 @@ fn list_config_files(config_dir: &std::path::Path) -> Vec<std::path::PathBuf> {
     files
 }
 
+/// Select config source interactive of load.
+///
+/// # Errors
+///
+/// - If there is an error reading user input, an error is returned.
+///
+/// # Examples
+///
+/// ```
+/// use your_crate::config::config_source::select_config_source;
+/// let result = select_config_source();
+/// assert!(result.is_ok());
+/// ```
 pub fn select_config_source() -> anyhow::Result<ConfigurationBuilder> {
     println!("Select configuration source:");
     println!("  [1] Interactive input");

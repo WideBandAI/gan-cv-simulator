@@ -21,6 +21,7 @@ fn main() -> anyhow::Result<()> {
     println!("GaN C-V Simulator");
     let config = select_config_source()?.build();
     println!("{:#?}", config);
+
     let output_dir = format!("outputs/{}", config.sim_settings.sim_name);
     fs::create_dir_all(&output_dir).map_err(|e| {
         anyhow::anyhow!(
