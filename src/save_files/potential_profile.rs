@@ -54,16 +54,7 @@ pub fn save_potential_profile(
         writeln!(
             file,
             "Gate, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2}, {:.2}, {:.3e}, {:.3e}",
-            depth,
-            -gate_voltage,
-            -gate_voltage,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
+            depth, -gate_voltage, -gate_voltage, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         )?;
     }
 

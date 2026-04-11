@@ -451,8 +451,7 @@ impl PoissonSolver {
 
         let qit = self.compute_qit_density(idx);
 
-        (c_upper * self.potential.potential[idx - 1]
-            + c_lower * self.potential.potential[idx + 1]
+        (c_upper * self.potential.potential[idx - 1] + c_lower * self.potential.potential[idx + 1]
             - Q_ELECTRON * (fixcharge_density + qit))
             / (c_upper + c_lower)
             - self.potential.potential[idx]
