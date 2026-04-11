@@ -426,8 +426,9 @@ impl MeshStructure {
 
 fn find_by_interface_id<'a, T>(ids: &[u32], params: &'a [T], target: u32) -> Option<&'a T> {
     ids.iter()
-        .position(|&id| id == target)
-        .and_then(|i| params.get(i))
+        .zip(params)
+        .find(|&(&id, _)| id == target)
+        .map(|(_, p)| p)
 }
 
 /// Build mesh structure
