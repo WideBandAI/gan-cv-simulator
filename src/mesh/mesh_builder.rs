@@ -72,6 +72,71 @@ pub struct BottomProperties {
     pub bandgap_energy: f64,
 }
 
+impl PropertyType {
+    pub fn permittivity(&self) -> f64 {
+        match self {
+            PropertyType::Surface(p) => p.permittivity,
+            PropertyType::Bulk(p) => p.permittivity,
+            PropertyType::Bottom(p) => p.permittivity,
+            PropertyType::Interface(_) => 0.0,
+        }
+    }
+
+    pub fn delta_conduction_band(&self) -> f64 {
+        match self {
+            PropertyType::Surface(p) => p.delta_conduction_band,
+            PropertyType::Bulk(p) => p.delta_conduction_band,
+            PropertyType::Bottom(p) => p.delta_conduction_band,
+            PropertyType::Interface(p) => p.delta_conduction_band,
+        }
+    }
+
+    pub fn bandgap_energy(&self) -> f64 {
+        match self {
+            PropertyType::Surface(p) => p.bandgap_energy,
+            PropertyType::Bulk(p) => p.bandgap_energy,
+            PropertyType::Bottom(p) => p.bandgap_energy,
+            PropertyType::Interface(_) => 0.0,
+        }
+    }
+
+    pub fn mass_electron(&self) -> f64 {
+        match self {
+            PropertyType::Bulk(p) => p.mass_electron,
+            _ => 0.0,
+        }
+    }
+
+    pub fn donor_concentration(&self) -> f64 {
+        match self {
+            PropertyType::Bulk(p) => p.donor_concentration,
+            _ => 0.0,
+        }
+    }
+
+    pub fn energy_level_donor(&self) -> f64 {
+        match self {
+            PropertyType::Bulk(p) => p.energy_level_donor,
+            _ => 0.0,
+        }
+    }
+
+    pub fn fixcharge_density(&self) -> FixChargeDensity {
+        match self {
+            PropertyType::Bulk(p) => p.fixcharge_density,
+            PropertyType::Interface(p) => p.fixcharge_density,
+            _ => FixChargeDensity::Bulk(0.0),
+        }
+    }
+
+    pub fn interface_states(&self) -> Option<&InterfaceStates> {
+        match self {
+            PropertyType::Interface(p) => Some(&p.interface_states),
+            _ => None,
+        }
+    }
+}
+
 /// Mesh structure
 ///
 /// # Fields
@@ -171,71 +236,52 @@ impl MeshStructure {
         let has_states = has_continuous || has_discrete;
 
         if has_states {
-            if let Some(idx) = configuration
-                .capture_cross_section
-                .interface_id
-                .iter()
-                .position(|&id| id == struct_idx as u32)
-            {
-                interfacestates.mass_electron =
-                    configuration.capture_cross_section.mass_electron[idx];
-            } else {
+            let id = struct_idx as u32;
+
+            interfacestates.mass_electron = find_by_interface_id(
+                &configuration.capture_cross_section.interface_id,
+                &configuration.capture_cross_section.mass_electron,
+                id,
+            )
+            .copied()
+            .unwrap_or_else(|| {
                 panic!(
                     "Interface {} has states but no capture cross section model defined. This is a configuration error.",
                     struct_idx
-                );
-            }
+                )
+            });
 
-            // get bandgap for this interface
-            let bandgap = configuration
-                .continuous_interface_states
-                .interface_id
-                .iter()
-                .position(|&id| id == struct_idx as u32)
-                .map(|i| configuration.continuous_interface_states.parameters[i].bandgap)
-                .or_else(|| {
-                    configuration
-                        .discrete_interface_states
-                        .interface_id
-                        .iter()
-                        .position(|&id| id == struct_idx as u32)
-                        .and_then(|i| {
-                            configuration.discrete_interface_states.parameters[i]
-                                .first()
-                                .map(|m| m.bandgap)
-                        })
-                })
-                .unwrap_or_else(|| {
-                    let device_structure = &configuration.device_structure;
-                    device_structure.bandgap_energy[struct_idx]
-                        .min(device_structure.bandgap_energy[struct_idx + 1])
-                });
+            let bandgap = find_by_interface_id(
+                &configuration.continuous_interface_states.interface_id,
+                &configuration.continuous_interface_states.parameters,
+                id,
+            )
+            .map(|p| p.bandgap)
+            .or_else(|| {
+                find_by_interface_id(
+                    &configuration.discrete_interface_states.interface_id,
+                    &configuration.discrete_interface_states.parameters,
+                    id,
+                )
+                .and_then(|params| params.first().map(|m| m.bandgap))
+            })
+            .unwrap_or_else(|| {
+                let device_structure = &configuration.device_structure;
+                device_structure.bandgap_energy[struct_idx]
+                    .min(device_structure.bandgap_energy[struct_idx + 1])
+            });
 
-            // get the continuous state parameters for this interface
-            let continuous_param = if has_continuous {
-                let idx = configuration
-                    .continuous_interface_states
-                    .interface_id
-                    .iter()
-                    .position(|&id| id == struct_idx as u32)
-                    .unwrap();
-                Some(&configuration.continuous_interface_states.parameters[idx])
-            } else {
-                None
-            };
+            let continuous_param = find_by_interface_id(
+                &configuration.continuous_interface_states.interface_id,
+                &configuration.continuous_interface_states.parameters,
+                id,
+            );
 
-            // get the discrete state parameters for this interface
-            let discrete_params = if has_discrete {
-                let idx = configuration
-                    .discrete_interface_states
-                    .interface_id
-                    .iter()
-                    .position(|&id| id == struct_idx as u32)
-                    .unwrap();
-                Some(&configuration.discrete_interface_states.parameters[idx])
-            } else {
-                None
-            };
+            let discrete_params = find_by_interface_id(
+                &configuration.discrete_interface_states.interface_id,
+                &configuration.discrete_interface_states.parameters,
+                id,
+            );
 
             let mut potential = 0.0;
             loop {
@@ -339,74 +385,47 @@ impl MeshStructure {
 
     /// Get the permittivity at the given mesh index.
     pub fn permittivity(&self, idx: usize) -> f64 {
-        match &self.property_type[idx] {
-            PropertyType::Surface(p) => p.permittivity,
-            PropertyType::Bulk(p) => p.permittivity,
-            PropertyType::Bottom(p) => p.permittivity,
-            PropertyType::Interface(_) => 0.0,
-        }
+        self.property_type[idx].permittivity()
     }
 
     /// Get the delta conduction band value at the given mesh index.
     pub fn delta_conduction_band(&self, idx: usize) -> f64 {
-        match &self.property_type[idx] {
-            PropertyType::Surface(p) => p.delta_conduction_band,
-            PropertyType::Bulk(p) => p.delta_conduction_band,
-            PropertyType::Bottom(p) => p.delta_conduction_band,
-            PropertyType::Interface(p) => p.delta_conduction_band, // This will be set to the minimum of the two adjacent layers during interface node creation
-        }
+        self.property_type[idx].delta_conduction_band()
     }
 
     /// Get the bandgap energy at the given mesh index.
     pub fn bandgap_energy(&self, idx: usize) -> f64 {
-        match &self.property_type[idx] {
-            PropertyType::Surface(p) => p.bandgap_energy,
-            PropertyType::Bulk(p) => p.bandgap_energy,
-            PropertyType::Bottom(p) => p.bandgap_energy,
-            PropertyType::Interface(_) => 0.0,
-        }
+        self.property_type[idx].bandgap_energy()
     }
 
     /// Get the effective electron mass at the given mesh index.
     pub fn mass_electron(&self, idx: usize) -> f64 {
-        match &self.property_type[idx] {
-            PropertyType::Bulk(p) => p.mass_electron,
-            _ => 0.0,
-        }
+        self.property_type[idx].mass_electron()
     }
 
     /// Get the donor concentration at the given mesh index.
     pub fn donor_concentration(&self, idx: usize) -> f64 {
-        match &self.property_type[idx] {
-            PropertyType::Bulk(p) => p.donor_concentration,
-            _ => 0.0,
-        }
+        self.property_type[idx].donor_concentration()
     }
 
     /// Get the donor energy level at the given mesh index.
     pub fn energy_level_donor(&self, idx: usize) -> f64 {
-        match &self.property_type[idx] {
-            PropertyType::Bulk(p) => p.energy_level_donor,
-            _ => 0.0,
-        }
+        self.property_type[idx].energy_level_donor()
     }
 
     /// Get the fixed charge density at the given mesh index.
     pub fn fixcharge_density(&self, idx: usize) -> FixChargeDensity {
-        match &self.property_type[idx] {
-            PropertyType::Bulk(p) => p.fixcharge_density,
-            PropertyType::Interface(p) => p.fixcharge_density,
-            _ => FixChargeDensity::Bulk(0.0),
-        }
+        self.property_type[idx].fixcharge_density()
     }
 
     /// Get the interface states at the given mesh index.
     pub fn interface_states(&self, idx: usize) -> Option<&InterfaceStates> {
-        match &self.property_type[idx] {
-            PropertyType::Interface(p) => Some(&p.interface_states),
-            _ => None,
-        }
+        self.property_type[idx].interface_states()
     }
+}
+
+fn find_by_interface_id<'a, T>(ids: &[u32], params: &'a [T], target: u32) -> Option<&'a T> {
+    ids.iter().position(|&id| id == target).map(|i| &params[i])
 }
 
 /// Build mesh structure

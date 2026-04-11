@@ -4,7 +4,7 @@ use crate::physics_equations::interface_states::DIGSModel;
 use crate::physics_equations::interface_states::DiscreteModel;
 use crate::physics_equations::interface_states::DiscreteStateType;
 use crate::utils::{
-    get_input, get_parsed_input_with_default, get_parsed_input_with_default_nonnegative,
+    get_bool_input, get_input, get_parsed_input_with_default_nonnegative,
     get_parsed_input_with_default_positiveint,
 };
 
@@ -38,13 +38,10 @@ pub fn define_interface_states(
     let num_layers = device_structure.id.len();
     for i in 0..(num_layers - 1) {
         print_interface_details(i, device_structure);
-        let has_continuous_traps: bool = get_parsed_input_with_default(
-            &format!(
-                "Does interface {} have continuous traps? (true/false): default is false ",
-                i
-            ),
-            false,
-        );
+        let has_continuous_traps: bool = get_bool_input(&format!(
+            "Does interface {} have continuous traps? (y/n). Default is n: ",
+            i
+        ));
         if has_continuous_traps {
             let params = configure_continuous_interface_states(i, device_structure);
             continuous_interface_states_config
@@ -53,13 +50,10 @@ pub fn define_interface_states(
             continuous_interface_states_config.parameters.push(params);
         }
 
-        let has_discrete_traps: bool = get_parsed_input_with_default(
-            &format!(
-                "Does interface {} have discrete traps? (true/false): default is false ",
-                i
-            ),
-            false,
-        );
+        let has_discrete_traps: bool = get_bool_input(&format!(
+            "Does interface {} have discrete traps? (y/n). Default is n: ",
+            i
+        ));
         if has_discrete_traps {
             let params = configure_discrete_interface_states(i, device_structure);
             discrete_interface_states_config.interface_id.push(i as u32);

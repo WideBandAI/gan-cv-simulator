@@ -1,4 +1,5 @@
 use crate::constants::physics::*;
+use crate::physics_equations::TemperatureAware;
 
 #[derive(Debug)]
 pub struct FermiDiracStatistics {
@@ -32,15 +33,6 @@ impl FermiDiracStatistics {
         }
     }
 
-    pub fn set_temperature(&mut self, temperature: f64) {
-        self.temperature = temperature;
-        self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
-    }
-
-    pub fn get_temperature(&self) -> f64 {
-        self.temperature
-    }
-
     /// fermi-dirac statistics
     ///
     /// # Arguments
@@ -64,9 +56,21 @@ impl FermiDiracStatistics {
     }
 }
 
+impl TemperatureAware for FermiDiracStatistics {
+    fn set_temperature(&mut self, temperature: f64) {
+        self.temperature = temperature;
+        self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
+    }
+
+    fn get_temperature(&self) -> f64 {
+        self.temperature
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::physics_equations::TemperatureAware;
     use approx::relative_eq;
     use test_case::test_case;
 

@@ -1,5 +1,8 @@
 use crate::constants::units::MV_TO_V;
-use crate::utils::{get_parsed_input, get_parsed_input_with_default};
+use crate::utils::{
+    get_parsed_input, get_parsed_input_with_default, get_validated_input,
+    get_validated_input_with_default,
+};
 
 #[derive(Debug)]
 pub struct Measurement {
@@ -36,25 +39,19 @@ pub struct Time {
 
 pub fn define_measurement() -> Measurement {
     println!("Define measurement.");
-    let temperature = loop {
-        let temperature: f64 =
-            get_parsed_input_with_default("Enter the temperature (in K). Default is 300: ", 300.0);
-        if temperature <= 0.0 {
-            println!("Temperature cannot be less than or equal to zero. Please try again.");
-        } else {
-            break temperature;
-        }
-    };
+    let temperature: f64 = get_validated_input_with_default(
+        "Enter the temperature (in K). Default is 300: ",
+        300.0,
+        |t| *t > 0.0,
+        "Temperature cannot be less than or equal to zero. Please try again.",
+    );
     let voltage_start: f64 = get_parsed_input("Enter the starting voltage (in V): ");
     let voltage_end: f64 = get_parsed_input("Enter the end voltage (in V): ");
-    let voltage_step = loop {
-        let voltage_step: f64 = get_parsed_input("Enter the voltage step (in V): ");
-        if voltage_step == 0.0 {
-            println!("Voltage step cannot be zero. Please try again.");
-        } else {
-            break voltage_step;
-        }
-    };
+    let voltage_step: f64 = get_validated_input(
+        "Enter the voltage step (in V): ",
+        |v| *v != 0.0,
+        "Voltage step cannot be zero. Please try again.",
+    );
     let ac_voltage: f64 = get_parsed_input_with_default(
         "Enter the AC voltage amplitude (in mV): default is 20 mV ",
         20.0,

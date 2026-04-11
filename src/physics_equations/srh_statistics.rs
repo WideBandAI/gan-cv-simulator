@@ -1,4 +1,5 @@
 use crate::constants::physics::*;
+use crate::physics_equations::TemperatureAware;
 use crate::physics_equations::band_density::ConductionBandDensity;
 
 #[derive(Debug)]
@@ -41,18 +42,6 @@ impl SRHStatistics {
             mass_electron,
             conduction_band_density,
         }
-    }
-
-    pub fn set_temperature(&mut self, temperature: f64) {
-        self.temperature = temperature;
-        self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
-        self.conduction_band_density =
-            ConductionBandDensity::new(temperature).conduction_band_density(self.mass_electron);
-        self.thermal_velocity = (3.0 * K_BOLTZMANN * temperature / self.mass_electron).sqrt();
-    }
-
-    pub fn get_temperature(&self) -> f64 {
-        self.temperature
     }
 
     pub fn set_mass_electron(&mut self, mass_electron: f64) {
@@ -120,10 +109,25 @@ impl SRHStatistics {
     }
 }
 
+impl TemperatureAware for SRHStatistics {
+    fn set_temperature(&mut self, temperature: f64) {
+        self.temperature = temperature;
+        self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
+        self.conduction_band_density =
+            ConductionBandDensity::new(temperature).conduction_band_density(self.mass_electron);
+        self.thermal_velocity = (3.0 * K_BOLTZMANN * temperature / self.mass_electron).sqrt();
+    }
+
+    fn get_temperature(&self) -> f64 {
+        self.temperature
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::constants::physics::{K_BOLTZMANN, M_ELECTRON, Q_ELECTRON};
+    use crate::physics_equations::TemperatureAware;
     use approx::relative_eq;
     use test_case::test_case;
 

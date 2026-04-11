@@ -1,4 +1,5 @@
 use crate::constants::physics::*;
+use crate::physics_equations::TemperatureAware;
 
 #[derive(Debug)]
 pub struct ConductionBandDensity {
@@ -14,15 +15,6 @@ impl ConductionBandDensity {
             kbt: K_BOLTZMANN * temperature,
             h_planck_constant_pow3: H_PLANCK_CONSTANT.powf(3.0),
         }
-    }
-
-    pub fn set_temperature(&mut self, temperature: f64) {
-        self.temperature = temperature;
-        self.kbt = K_BOLTZMANN * temperature;
-    }
-
-    pub fn get_temperature(&self) -> f64 {
-        self.temperature
     }
 
     /// Calculate the conduction band density.
@@ -45,6 +37,17 @@ impl ConductionBandDensity {
     pub fn conduction_band_density(&self, mass_electron: f64) -> f64 {
         let coefficient = 2.0 * (2.0 * std::f64::consts::PI * mass_electron * self.kbt).powf(1.5);
         coefficient / self.h_planck_constant_pow3
+    }
+}
+
+impl TemperatureAware for ConductionBandDensity {
+    fn set_temperature(&mut self, temperature: f64) {
+        self.temperature = temperature;
+        self.kbt = K_BOLTZMANN * temperature;
+    }
+
+    fn get_temperature(&self) -> f64 {
+        self.temperature
     }
 }
 
