@@ -1,5 +1,8 @@
 use crate::constants::units::MV_TO_V;
-use crate::utils::{get_parsed_input, get_parsed_input_with_default, get_validated_input, get_validated_input_with_default};
+use crate::utils::{
+    get_parsed_input, get_parsed_input_with_default, get_validated_input,
+    get_validated_input_with_default,
+};
 
 #[derive(Debug)]
 pub struct Measurement {

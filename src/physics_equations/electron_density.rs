@@ -1,6 +1,6 @@
 use crate::constants::physics::*;
-use crate::physics_equations::band_density::ConductionBandDensity;
 use crate::physics_equations::TemperatureAware;
+use crate::physics_equations::band_density::ConductionBandDensity;
 use std::fmt::Debug;
 
 pub trait ElectronDensity: TemperatureAware + Debug + Send + Sync {
