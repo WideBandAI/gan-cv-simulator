@@ -3,6 +3,7 @@ use crate::constants::units::*;
 use crate::mesh::mesh_builder::IDX;
 use crate::mesh::mesh_builder::{FixChargeDensity, MeshStructure};
 use crate::solvers::poisson_solver::Potential;
+use crate::utils::anti_traversal_filename;
 use std::fs;
 use std::io::Write;
 
@@ -16,15 +17,15 @@ pub fn save_potential_profile(
     super::validate_save_dir(save_dir)?;
     let save_dir_path = std::path::Path::new(save_dir);
 
-    let filename = match std::path::Path::new(filename).file_name() {
-        Some(name) if name == std::path::Path::new(filename) => name,
-        _ => {
-            anyhow::bail!("Invalid filename: must not contain path separators.");
+    let filename = match anti_traversal_filename(filename) {
+        Some(name) => name,
+        None => {
+            anyhow::bail!("Invalid filename: must not contain path separators or '..'.");
         }
     };
 
     let potential_save_dir = save_dir_path.join("potential_profiles");
-    let potential_file_path = potential_save_dir.join(filename);
+    let potential_file_path = potential_save_dir.join(&filename);
     fs::create_dir_all(&potential_save_dir).map_err(|e| {
         anyhow::anyhow!(
             "Failed to create output directory '{}': {}. Please check permissions and try again.",

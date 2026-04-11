@@ -54,7 +54,7 @@ impl CVSolver {
     }
 
     pub fn set_temperature(&mut self, temperature: f64) {
-        self.poisson_solver.temperature = temperature;
+        self.poisson_solver.set_temperature(temperature);
     }
 
     /// Run the C-V calculation

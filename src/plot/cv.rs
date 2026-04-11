@@ -1,5 +1,6 @@
 use crate::plot::style::mesh_style;
 use crate::plot::utils::find_range;
+use crate::utils::anti_traversal_filename;
 use plotters::prelude::*;
 
 pub fn plot_cv_curves(
@@ -8,19 +9,17 @@ pub fn plot_cv_curves(
     filename: &str,
     save_dir: &str,
 ) -> anyhow::Result<()> {
+    crate::save_files::validate_save_dir(save_dir)?;
     let save_dir_path = std::path::Path::new(save_dir);
-    if save_dir_path
-        .components()
-        .any(|c| matches!(c, std::path::Component::ParentDir))
-    {
-        anyhow::bail!("Invalid save directory: contains path traversal components.");
-    }
 
-    if filename.contains(['/', '\\']) {
-        anyhow::bail!("Invalid filename: must not contain path separators.");
-    }
+    let filename = match anti_traversal_filename(filename) {
+        Some(name) => name,
+        None => {
+            anyhow::bail!("Invalid filename: must not contain path separators or '..'.");
+        }
+    };
 
-    let filepath = save_dir_path.join(filename);
+    let filepath = save_dir_path.join(&filename);
     let root = BitMapBackend::new(&filepath, (800, 600)).into_drawing_area();
     root.fill(&WHITE)?;
 
