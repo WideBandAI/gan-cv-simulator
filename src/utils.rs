@@ -73,6 +73,7 @@ where
     T: FromStr + Clone,
     F: Fn(&T) -> bool,
 {
+    debug_assert!(validate(&default), "Default value must pass validation");
     loop {
         let value = get_parsed_input_with_default(prompt, default.clone());
         if validate(&value) {
