@@ -1,5 +1,5 @@
 use crate::constants::physics::*;
-use crate::mesh_builder::mesh_builder::{FixChargeDensity, IDX, InterfaceStates, MeshStructure};
+use crate::mesh::mesh_builder::{FixChargeDensity, IDX, InterfaceStates, MeshStructure};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 use crate::physics_equations::fermi_dirac::FermiDiracStatistics;
@@ -522,7 +522,7 @@ impl PoissonSolver {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mesh_builder::mesh_builder::{
+    use crate::mesh::mesh_builder::{
         BottomProperties, BulkProperties, FixChargeDensity, IDX, InterfaceProperties,
         MeshStructure, PropertyType, SurfaceProperties,
     };
@@ -675,7 +675,7 @@ mod tests {
                 }),
                 PropertyType::Interface(InterfaceProperties {
                     fixcharge_density: FixChargeDensity::Interface(interface_fixcharge),
-                    interface_states: crate::mesh_builder::mesh_builder::InterfaceStates::None,
+                    interface_states: crate::mesh::mesh_builder::InterfaceStates::None,
                     delta_conduction_band: 0.0,
                 }),
                 PropertyType::Bulk(BulkProperties {
@@ -696,7 +696,7 @@ mod tests {
         }
     }
 
-    use crate::mesh_builder::mesh_builder::{InterfaceStates, InterfaceStatesDistribution};
+    use crate::mesh::mesh_builder::{InterfaceStates, InterfaceStatesDistribution};
 
     fn make_interface_mesh_with_states(
         permittivity: f64,

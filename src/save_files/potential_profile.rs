@@ -1,7 +1,7 @@
 use crate::constants::physics::*;
 use crate::constants::units::*;
-use crate::mesh_builder::mesh_builder::IDX;
-use crate::mesh_builder::mesh_builder::{FixChargeDensity, MeshStructure};
+use crate::mesh::mesh_builder::IDX;
+use crate::mesh::mesh_builder::{FixChargeDensity, MeshStructure};
 use crate::solvers::poisson_solver::Potential;
 use std::fs;
 use std::io::Write;

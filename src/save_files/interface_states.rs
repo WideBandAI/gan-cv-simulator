@@ -1,5 +1,5 @@
 use crate::constants::units::{M2_TO_CM2, PER_M2_TO_PER_CM2};
-use crate::mesh_builder::mesh_builder::{IDX, InterfaceStates, MeshStructure};
+use crate::mesh::mesh_builder::{IDX, InterfaceStates, MeshStructure};
 use std::fs;
 use std::io::Write;
 
@@ -91,7 +91,7 @@ pub fn save_interface_states(
 mod tests {
     use super::*;
     use crate::constants::physics::M_ELECTRON;
-    use crate::mesh_builder::mesh_builder::{
+    use crate::mesh::mesh_builder::{
         BottomProperties, BulkProperties, FixChargeDensity, InterfaceProperties,
         InterfaceStatesDistribution, PropertyType, SurfaceProperties,
     };
