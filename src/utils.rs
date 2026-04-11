@@ -12,6 +12,20 @@ pub fn get_input(prompt: &str) -> String {
     input.trim().to_string()
 }
 
+pub fn get_bool_input(prompt: &str) -> bool {
+    loop {
+        let input = get_input(prompt);
+        if input.is_empty() {
+            return false;
+        }
+        match input.trim().to_lowercase().as_str() {
+            "y" => return true,
+            "n" => return false,
+            _ => println!("Invalid input. Please enter 'y' or 'n'."),
+        }
+    }
+}
+
 pub fn get_parsed_input<T: FromStr>(prompt: &str) -> T {
     loop {
         let input = get_input(prompt);

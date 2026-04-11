@@ -1,4 +1,5 @@
 use crate::utils::anti_traversal_filename;
+use crate::utils::get_bool_input;
 use crate::utils::get_input;
 use crate::utils::get_parsed_input_with_default;
 
@@ -9,20 +10,6 @@ pub struct SimSettings {
     pub convergence_criterion: f64,
     pub max_iterations: usize,
     pub parallel_use: bool,
-}
-
-fn get_bool_input(prompt: &str) -> bool {
-    loop {
-        let input = get_input(prompt);
-        if input.is_empty() {
-            return false;
-        }
-        match input.trim().to_lowercase().as_str() {
-            "y" => return true,
-            "n" => return false,
-            _ => println!("Invalid input. Please enter 'y' or 'n'."),
-        }
-    }
 }
 
 /// Validates a simulation name taken from user input.
