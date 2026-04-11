@@ -31,3 +31,4 @@ target
 *.png
 docs/superpowers/*
 *.txt
+*.json
