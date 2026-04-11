@@ -165,6 +165,24 @@ pub fn anti_traversal_filename(filename: &str) -> Option<String> {
     }
 }
 
+/// Save configuration as json file.
+///
+/// # Arguments
+///
+/// - `config` (`&impl serde`) - The configuration to save.
+/// - `path` (`&str`) - The file path where the configuration will be saved.
+///
+/// # Errors
+///
+/// - If serialization of the configuration fails, an error with a message "Failed to serialize configuration: {error}" is returned.
+///
+/// # Examples
+///
+/// ```
+/// use crate::...;
+///
+/// let _ = save_configuration(&config, "config.json").expect("Failed to save configuration");
+/// ```
 pub fn save_configuration(config: &impl serde::Serialize, path: &str) -> anyhow::Result<()> {
     let config_json = serde_json::to_string_pretty(config)
         .map_err(|e| anyhow::anyhow!("Failed to serialize configuration: {}", e))?;
