@@ -47,6 +47,7 @@ pub fn get_parsed_input_with_default_nonnegative(prompt: &str, default: f64) -> 
 }
 
 pub fn get_parsed_input_with_default_positiveint(prompt: &str, default: u32) -> u32 {
+    debug_assert!(default > 0, "default must be a positive integer");
     loop {
         let input = get_parsed_input_with_default(prompt, default);
         if input == 0 {

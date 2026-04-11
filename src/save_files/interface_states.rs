@@ -67,13 +67,18 @@ pub fn save_interface_states(
         )?;
 
         let layer_name = &mesh_structure.name[idx];
-        for (k, &ec_e) in dist.potential.iter().enumerate() {
-            let acceptor_dit = dist.acceptor_dit[k] * PER_M2_TO_PER_CM2;
-            let donor_dit = dist.donor_dit[k] * PER_M2_TO_PER_CM2;
-            let f = occ[k];
-            let qit =
-                (-dist.acceptor_dit[k] * f + dist.donor_dit[k] * (1.0 - f)) * PER_M2_TO_PER_CM2;
-            let capture_cross_section_value = dist.capture_cross_section[k] * M2_TO_CM2;
+        for ((((&ec_e, &acceptor_dit_raw), &donor_dit_raw), &f), &ccs_raw) in dist
+            .potential
+            .iter()
+            .zip(dist.acceptor_dit.iter())
+            .zip(dist.donor_dit.iter())
+            .zip(occ.iter())
+            .zip(dist.capture_cross_section.iter())
+        {
+            let acceptor_dit = acceptor_dit_raw * PER_M2_TO_PER_CM2;
+            let donor_dit = donor_dit_raw * PER_M2_TO_PER_CM2;
+            let qit = (-acceptor_dit_raw * f + donor_dit_raw * (1.0 - f)) * PER_M2_TO_PER_CM2;
+            let capture_cross_section_value = ccs_raw * M2_TO_CM2;
 
             writeln!(
                 file,
