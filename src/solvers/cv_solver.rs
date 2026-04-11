@@ -129,7 +129,11 @@ impl CVSolver {
             gate_voltage: gate_voltages,
             capacitance: capacitances,
         };
-        save_cv_curves(&[cv_results.clone()], &self.save_dir, "cv_curves.csv")?;
+        save_cv_curves(
+            std::slice::from_ref(&cv_results),
+            &self.save_dir,
+            "cv_curves.csv",
+        )?;
         // plot_cv_curves(&[cv_results], &self.save_dir, "cv_curves.png")?;
         plot_cv_curves(
             &cv_results.gate_voltage,
