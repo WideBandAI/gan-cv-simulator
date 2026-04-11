@@ -38,15 +38,9 @@ fn main() -> anyhow::Result<()> {
             e
         )
     })?;
-    let config_path = format!("{}/{}.json", output_dir, config.sim_settings.sim_name);
-    // let config_json = serde_json::to_string_pretty(&config)
-    //     .map_err(|e| anyhow::anyhow!("Failed to serialize configuration: {}", e))?;
-    // fs::write(&config_path, config_json).map_err(|e| {
-    //     anyhow::anyhow!("Failed to write configuration to '{}': {}", config_path, e)
-    // })?;
-    save_configuration(&config, &config_path)?;
-    let config_dir = format!("config");
     let config_path = format!("{}/{}.json", config_dir, config.sim_settings.sim_name);
+    save_configuration(&config, &config_path)?;
+    let config_path = format!("{}/{}.json", output_dir, config.sim_settings.sim_name);
     save_configuration(&config, &config_path)?;
     println!("Configuration saved to '{}'.", config_path);
 
