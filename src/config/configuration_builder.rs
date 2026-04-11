@@ -18,7 +18,7 @@ use crate::config::sim_settings::define_sim_settings;
 use crate::config::structure::DeviceStructure;
 use crate::config::structure::define_structure;
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub struct Configuration {
     pub measurement: Measurement,
     pub device_structure: DeviceStructure,

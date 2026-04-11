@@ -29,6 +29,21 @@ fn main() -> anyhow::Result<()> {
         )
     })?;
 
+    let config_dir = format!("{}/config", output_dir);
+    fs::create_dir_all(&config_dir).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to create config directory '{}': {}. Please check permissions and try again.",
+            config_dir,
+            e
+        )
+    })?;
+    let config_path = format!("{}/{}.json", config_dir, config.sim_settings.sim_name);
+    let config_json = serde_json::to_string_pretty(&config)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize configuration: {}", e))?;
+    fs::write(&config_path, config_json)
+        .map_err(|e| anyhow::anyhow!("Failed to write configuration to '{}': {}", config_path, e))?;
+    println!("Configuration saved to '{}'.", config_path);
+
     let mesh_structure = mb::build(&config);
     let poisson_solver = PoissonSolver::new(
         mesh_structure,
