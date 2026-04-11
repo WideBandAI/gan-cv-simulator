@@ -20,7 +20,7 @@ use crate::utils::{get_parsed_input, get_parsed_input_with_default};
 ///     ec_ef_bottom: value,
 /// };
 /// ```
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct BoundaryConditions {
     pub barrier_height: f64,
     pub ec_ef_bottom: f64,

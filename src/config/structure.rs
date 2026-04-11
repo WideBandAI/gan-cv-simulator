@@ -3,13 +3,13 @@ use crate::constants::units::{NM_TO_M, PER_CM3_TO_PER_M3};
 use crate::utils::{get_input, get_parsed_input};
 use std::vec;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum MaterialType {
     Semiconductor,
     Insulator,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct DeviceStructure {
     pub id: Vec<u32>,      // Optional: layer ID
     pub name: Vec<String>, // Optional: name of the device structure
