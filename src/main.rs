@@ -30,7 +30,7 @@ fn main() -> anyhow::Result<()> {
         )
     })?;
 
-    let config_dir = format!("config");
+    let config_dir = "config".to_string();
     fs::create_dir_all(&config_dir).map_err(|e| {
         anyhow::anyhow!(
             "Failed to create config directory '{}': {}. Please check permissions and try again.",
