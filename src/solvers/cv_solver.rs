@@ -77,7 +77,7 @@ impl CVSolver {
         let start = self.measurement.voltage.start;
         let end = self.measurement.voltage.end;
         let step = self.measurement.voltage.step;
-        let num_meas_points = ((end - start) / step).abs() + 1.0;
+        let num_meas_points = ((end - start) / step).abs();
 
         if step == 0.0 {
             panic!("voltage step cannot be zero");
