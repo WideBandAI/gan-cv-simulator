@@ -77,8 +77,11 @@ impl CVSolver {
         let start = self.measurement.voltage.start;
         let end = self.measurement.voltage.end;
         let step = self.measurement.voltage.step;
-let num_meas_points = ((end - start) / step).abs();
-debug_assert!(num_meas_points > 0.0, "num_meas_points must be positive to avoid division by zero");
+        let num_meas_points = ((end - start) / step).abs();
+        debug_assert!(
+            num_meas_points > 0.0,
+            "num_meas_points must be positive to avoid division by zero"
+        );
 
         if step == 0.0 {
             panic!("voltage step cannot be zero");
