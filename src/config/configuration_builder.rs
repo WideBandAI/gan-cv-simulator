@@ -82,10 +82,12 @@ impl ConfigurationBuilder {
     /// # Arguments
     /// * `path` - Path to the JSON configuration file
     pub fn from_json(path: &std::path::Path) -> anyhow::Result<Self> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| anyhow::anyhow!("Failed to read config file '{}': {}", path.display(), e))?;
-        let configuration: Configuration = serde_json::from_str(&content)
-            .map_err(|e| anyhow::anyhow!("Failed to parse config file '{}': {}", path.display(), e))?;
+        let content = std::fs::read_to_string(path).map_err(|e| {
+            anyhow::anyhow!("Failed to read config file '{}': {}", path.display(), e)
+        })?;
+        let configuration: Configuration = serde_json::from_str(&content).map_err(|e| {
+            anyhow::anyhow!("Failed to parse config file '{}': {}", path.display(), e)
+        })?;
         Ok(Self { configuration })
     }
 
