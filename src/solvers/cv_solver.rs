@@ -78,10 +78,12 @@ impl CVSolver {
         let end = self.measurement.voltage.end;
         let step = self.measurement.voltage.step;
         let num_meas_points = ((end - start) / step).abs();
-        debug_assert!(
-            num_meas_points > 0.0,
-            "num_meas_points must be positive to avoid division by zero"
-        );
+
+        let time_step = if num_meas_points > 0.0 {
+            self.measurement.time.measurement_time / num_meas_points
+        } else {
+            self.measurement.time.measurement_time
+        };
 
         if step == 0.0 {
             panic!("voltage step cannot be zero");
@@ -107,7 +109,7 @@ impl CVSolver {
         let mut gate_voltage = start;
         let forward = step > 0.0;
         let mut index = 0;
-        let time_step = self.measurement.time.measurement_time / num_meas_points;
+
         while (forward && gate_voltage <= end) || (!forward && gate_voltage >= end) {
             self.set_dc_save_potential(gate_voltage, time_step * index as f64, index)?;
             let capacitance = self.solve_cv(gate_voltage)?;
