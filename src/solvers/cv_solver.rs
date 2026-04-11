@@ -236,8 +236,8 @@ mod tests {
     use crate::config::measurement::{Stress, Temperature, Time, Voltage};
     use crate::constants::physics::EPSILON_0;
     use crate::mesh_builder::mesh_builder::{
-        BottomProperties, BulkProperties, FixChargeDensity, MeshStructure, PropertyType,
-        SurfaceProperties, IDX,
+        BottomProperties, BulkProperties, FixChargeDensity, IDX, MeshStructure, PropertyType,
+        SurfaceProperties,
     };
     use approx::relative_eq;
     use tempfile::TempDir;

@@ -1,22 +1,22 @@
-use crate::config::boundary_conditions::define_boundary_conditions;
 use crate::config::boundary_conditions::BoundaryConditions;
-use crate::config::capture_cross_section::define_capture_cross_section;
+use crate::config::boundary_conditions::define_boundary_conditions;
 use crate::config::capture_cross_section::CaptureCrossSectionConfig;
-use crate::config::fixcharge::define_bulk_fixed_charge;
-use crate::config::fixcharge::define_interface_fixed_charge;
+use crate::config::capture_cross_section::define_capture_cross_section;
 use crate::config::fixcharge::BulkFixedCharge;
 use crate::config::fixcharge::InterfaceFixedCharge;
-use crate::config::interface_states::define_interface_states;
+use crate::config::fixcharge::define_bulk_fixed_charge;
+use crate::config::fixcharge::define_interface_fixed_charge;
 use crate::config::interface_states::ContinuousInterfaceStatesConfig;
 use crate::config::interface_states::DiscreteInterfaceStatesConfig;
-use crate::config::measurement::define_measurement;
+use crate::config::interface_states::define_interface_states;
 use crate::config::measurement::Measurement;
-use crate::config::mesh::define_mesh_params;
+use crate::config::measurement::define_measurement;
 use crate::config::mesh::MeshParams;
-use crate::config::sim_settings::define_sim_settings;
+use crate::config::mesh::define_mesh_params;
 use crate::config::sim_settings::SimSettings;
-use crate::config::structure::define_structure;
+use crate::config::sim_settings::define_sim_settings;
 use crate::config::structure::DeviceStructure;
+use crate::config::structure::define_structure;
 
 #[derive(Debug)]
 pub struct Configuration {

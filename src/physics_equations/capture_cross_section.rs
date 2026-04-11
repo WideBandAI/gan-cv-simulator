@@ -20,11 +20,7 @@ pub fn capture_cross_section_distribution(model: &CaptureCrossSectionModel, ener
         } => {
             // e_slope == 0.0: degenerate case (delta-like trap) — return sigma_mid only at e_mid, 0.0 elsewhere
             if *e_slope == 0.0 {
-                if energy == *e_mid {
-                    *sigma_mid
-                } else {
-                    0.0
-                }
+                if energy == *e_mid { *sigma_mid } else { 0.0 }
             } else {
                 sigma_mid * ((energy - e_mid) / e_slope).exp()
             }

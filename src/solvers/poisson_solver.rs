@@ -1,5 +1,5 @@
 use crate::constants::physics::*;
-use crate::mesh_builder::mesh_builder::{FixChargeDensity, InterfaceStates, MeshStructure, IDX};
+use crate::mesh_builder::mesh_builder::{FixChargeDensity, IDX, InterfaceStates, MeshStructure};
 use crate::physics_equations::donor_activation::DonorActivation;
 use crate::physics_equations::electron_density::{BoltzmannApproximation, ElectronDensity};
 use crate::physics_equations::fermi_dirac::FermiDiracStatistics;
@@ -523,8 +523,8 @@ impl PoissonSolver {
 mod tests {
     use super::*;
     use crate::mesh_builder::mesh_builder::{
-        BottomProperties, BulkProperties, FixChargeDensity, InterfaceProperties, MeshStructure,
-        PropertyType, SurfaceProperties, IDX,
+        BottomProperties, BulkProperties, FixChargeDensity, IDX, InterfaceProperties,
+        MeshStructure, PropertyType, SurfaceProperties,
     };
     use approx::relative_eq;
 

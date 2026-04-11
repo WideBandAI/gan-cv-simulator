@@ -176,7 +176,10 @@ impl MeshStructure {
                 interfacestates.mass_electron =
                     configuration.capture_cross_section.mass_electron[idx];
             } else {
-                panic!("Interface {} has states but no capture cross section model defined. This is a configuration error.", struct_idx);
+                panic!(
+                    "Interface {} has states but no capture cross section model defined. This is a configuration error.",
+                    struct_idx
+                );
             }
 
             // get bandgap for this interface

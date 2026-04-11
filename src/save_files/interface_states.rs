@@ -1,5 +1,5 @@
 use crate::constants::units::{M2_TO_CM2, PER_M2_TO_PER_CM2};
-use crate::mesh_builder::mesh_builder::{InterfaceStates, MeshStructure, IDX};
+use crate::mesh_builder::mesh_builder::{IDX, InterfaceStates, MeshStructure};
 use std::fs;
 use std::io::Write;
 
