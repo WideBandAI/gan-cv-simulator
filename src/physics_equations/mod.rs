@@ -6,3 +6,8 @@ pub mod equilibrium_potential;
 pub mod fermi_dirac;
 pub mod interface_states;
 pub mod srh_statistics;
+
+pub trait TemperatureAware {
+    fn set_temperature(&mut self, temperature: f64);
+    fn get_temperature(&self) -> f64;
+}

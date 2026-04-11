@@ -1,30 +1,10 @@
 use crate::constants::physics::*;
 use crate::physics_equations::band_density::ConductionBandDensity;
+use crate::physics_equations::TemperatureAware;
 use std::fmt::Debug;
 
-pub trait ElectronDensity: Debug + Send + Sync {
-    /// Electron density
-    ///
-    /// # Arguments
-    ///
-    /// - `&self` (`undefined`)
-    /// - `potential` (`f64`) - (Ec - Ef) in eV.
-    /// - `mass_electron` (`f64`) - The effective mass of the electron, which is a measure of how the electron behaves in a material.
-    ///
-    /// # Returns
-    ///
-    /// - `f64` - The electron density in the conduction band.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use crate::physics_equations::electron_density::ElectronDensity;
-    ///
-    /// let _ = electron_density();
-    /// ```
+pub trait ElectronDensity: TemperatureAware + Debug + Send + Sync {
     fn electron_density(&self, potential: f64, mass_electron: f64) -> f64;
-    fn set_temperature(&mut self, temperature: f64);
-    fn get_temperature(&self) -> f64;
 }
 
 #[derive(Debug)]
@@ -44,7 +24,7 @@ impl BoltzmannApproximation {
     }
 }
 
-impl ElectronDensity for BoltzmannApproximation {
+impl TemperatureAware for BoltzmannApproximation {
     fn set_temperature(&mut self, temperature: f64) {
         self.temperature = temperature;
         self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
@@ -54,7 +34,9 @@ impl ElectronDensity for BoltzmannApproximation {
     fn get_temperature(&self) -> f64 {
         self.temperature
     }
+}
 
+impl ElectronDensity for BoltzmannApproximation {
     /// Electron density
     ///
     /// # Arguments

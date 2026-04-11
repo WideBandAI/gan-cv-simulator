@@ -1,4 +1,5 @@
 use crate::constants::physics::*;
+use crate::physics_equations::TemperatureAware;
 
 #[derive(Debug)]
 pub struct DonorActivation {
@@ -14,14 +15,6 @@ impl DonorActivation {
         }
     }
 
-    pub fn set_temperature(&mut self, temperature: f64) {
-        self.temperature = temperature;
-        self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
-    }
-
-    pub fn get_temperature(&self) -> f64 {
-        self.temperature
-    }
     /// Ionized donor density
     ///
     /// # Arguments
@@ -42,6 +35,17 @@ impl DonorActivation {
     /// ```
     pub fn ionized_donor_concentration(&self, donor_concentration: f64, potential: f64) -> f64 {
         donor_concentration / (1.0 + 2.0 * (-potential * self.q_per_kbt).exp())
+    }
+}
+
+impl TemperatureAware for DonorActivation {
+    fn set_temperature(&mut self, temperature: f64) {
+        self.temperature = temperature;
+        self.q_per_kbt = Q_ELECTRON / (K_BOLTZMANN * temperature);
+    }
+
+    fn get_temperature(&self) -> f64 {
+        self.temperature
     }
 }
 
