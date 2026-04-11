@@ -17,8 +17,8 @@ pub fn save_interface_states(
 
     let mut dir_created = false;
 
-    for idx in 0..mesh_structure.id.len() {
-        if !matches!(mesh_structure.id[idx], IDX::Interface(_)) {
+    for (idx, id) in mesh_structure.id.iter().enumerate() {
+        if !matches!(id, IDX::Interface(_)) {
             continue;
         }
 
@@ -67,8 +67,7 @@ pub fn save_interface_states(
         )?;
 
         let layer_name = &mesh_structure.name[idx];
-        for k in 0..dist.potential.len() {
-            let ec_e = dist.potential[k];
+        for (k, &ec_e) in dist.potential.iter().enumerate() {
             let acceptor_dit = dist.acceptor_dit[k] * PER_M2_TO_PER_CM2;
             let donor_dit = dist.donor_dit[k] * PER_M2_TO_PER_CM2;
             let f = occ[k];

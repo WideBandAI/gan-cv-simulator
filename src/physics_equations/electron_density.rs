@@ -77,8 +77,7 @@ impl ElectronDensity for BoltzmannApproximation {
         let nc = self
             .conduction_band_density
             .conduction_band_density(mass_electron);
-        let n = nc * (-potential * self.q_per_kbt).exp();
-        n
+        nc * (-potential * self.q_per_kbt).exp()
     }
 }
 

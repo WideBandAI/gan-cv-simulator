@@ -34,7 +34,6 @@ pub fn save_potential_profile(
     })?;
 
     let profile = potential_profile;
-    let mesh_structure = mesh_structure;
 
     let mut file = std::fs::File::create(&potential_file_path).map_err(|e| {
         anyhow::anyhow!(
@@ -50,13 +49,12 @@ pub fn save_potential_profile(
     )?;
 
     // gate region (at the surface of the device)
-    let gate_depth = vec![-200.0, 0.0];
-    for idx in 0..2 {
+    let gate_depth = [-200.0, 0.0];
+    for &depth in &gate_depth {
         writeln!(
             file,
-            "{}, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2}, {:.2}, {:.3e}, {:.3e}",
-            "Gate",
-            gate_depth[idx],
+            "Gate, {:.3}, {:.3}, {:.3}, {:.3e}, {:.3e}, {:.3e}, {:.2}, {:.2}, {:.3e}, {:.3e}",
+            depth,
             -gate_voltage,
             -gate_voltage,
             0.0,

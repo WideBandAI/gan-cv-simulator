@@ -101,6 +101,12 @@ pub struct MeshStructure {
     pub property_type: Vec<PropertyType>,
 }
 
+impl Default for MeshStructure {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MeshStructure {
     pub fn new() -> Self {
         Self {
@@ -157,13 +163,11 @@ impl MeshStructure {
         let has_continuous = configuration
             .continuous_interface_states
             .interface_id
-            .iter()
-            .any(|&id| id == struct_idx as u32);
+            .contains(&(struct_idx as u32));
         let has_discrete = configuration
             .discrete_interface_states
             .interface_id
-            .iter()
-            .any(|&id| id == struct_idx as u32);
+            .contains(&(struct_idx as u32));
         let has_states = has_continuous || has_discrete;
 
         if has_states {

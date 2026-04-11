@@ -18,7 +18,7 @@ pub fn save_cv_curves(
         anyhow::bail!("Invalid save directory: contains path traversal components.");
     }
 
-    let filename = match anti_traversal_filename(&filename) {
+    let filename = match anti_traversal_filename(filename) {
         Some(name) => name,
         None => {
             anyhow::bail!("Invalid filename: must not contain path separators or '..'.");
@@ -26,7 +26,7 @@ pub fn save_cv_curves(
     };
 
     let cv_file_path = save_dir_path.join(&filename);
-    fs::create_dir_all(&save_dir_path).map_err(|e| {
+    fs::create_dir_all(save_dir_path).map_err(|e| {
         anyhow::anyhow!(
             "Failed to create output directory '{}': {}. Please check permissions and try again.",
             save_dir_path.display(),

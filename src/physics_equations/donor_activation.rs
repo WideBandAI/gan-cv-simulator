@@ -41,8 +41,7 @@ impl DonorActivation {
     /// let _ = donor_activation::ionized_donor_concentration();
     /// ```
     pub fn ionized_donor_concentration(&self, donor_concentration: f64, potential: f64) -> f64 {
-        let ion_nd = donor_concentration / (1.0 + 2.0 * (-potential * self.q_per_kbt).exp());
-        ion_nd
+        donor_concentration / (1.0 + 2.0 * (-potential * self.q_per_kbt).exp())
     }
 }
 
