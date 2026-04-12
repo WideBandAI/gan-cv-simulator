@@ -77,7 +77,7 @@ pub fn define_structure() -> DeviceStructure {
 
         let mat_type = get_material_type(&format!(
             "Is {} a Semiconductor (s) or Insulator (i)? ",
-            name.trim()
+            name
         ));
         device.material_type.push(mat_type);
 
