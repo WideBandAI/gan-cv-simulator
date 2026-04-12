@@ -4,7 +4,7 @@ use crate::utils::{
     get_validated_input_with_default,
 };
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Measurement {
     pub temperature: Temperature,
     pub voltage: Voltage,
@@ -13,26 +13,26 @@ pub struct Measurement {
     pub stress: Stress,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Stress {
     pub stress_voltage: f64,
     pub stress_relief_voltage: f64,
     pub stress_relief_time: f64,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Temperature {
     pub temperature: f64,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Voltage {
     pub start: f64,
     pub end: f64,
     pub step: f64,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Time {
     pub measurement_time: f64,
 }

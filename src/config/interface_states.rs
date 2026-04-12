@@ -8,13 +8,13 @@ use crate::utils::{
     get_parsed_input_with_default_positiveint,
 };
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ContinuousInterfaceStatesConfig {
     pub interface_id: Vec<u32>,     // Interface ID between layers
     pub parameters: Vec<DIGSModel>, // DIGS model parameters
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct DiscreteInterfaceStatesConfig {
     pub interface_id: Vec<u32>,              // Interface ID between layers
     pub parameters: Vec<Vec<DiscreteModel>>, // Discrete model parameters

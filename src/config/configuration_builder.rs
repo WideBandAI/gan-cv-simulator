@@ -18,8 +18,9 @@ use crate::config::sim_settings::define_sim_settings;
 use crate::config::structure::DeviceStructure;
 use crate::config::structure::define_structure;
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Configuration {
+    pub sim_settings: SimSettings,
     pub measurement: Measurement,
     pub device_structure: DeviceStructure,
     pub bulk_fixed_charge: BulkFixedCharge,
@@ -29,7 +30,6 @@ pub struct Configuration {
     pub capture_cross_section: CaptureCrossSectionConfig,
     pub mesh_params: MeshParams,
     pub boundary_conditions: BoundaryConditions,
-    pub sim_settings: SimSettings,
 }
 
 #[derive(Debug)]
@@ -77,20 +77,18 @@ impl ConfigurationBuilder {
         Self { configuration }
     }
 
-    /// Build configuration from a JSON file (placeholder for future implementation)
+    /// Build configuration from a JSON file
     ///
     /// # Arguments
     /// * `path` - Path to the JSON configuration file
-    ///
-    /// # Example (future usage)
-    /// ```ignore
-    /// let builder = ConfigurationBuilder::from_json("config.json")?;
-    /// ```
-    #[allow(dead_code)]
-    pub fn from_json(_path: &str) -> Result<Self, std::io::Error> {
-        // TODO: Implement JSON deserialization
-        // This is a placeholder for future implementation when serde support is added
-        unimplemented!("JSON configuration loading is not yet implemented")
+    pub fn from_json(path: &std::path::Path) -> anyhow::Result<Self> {
+        let content = std::fs::read_to_string(path).map_err(|e| {
+            anyhow::anyhow!("Failed to read config file '{}': {}", path.display(), e)
+        })?;
+        let configuration: Configuration = serde_json::from_str(&content).map_err(|e| {
+            anyhow::anyhow!("Failed to parse config file '{}': {}", path.display(), e)
+        })?;
+        Ok(Self { configuration })
     }
 
     /// Get a reference to the configuration

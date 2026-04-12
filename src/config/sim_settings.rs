@@ -3,7 +3,7 @@ use crate::utils::get_bool_input;
 use crate::utils::get_input;
 use crate::utils::get_parsed_input_with_default;
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct SimSettings {
     pub sim_name: String,
     pub sor_relaxation_factor: f64,
