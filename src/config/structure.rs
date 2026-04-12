@@ -73,7 +73,7 @@ pub fn define_structure() -> DeviceStructure {
             &format!("Enter name for layer {}: default is layer_{} ", n, n),
             format!("layer_{}", n),
         );
-        device.name.push(name.trim().to_string());
+        device.name.push(name.clone());
 
         let mat_type = get_material_type(&format!(
             "Is {} a Semiconductor (s) or Insulator (i)? ",
