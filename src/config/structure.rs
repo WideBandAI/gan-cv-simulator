@@ -69,13 +69,9 @@ pub fn define_structure() -> DeviceStructure {
         device.id.push(n);
         println!("\nLayer {}:", n);
 
-        // let name = get_input(&format!(
-        //     "Enter name for layer {} (or press Enter to skip): ",
-        //     n
-        // ));
         let name = get_parsed_input_with_default(
-            &format!("Enter name for layer {}: default is layer {} ", n, n),
-            format!("layer {}", n),
+            &format!("Enter name for layer {}: default is layer_{} ", n, n),
+            format!("layer_{}", n),
         );
         device.name.push(name.trim().to_string());
 
