@@ -58,11 +58,6 @@ pub fn define_capture_cross_section(
         let (interface_id, model, mass_electron): (Vec<_>, Vec<_>, Vec<_>) = interface_ids
             .iter()
             .map(|&id| {
-                println!(
-                    "Interface between Layer {} and Layer {}:",
-                    device_structure.name[id as usize],
-                    device_structure.name[id as usize + 1]
-                );
                 let model = get_capture_cross_section_model(id, device_structure);
                 // Interface id is a boundary index (0..num_layers-1), so id+1 is always a valid layer index.
                 let lower_layer_mass = *device_structure
