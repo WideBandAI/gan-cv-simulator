@@ -20,6 +20,7 @@ use crate::config::structure::define_structure;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Configuration {
+    pub sim_settings: SimSettings,
     pub measurement: Measurement,
     pub device_structure: DeviceStructure,
     pub bulk_fixed_charge: BulkFixedCharge,
@@ -29,7 +30,6 @@ pub struct Configuration {
     pub capture_cross_section: CaptureCrossSectionConfig,
     pub mesh_params: MeshParams,
     pub boundary_conditions: BoundaryConditions,
-    pub sim_settings: SimSettings,
 }
 
 #[derive(Debug)]
