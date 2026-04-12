@@ -41,7 +41,6 @@ pub fn define_bulk_fixed_charge(device_structure: &DeviceStructure) -> BulkFixed
     let num_layers = device_structure.id.len();
 
     for i in 0..num_layers {
-        // println!("Layer {} (Name: {})", i, device_structure.name[i]);
         let charge_density: f64 = get_parsed_input_with_default(
             &format!(
                 "Enter fixed charge density (C/cm^3) for {}: default is 0 ",
@@ -84,14 +83,6 @@ pub fn define_interface_fixed_charge(device_structure: &DeviceStructure) -> Inte
     let num_layers = device_structure.id.len();
 
     for i in 0..(num_layers - 1) {
-        // println!(
-        //     "Interface {} between Layer {} (Name: {}) and Layer {} (Name: {})",
-        //     i,
-        //     device_structure.id[i],
-        //     device_structure.name[i],
-        //     device_structure.id[i + 1],
-        //     device_structure.name[i + 1]
-        // );
         let charge_density: f64 = get_parsed_input_with_default(
             &format!(
                 "Enter fixed charge density (C/cm^2) for interface between {} and {}: default is 0 ",
