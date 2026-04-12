@@ -63,13 +63,12 @@ pub fn select_config_source() -> anyhow::Result<ConfigurationBuilder> {
                     if std::io::BufRead::read_line(&mut std::io::stdin().lock(), &mut sel)? == 0 {
                         return Err(anyhow::anyhow!("Input stream closed unexpectedly"));
                     }
-                    if let Ok(n) = sel.trim().parse::<usize>() {
-                        if n >= 1 {
-                            if let Some(path) = files.get(n - 1) {
-                                println!("Loading config from '{}'...", path.display());
-                                return ConfigurationBuilder::from_json(path);
-                            }
-                        }
+                    if let Ok(n) = sel.trim().parse::<usize>()
+                        && n >= 1
+                        && let Some(path) = files.get(n - 1)
+                    {
+                        println!("Loading config from '{}'...", path.display());
+                        return ConfigurationBuilder::from_json(path);
                     }
                     println!(
                         "Invalid selection. Please enter a number between 1 and {}.",
