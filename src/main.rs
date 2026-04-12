@@ -7,7 +7,7 @@ pub mod save_files;
 pub mod solvers;
 pub mod utils;
 
-use crate::constants::simulation::INITIAL_POTENTIAL;
+use crate::constants::simulation::{CONFIG_DIR, INITIAL_POTENTIAL};
 
 use std::fs;
 
@@ -31,7 +31,7 @@ fn main() -> anyhow::Result<()> {
         )
     })?;
 
-    let config_dir = std::path::Path::new("config");
+    let config_dir = std::path::Path::new(CONFIG_DIR);
     std::fs::create_dir_all(config_dir).map_err(|e| {
         anyhow::anyhow!(
             "Failed to create config directory '{}': {}. Please check permissions and try again.",

@@ -1,4 +1,5 @@
 use crate::config::configuration_builder::ConfigurationBuilder;
+use crate::constants::simulation::CONFIG_DIR;
 
 fn list_config_files(config_dir: &std::path::Path) -> Vec<std::path::PathBuf> {
     let Ok(entries) = std::fs::read_dir(config_dir) else {
@@ -35,11 +36,13 @@ pub fn select_config_source() -> anyhow::Result<ConfigurationBuilder> {
         let mut input = String::new();
         print!("Enter choice (default: 1): ");
         std::io::Write::flush(&mut std::io::stdout())?;
-        std::io::BufRead::read_line(&mut std::io::stdin().lock(), &mut input)?;
+        if std::io::BufRead::read_line(&mut std::io::stdin().lock(), &mut input)? == 0 {
+            return Err(anyhow::anyhow!("Input stream closed unexpectedly"));
+        }
         match input.trim() {
             "" | "1" => return Ok(ConfigurationBuilder::from_interactive()),
             "2" => {
-                let config_dir = std::path::Path::new("config");
+                let config_dir = std::path::Path::new(CONFIG_DIR);
                 let files = list_config_files(config_dir);
                 if files.is_empty() {
                     println!(
@@ -57,15 +60,16 @@ pub fn select_config_source() -> anyhow::Result<ConfigurationBuilder> {
                     let mut sel = String::new();
                     print!("Enter number (1-{}): ", files.len());
                     std::io::Write::flush(&mut std::io::stdout())?;
-                    std::io::BufRead::read_line(&mut std::io::stdin().lock(), &mut sel)?;
-                    let sel = sel.trim();
-                    if let Ok(n) = sel.parse::<usize>()
-                        && n >= 1
-                        && n <= files.len()
-                    {
-                        let path = &files[n - 1];
-                        println!("Loading config from '{}'...", path.display());
-                        return ConfigurationBuilder::from_json(path);
+                    if std::io::BufRead::read_line(&mut std::io::stdin().lock(), &mut sel)? == 0 {
+                        return Err(anyhow::anyhow!("Input stream closed unexpectedly"));
+                    }
+                    if let Ok(n) = sel.trim().parse::<usize>() {
+                        if n >= 1 {
+                            if let Some(path) = files.get(n - 1) {
+                                println!("Loading config from '{}'...", path.display());
+                                return ConfigurationBuilder::from_json(path);
+                            }
+                        }
                     }
                     println!(
                         "Invalid selection. Please enter a number between 1 and {}.",
