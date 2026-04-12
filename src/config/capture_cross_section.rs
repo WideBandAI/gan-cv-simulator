@@ -58,14 +58,13 @@ pub fn define_capture_cross_section(
         let (interface_id, model, mass_electron): (Vec<_>, Vec<_>, Vec<_>) = interface_ids
             .iter()
             .map(|&id| {
-                println!("Interface {}:", id);
-                let model = get_capture_cross_section_model(id);
+                let model = get_capture_cross_section_model(id, device_structure);
                 // Interface id is a boundary index (0..num_layers-1), so id+1 is always a valid layer index.
                 let lower_layer_mass = *device_structure
                     .mass_electron
                     .get(id as usize + 1)
                     .expect("Interface id must be less than the number of layers minus one");
-                let me = get_mass_electron(id, lower_layer_mass);
+                let me = get_mass_electron(id, lower_layer_mass, device_structure);
                 (id, model, me)
             })
             .multiunzip();
@@ -85,21 +84,28 @@ pub fn define_capture_cross_section(
     }
 }
 
-fn get_mass_electron(interface_id: u32, lower_layer_mass_kg: f64) -> f64 {
+fn get_mass_electron(
+    interface_id: u32,
+    lower_layer_mass_kg: f64,
+    device_structure: &DeviceStructure,
+) -> f64 {
     loop {
         let coeff: f64 = if lower_layer_mass_kg > 0.0 {
             let lower_mass_coeff = lower_layer_mass_kg / M_ELECTRON;
             get_parsed_input_with_default(
                 &format!(
-                    "Enter effective mass coefficient of electron for interface {}: default is {:.4} ",
-                    interface_id, lower_mass_coeff
+                    "Enter effective mass coefficient of electron for interface between {} and {}: default is {:.4} ",
+                    device_structure.name[interface_id as usize],
+                    device_structure.name[interface_id as usize + 1],
+                    lower_mass_coeff
                 ),
                 lower_mass_coeff,
             )
         } else {
             get_parsed_input(&format!(
-                "Enter effective mass coefficient of electron for interface {}: ",
-                interface_id
+                "Enter effective mass coefficient of electron for interface between {} and {}: ",
+                device_structure.name[interface_id as usize],
+                device_structure.name[interface_id as usize + 1]
             ))
         };
 
@@ -111,18 +117,23 @@ fn get_mass_electron(interface_id: u32, lower_layer_mass_kg: f64) -> f64 {
     }
 }
 
-fn get_capture_cross_section_model(interface_id: u32) -> CaptureCrossSectionModel {
+fn get_capture_cross_section_model(
+    interface_id: u32,
+    device_structure: &DeviceStructure,
+) -> CaptureCrossSectionModel {
     loop {
         let input = get_input(&format!(
-            "Select capture cross-section model for interface {}: Constant (c) or Energy-dependent (e): default is c ",
-            interface_id
+            "Select capture cross-section model for interface between {} and {}: Constant (c) or Energy-dependent (e): default is c ",
+            device_structure.name[interface_id as usize],
+            device_structure.name[interface_id as usize + 1]
         ));
         match input.trim().to_lowercase().as_str() {
             "c" | "" => {
                 let sigma_cm2: f64 = get_parsed_input_with_default_nonnegative(
                     &format!(
-                        "Enter sigma (cm^2) for interface {}: default is 1e-16 ",
-                        interface_id
+                        "Enter sigma (cm^2) for interface between {} and {}: default is 1e-16 ",
+                        device_structure.name[interface_id as usize],
+                        device_structure.name[interface_id as usize + 1]
                     ),
                     1e-16,
                 );
@@ -133,22 +144,25 @@ fn get_capture_cross_section_model(interface_id: u32) -> CaptureCrossSectionMode
             "e" => {
                 let sigma_mid_cm2: f64 = get_parsed_input_with_default_nonnegative(
                     &format!(
-                        "Enter sigma_mid (cm^2) for interface {}: default is 1e-16 ",
-                        interface_id
+                        "Enter sigma_mid (cm^2) for interface between {} and {}: default is 1e-16 ",
+                        device_structure.name[interface_id as usize],
+                        device_structure.name[interface_id as usize + 1]
                     ),
                     1e-16,
                 );
                 let e_mid: f64 = get_parsed_input_with_default_nonnegative(
                     &format!(
-                        "Enter E_mid (eV) for interface {}: default is 0.5 ",
-                        interface_id
+                        "Enter E_mid (eV) for interface between {} and {}: default is 0.5 ",
+                        device_structure.name[interface_id as usize],
+                        device_structure.name[interface_id as usize + 1]
                     ),
                     0.5,
                 );
                 let e_slope: f64 = get_parsed_input_with_default(
                     &format!(
-                        "Enter E_slope (eV) for interface {}: default is 0.1 ",
-                        interface_id
+                        "Enter E_slope (eV) for interface between {} and {}: default is 0.1 ",
+                        device_structure.name[interface_id as usize],
+                        device_structure.name[interface_id as usize + 1]
                     ),
                     0.1,
                 );

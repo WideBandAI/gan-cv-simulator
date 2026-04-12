@@ -37,10 +37,10 @@ pub fn define_interface_states(
 
     let num_layers = device_structure.id.len();
     for i in 0..(num_layers - 1) {
-        print_interface_details(i, device_structure);
         let has_continuous_traps: bool = get_bool_input(&format!(
-            "Does interface {} have continuous traps? (y/n). Default is n: ",
-            i
+            "Does interface between {} and {} have continuous traps? (y/n). Default is n: ",
+            device_structure.name[i],
+            device_structure.name[i + 1]
         ));
         if has_continuous_traps {
             let params = configure_continuous_interface_states(i, device_structure);
@@ -51,8 +51,9 @@ pub fn define_interface_states(
         }
 
         let has_discrete_traps: bool = get_bool_input(&format!(
-            "Does interface {} have discrete traps? (y/n). Default is n: ",
-            i
+            "Does interface between {} and {} have discrete traps? (y/n). Default is n: ",
+            device_structure.name[i],
+            device_structure.name[i + 1]
         ));
         if has_discrete_traps {
             let params = configure_discrete_interface_states(i, device_structure);
@@ -156,15 +157,4 @@ fn configure_discrete_interface_states(
         discrete_parameters.push(DiscreteModel::new(ditmax, ed, fwhm, state_type, bandgap));
     }
     discrete_parameters
-}
-
-fn print_interface_details(i: usize, device_structure: &DeviceStructure) {
-    println!(
-        "Interface {} between Layer {} (Name: {}) and Layer {} (Name: {})",
-        i,
-        device_structure.id[i],
-        device_structure.name[i],
-        device_structure.id[i + 1],
-        device_structure.name[i + 1]
-    );
 }

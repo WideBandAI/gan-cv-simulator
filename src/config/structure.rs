@@ -1,6 +1,6 @@
 use crate::constants::physics::{EPSILON_0, M_ELECTRON};
 use crate::constants::units::{NM_TO_M, PER_CM3_TO_PER_M3};
-use crate::utils::{get_input, get_parsed_input};
+use crate::utils::{get_input, get_parsed_input, get_parsed_input_with_default};
 use std::vec;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -69,56 +69,58 @@ pub fn define_structure() -> DeviceStructure {
         device.id.push(n);
         println!("\nLayer {}:", n);
 
-        let name = get_input(&format!(
-            "Enter name for layer {} (or press Enter to skip): ",
-            n
-        ));
-        device.name.push(name.trim().to_string());
+        let name = get_parsed_input_with_default(
+            &format!("Enter name for layer {}: default is layer_{} ", n, n),
+            format!("layer_{}", n),
+        );
+        device.name.push(name.clone());
 
         let mat_type = get_material_type(&format!(
-            "Is layer {} a Semiconductor (s) or Insulator (i)? ",
-            n
+            "Is {} a Semiconductor (s) or Insulator (i)? ",
+            name
         ));
         device.material_type.push(mat_type);
 
-        let thickness_nm: f64 = get_parsed_input(&format!("Enter thickness of layer {} (nm): ", n));
+        let thickness_nm: f64 =
+            get_parsed_input(&format!("Enter thickness of {} (nm): ", name.trim()));
         device.thickness.push(thickness_nm * NM_TO_M); // convert nm to meters
 
         let permittivity: f64 = get_parsed_input(&format!(
-            "Enter relative permittivity coefficient for layer {}: ",
-            n
+            "Enter relative permittivity coefficient for {}: ",
+            name.trim()
         ));
         device.permittivity.push(permittivity * EPSILON_0); // convert relative permittivity to absolute
 
-        let eg: f64 = get_parsed_input(&format!("Enter bandgap energy in eV for layer {}: ", n));
+        let eg: f64 =
+            get_parsed_input(&format!("Enter bandgap energy in eV for {}: ", name.trim()));
         device.bandgap_energy.push(eg);
 
         if n == (num_layers - 1) {
             device.delta_conduction_band.push(0.0); // last layer delta conduction band is 0
         } else {
             let dec: f64 = get_parsed_input(&format!(
-                "Enter delta conduction band in eV from bottom layer to layer {}: ",
-                n
+                "Enter delta conduction band in eV from bottom layer to {}: ",
+                name.trim()
             ));
             device.delta_conduction_band.push(dec);
         }
 
         if device.material_type[n as usize] == MaterialType::Semiconductor {
             let me: f64 = get_parsed_input(&format!(
-                "Enter effective mass coefficient of electron for layer {}: ",
-                n
+                "Enter effective mass coefficient of electron for {}: ",
+                name.trim()
             ));
             device.mass_electron.push(me * M_ELECTRON); // convert to units of electron mass
 
             let nd: f64 = get_parsed_input(&format!(
-                "Enter donor concentration in cm^-3 for layer {}: ",
-                n
+                "Enter donor concentration in cm^-3 for {}: ",
+                name.trim()
             ));
             device.donor_concentration.push(nd * PER_CM3_TO_PER_M3); // convert cm^-3 to m^-3
 
             let end: f64 = get_parsed_input(&format!(
-                "Enter energy level of donor in eV (Ec-Ed) for layer {}: ",
-                n
+                "Enter energy level of donor in eV (Ec-Ed) for {}: ",
+                name.trim()
             ));
             device.energy_level_donor.push(end);
         } else {
