@@ -37,7 +37,6 @@ pub fn define_interface_states(
 
     let num_layers = device_structure.id.len();
     for i in 0..(num_layers - 1) {
-        print_interface_details(i, device_structure);
         let has_continuous_traps: bool = get_bool_input(&format!(
             "Does interface between {} and {} have continuous traps? (y/n). Default is n: ",
             device_structure.name[i],
