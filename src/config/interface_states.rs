@@ -158,14 +158,3 @@ fn configure_discrete_interface_states(
     }
     discrete_parameters
 }
-
-fn print_interface_details(i: usize, device_structure: &DeviceStructure) {
-    println!(
-        "Interface {} between Layer {} (Name: {}) and Layer {} (Name: {})",
-        i,
-        device_structure.id[i],
-        device_structure.name[i],
-        device_structure.id[i + 1],
-        device_structure.name[i + 1]
-    );
-}
