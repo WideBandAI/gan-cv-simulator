@@ -61,7 +61,7 @@ impl MeasurementForm {
 
         let temperature = parse_f64_validated(
             &mut self.fields[0], "Temperature",
-            |v| *v > 0.0, "must be > 0",
+            |v| v > 0.0, "must be > 0",
         )
         .unwrap_or_else(|e| { errors.push(e); 300.0 });
 
@@ -71,19 +71,19 @@ impl MeasurementForm {
             .unwrap_or_else(|e| { errors.push(e); 0.0 });
         let v_step = parse_f64_validated(
             &mut self.fields[3], "Voltage step",
-            |v| *v != 0.0, "must not be zero",
+            |v| v != 0.0, "must not be zero",
         )
         .unwrap_or_else(|e| { errors.push(e); 0.1 });
 
         let ac_mv = parse_f64_validated(
             &mut self.fields[4], "AC voltage",
-            |v| *v > 0.0, "must be > 0",
+            |v| v > 0.0, "must be > 0",
         )
         .unwrap_or_else(|e| { errors.push(e); 20.0 });
 
         let meas_time = parse_f64_validated(
             &mut self.fields[5], "Measurement time",
-            |v| *v >= 0.0, "must be >= 0",
+            |v| v >= 0.0, "must be >= 0",
         )
         .unwrap_or_else(|e| { errors.push(e); 100.0 });
 
@@ -93,7 +93,7 @@ impl MeasurementForm {
             .unwrap_or_else(|e| { errors.push(e); 0.0 });
         let stress_rel_t = parse_f64_validated(
             &mut self.fields[8], "Stress relief time",
-            |v| *v >= 0.0, "must be >= 0",
+            |v| v >= 0.0, "must be >= 0",
         )
         .unwrap_or_else(|e| { errors.push(e); 0.0 });
 

@@ -1,3 +1,7 @@
+pub mod measurement;
+pub mod sim_settings;
+pub mod structure;
+
 use crossterm::event::KeyCode;
 use ratatui::{
     Frame,

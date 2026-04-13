@@ -5,21 +5,20 @@ pub mod physics_equations;
 pub mod plot;
 pub mod save_files;
 pub mod solvers;
+pub mod tui;
 pub mod utils;
 
 use crate::constants::simulation::{CONFIG_DIR, INITIAL_POTENTIAL};
 
 use std::fs;
 
-use crate::config::config_source::select_config_source;
 use crate::mesh::mesh_builder as mb;
 use crate::solvers::cv_solver::CVSolver;
 use crate::solvers::poisson_solver::PoissonSolver;
 use crate::utils::save_configuration;
 
 fn main() -> anyhow::Result<()> {
-    println!("GaN C-V Simulator");
-    let config = select_config_source()?.build();
+    let config = tui::run()?.build();
     println!("{:#?}", config);
 
     let output_dir = format!("outputs/{}", config.sim_settings.sim_name);

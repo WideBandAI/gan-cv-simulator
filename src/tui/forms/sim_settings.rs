@@ -72,14 +72,14 @@ impl SimSettingsForm {
 
         let sor = parse_f64_validated(
             &mut self.fields[1], "SOR factor",
-            |v| *v > 0.0 && *v <= 2.0,
+            |v| v > 0.0 && v <= 2.0,
             "must be in (0, 2]",
         )
         .unwrap_or_else(|e| { errors.push(e); 1.9 });
 
         let conv = parse_f64_validated(
             &mut self.fields[2], "Convergence criterion",
-            |v| *v > 0.0,
+            |v| v > 0.0,
             "must be > 0",
         )
         .unwrap_or_else(|e| { errors.push(e); 1e-6 });
