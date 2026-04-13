@@ -1,0 +1,88 @@
+<style>
+  .tui-mockup {
+    font-family: 'Courier New', monospace;
+    font-size: 10.5px;
+    background: #0d1117;
+    color: #c9d1d9;
+    border: 2px solid #30363d;
+    border-radius: 4px;
+    padding: 8px;
+    white-space: pre;
+    line-height: 1.45;
+    margin: 0;
+    overflow: hidden;
+  }
+  .c-blue   { color: #58a6ff; }
+  .c-green  { color: #3fb950; }
+  .c-yellow { color: #e3b341; }
+  .c-red    { color: #f85149; }
+  .c-purple { color: #bc8cff; }
+  .c-dim    { color: #484f58; }
+  .c-white  { color: #f0f6fc; }
+  .c-orange { color: #ffa657; }
+  .c-sel    { background: #1f6feb; color: #fff; }
+  .cards { grid-template-columns: 1fr 1fr !important; }
+</style>
+
+<h2>層の追加・編集 — どのUIスタイルが合いますか？</h2>
+<p class="subtitle">デバイス構造は複数の層を動的に追加する必要があります。その操作方法の選択です</p>
+
+<div class="cards">
+
+  <!-- Option A: Layer list + inline form -->
+  <div class="card" data-choice="list-form" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:8px;">
+      <div class="tui-mockup"><span class="c-blue">╔══════════╦═══════════════════════════╗
+║ 設定項目  ║ デバイス構造               ║
+╠══════════╣                           ║
+║ Sim設定  ║</span> <span class="c-white">層一覧</span>  <span class="c-dim">[a:追加] [d:削除]</span>    <span class="c-blue">║
+║</span><span class="c-sel">▶ 構造   </span><span class="c-blue">║</span> <span class="c-dim">────────────────────────</span>  <span class="c-blue">║
+║ 測定     ║</span> <span class="c-dim">  0</span> <span class="c-green">GaN</span>   <span class="c-dim">Semicon  200nm</span>   <span class="c-blue">║
+║ 固定電荷 ║</span> <span class="c-sel">▶ 1 AlGaN  Semicon   30nm</span>  <span class="c-blue">║
+║ 界面準位 ║</span>   <span class="c-dim">2 SiO₂   Insulator  5nm</span>  <span class="c-blue">║
+║ メッシュ ║</span>                           <span class="c-blue">║
+║ 境界条件 ╠═══════════════════════════╣
+╠══════════╣</span> <span class="c-white">Layer 1: AlGaN (編集中)</span>    <span class="c-blue">║
+║ 未実行   ║</span> 名前:    <span class="c-yellow">[AlGaN        ]</span>   <span class="c-blue">║
+╚══════════╣</span> タイプ:  <span class="c-yellow">[ Semiconductor]</span>   <span class="c-blue">║
+           ║</span> 厚さ:   <span class="c-yellow">[  30  ]</span> nm        <span class="c-blue">║
+           ║</span> 誘電率: <span class="c-yellow">[   9.0]</span>           <span class="c-blue">║
+           ║</span> <span class="c-dim">[Tab:次フィールド] [Esc:一覧へ]</span><span class="c-blue">║
+           ╚═══════════════════════════╝</span></div>
+    </div>
+    <div class="card-body">
+      <h3>A: 層リスト＋下部フォーム</h3>
+      <p>上半分に層の一覧、下半分に選択した層の編集フォームを表示。`a`で追加、`d`で削除、Enterで編集</p>
+    </div>
+  </div>
+
+  <!-- Option B: Layer tabs -->
+  <div class="card" data-choice="layer-tabs" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:8px;">
+      <div class="tui-mockup"><span class="c-blue">╔══════════╦═══════════════════════════╗
+║ 設定項目  ║ デバイス構造               ║
+╠══════════╣</span> <span class="c-dim">[Layer 0]</span> <span class="c-sel">[Layer 1]</span> <span class="c-dim">[Layer 2]</span> <span class="c-green">[+]</span> <span class="c-blue">║
+║ Sim設定  ╠═══════════════════════════╣</span>
+<span class="c-blue">║</span><span class="c-sel">▶ 構造   </span><span class="c-blue">║</span> <span class="c-white">Layer 1: AlGaN</span>            <span class="c-blue">║
+║ 測定     ║</span>                           <span class="c-blue">║
+║ 固定電荷 ║</span> 名前:        <span class="c-yellow">[AlGaN      ]</span> <span class="c-blue">║
+║ 界面準位 ║</span> タイプ:      <span class="c-yellow">[Semiconductor]</span><span class="c-blue">║
+║ メッシュ ║</span> 厚さ(nm):   <span class="c-yellow">[  30        ]</span> <span class="c-blue">║
+║ 境界条件 ║</span> 比誘電率:   <span class="c-yellow">[   9.0      ]</span> <span class="c-blue">║
+╠══════════╣</span> バンドギャップ: <span class="c-yellow">[   3.4  ]</span> eV<span class="c-blue">║
+║ 未実行   ║</span> ΔEc:        <span class="c-yellow">[   0.3      ]</span> <span class="c-blue">║
+╚══════════╣</span>                           <span class="c-blue">║
+           ║</span> <span class="c-dim">有効質量:    [   0.22     ]</span> <span class="c-blue">║
+           ║</span> <span class="c-dim">ドナー濃度:  [   2e17    ]</span> <span class="c-blue">║
+           ║</span> <span class="c-dim">[←→:層切替]  [Del:層削除]</span>   <span class="c-blue">║
+           ╚═══════════════════════════╝</span></div>
+    </div>
+    <div class="card-body">
+      <h3>B: 層タブ形式</h3>
+      <p>各層をタブとして横に並べる。`←/→`でタブ切替、`[+]`で新層追加、`Del`で削除。1層ずつフォーカスして編集</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;">クリックで選択してから、ターミナルで教えてください</p>

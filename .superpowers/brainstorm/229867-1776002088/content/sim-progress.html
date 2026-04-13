@@ -1,0 +1,102 @@
+<style>
+  .tui-mockup {
+    font-family: 'Courier New', monospace;
+    font-size: 10.5px;
+    background: #0d1117;
+    color: #c9d1d9;
+    border: 2px solid #30363d;
+    border-radius: 4px;
+    padding: 8px;
+    white-space: pre;
+    line-height: 1.45;
+    margin: 0;
+    overflow: hidden;
+  }
+  .c-cyan    { color: #58a6ff; }
+  .c-green   { color: #3fb950; }
+  .c-yellow  { color: #e3b341; }
+  .c-red     { color: #f85149; }
+  .c-purple  { color: #bc8cff; }
+  .c-dim     { color: #484f58; }
+  .c-white   { color: #f0f6fc; }
+  .c-orange  { color: #ffa657; }
+  .cards { grid-template-columns: 1fr 1fr 1fr !important; }
+</style>
+
+<h2>シミュレーション実行中の画面 — どのスタイルが好みですか？</h2>
+<p class="subtitle">計算中に何を表示するかで使い心地が大きく変わります</p>
+
+<div class="cards">
+
+  <!-- Option A: Progress + Live Table -->
+  <div class="card" data-choice="progress-table" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:8px;">
+      <div class="tui-mockup"><span class="c-cyan">╔════════════╦══════════════════════════╗
+║ 設定項目    ║ シミュレーション実行中    ║
+╠════════════╣                          ║
+║ Sim設定    ║</span> <span class="c-yellow">応力印加: -5.000 V</span>         <span class="c-cyan">║
+║ 構造       ║</span>                          <span class="c-cyan">║
+║ 測定       ║</span> <span class="c-white">進捗</span>                      <span class="c-cyan">║
+║ メッシュ   ║</span> <span class="c-green">████████████</span><span class="c-dim">░░░░░░░░</span> <span class="c-white">60%</span>  <span class="c-cyan">║
+║ 境界条件   ║</span> <span class="c-dim">12 / 20 点完了</span>             <span class="c-cyan">║
+╠════════════╣                          ║
+║</span> <span class="c-green">▶ 実行中</span>    <span class="c-cyan">║</span> <span class="c-white">最新の測定結果</span>            <span class="c-cyan">║
+╚════════════╣</span> <span class="c-dim">──────────────────────────</span><span class="c-cyan">╗</span>
+             <span class="c-cyan">║</span> <span class="c-dim">  V(V)   C(nF/cm²)</span>        <span class="c-cyan">║
+             ║</span> <span class="c-dim"> -3.000  1.234e+02</span>        <span class="c-cyan">║
+             ║</span> <span class="c-dim"> -2.500  1.198e+02</span>        <span class="c-cyan">║
+             ║</span> <span class="c-yellow"> -2.000  1.156e+02</span> <span class="c-orange">◀ 最新</span>  <span class="c-cyan">║
+             ╚══════════════════════════╝</span></div>
+    </div>
+    <div class="card-body">
+      <h3>A: 進捗バー＋データテーブル</h3>
+      <p>進捗バーで全体の進み具合を示し、下に測定値をリアルタイムでリスト表示。シンプルで見やすい</p>
+    </div>
+  </div>
+
+  <!-- Option B: Log + Progress -->
+  <div class="card" data-choice="log-view" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:8px;">
+      <div class="tui-mockup"><span class="c-cyan">╔════════════╦══════════════════════════╗
+║ 設定項目    ║ 実行ログ                  ║
+╠════════════╣                          ║</span>
+<span class="c-cyan">║ Sim設定    ║</span> <span class="c-dim">[00:00] 応力印加: -5.000V</span>  <span class="c-cyan">║
+║ 構造       ║</span> <span class="c-dim">[00:01] 緩和: -2.000V 10s</span>  <span class="c-cyan">║
+║ 測定       ║</span> <span class="c-green">[00:03] V=-3.0V C=1.234e+02</span><span class="c-cyan">║
+║ メッシュ   ║</span> <span class="c-green">[00:05] V=-2.5V C=1.198e+02</span><span class="c-cyan">║
+║ 境界条件   ║</span> <span class="c-yellow">[00:07] V=-2.0V C=1.156e+02</span><span class="c-cyan">║
+╠════════════╣</span> <span class="c-dim">⠸ 計算中...</span>                <span class="c-cyan">║
+║</span> <span class="c-green">▶ 実行中</span>    <span class="c-cyan">╠══════════════════════════╣
+╚════════════╣</span> <span class="c-green">██████████</span><span class="c-dim">░░░░░░░░░░</span> <span class="c-white">50%</span> <span class="c-cyan">║
+             ║</span> <span class="c-dim">経過 00:07  残り ~00:07</span>    <span class="c-cyan">║
+             ╚══════════════════════════╝</span></div>
+    </div>
+    <div class="card-body">
+      <h3>B: スクロールログ形式</h3>
+      <p>タイムスタンプ付きのログを流し、下部に進捗バーと残り時間を表示。現在のprintln!に近い感覚</p>
+    </div>
+  </div>
+
+  <!-- Option C: Split with ASCII chart -->
+  <div class="card" data-choice="ascii-chart" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:8px;">
+      <div class="tui-mockup"><span class="c-cyan">╔════════╦═════════════╦════════════╗
+║ 設定   ║ 進捗        ║ C-Vプレビュ║
+╠════════╣</span> <span class="c-green">████</span><span class="c-dim">░░░░</span> <span class="c-white">50%</span><span class="c-cyan">╣</span><span class="c-dim">C↑</span>           <span class="c-cyan">║
+║</span>Sim設定 <span class="c-cyan">║</span><span class="c-dim">V=-2.0V計算中</span> <span class="c-cyan">║</span><span class="c-yellow">  ●●</span>         <span class="c-cyan">║
+║</span>構造    <span class="c-cyan">╠═════════════╣</span><span class="c-yellow">●●</span>           <span class="c-cyan">║
+║</span>測定    <span class="c-cyan">║</span> <span class="c-white">最新</span>         <span class="c-cyan">║</span><span class="c-yellow">  ●●</span>         <span class="c-cyan">║
+║</span>メッシュ <span class="c-cyan">║</span><span class="c-yellow">-2.0V</span>        <span class="c-cyan">║</span>   <span class="c-yellow">●●</span>       <span class="c-cyan">║
+║</span>境界条件 <span class="c-cyan">║</span><span class="c-yellow">1.156e+02</span>   <span class="c-cyan">║</span>    <span class="c-dim">●●</span>      <span class="c-cyan">║
+╠════════╣</span><span class="c-dim">nF/cm²</span>       <span class="c-cyan">║</span><span class="c-dim">─────────→V</span> <span class="c-cyan">║
+║</span><span class="c-green">▶実行中</span>  <span class="c-cyan">╚═════════════╣</span>  <span class="c-dim">-3 → -2</span> <span class="c-cyan">║
+╚════════╩═════════════╩════════════╝</span></div>
+    </div>
+    <div class="card-body">
+      <h3>C: リアルタイムC-Vグラフ</h3>
+      <p>計算が進むにつれ、右ペインにASCIIでC-V曲線がリアルタイム描画される。視覚的に最もリッチ</p>
+    </div>
+  </div>
+
+</div>
+<p class="subtitle" style="margin-top:16px;">クリックで選択してから、ターミナルで教えてください</p>

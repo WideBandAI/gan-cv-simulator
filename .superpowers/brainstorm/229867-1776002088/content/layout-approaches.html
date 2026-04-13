@@ -1,0 +1,124 @@
+<style>
+  .tui-mockup {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    border: 2px solid #4a9eff;
+    border-radius: 4px;
+    padding: 8px;
+    white-space: pre;
+    line-height: 1.4;
+    margin: 0;
+    overflow: hidden;
+  }
+  .tui-title { color: #4a9eff; font-weight: bold; }
+  .tui-selected { background: #4a9eff; color: #000; }
+  .tui-border { color: #4a4a6a; }
+  .tui-label { color: #7ec8e3; }
+  .tui-value { color: #ffd700; }
+  .tui-progress { color: #00ff88; }
+  .tui-dim { color: #666; }
+
+  .cards {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .card-image {
+    padding: 0 !important;
+  }
+</style>
+
+<h2>全体レイアウト構成 — どのアプローチが合いますか？</h2>
+<p class="subtitle">ratatui TUI の画面構成を3つ提案します。キーボード操作前提の設計です</p>
+
+<div class="cards">
+
+  <!-- Option A: Wizard Style -->
+  <div class="card" data-choice="wizard" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:8px;">
+      <div class="tui-mockup">╔══════════════════════════════════╗
+║   <span class="tui-title">GaN C-V Simulator</span>              ║
+║   ステップ 2 / 6: デバイス構造      ║
+╠══════════════════════════════════╣
+║ <span class="tui-dim">● Sim設定</span>  <span class="tui-selected"> ● 構造 </span>  <span class="tui-dim">○ 測定 ○ ...</span> ║
+╠══════════════════════════════════╣
+║                                  ║
+║  層数: <span class="tui-value">[  3  ]</span>                   ║
+║                                  ║
+║  Layer 0: <span class="tui-label">GaN</span>                    ║
+║    タイプ:        <span class="tui-value">Semiconductor</span>   ║
+║    厚さ(nm):      <span class="tui-value">[ 200  ]</span>        ║
+║    比誘電率:      <span class="tui-value">[  9.5 ]</span>        ║
+║                                  ║
+╠══════════════════════════════════╣
+║  [←戻る]  [→次へ]  [ESC 終了]    ║
+╚══════════════════════════════════╝</div>
+    </div>
+    <div class="card-body">
+      <h3>A: ウィザード形式</h3>
+      <p>設定を段階的に入力。Sim設定 → 構造 → 測定 → … とステップで進む。現在のCLIと同じ流れをTUI化</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>長所</h4><ul><li>迷わない線形フロー</li><li>現在の実装に近い</li></ul></div>
+        <div class="cons"><h4>短所</h4><ul><li>前のステップに戻りにくい</li><li>全体像が見えない</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B: Split Pane -->
+  <div class="card" data-choice="split" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:8px;">
+      <div class="tui-mockup">╔══════════╦═══════════════════════╗
+║ <span class="tui-title">設定項目</span>   ║ <span class="tui-title">デバイス構造</span>          ║
+╠══════════╣                       ║
+║<span class="tui-selected">▶ Sim設定  </span>║  Layer 0: <span class="tui-label">GaN</span>          ║
+║  構造    ║  タイプ: <span class="tui-value">Semiconductor</span>║
+║  測定    ║  厚さ:   <span class="tui-value">200 nm</span>       ║
+║  固定電荷║  比誘電率:<span class="tui-value">9.5</span>          ║
+║  界面準位║                       ║
+║  メッシュ║  Layer 1: <span class="tui-label">AlGaN</span>       ║
+║  境界条件║  タイプ: <span class="tui-value">Semiconductor</span>║
+╠══════════╣  厚さ:   <span class="tui-value">30 nm</span>        ║
+║<span class="tui-progress">▓▓▓▓▓░░░░░</span>║                       ║
+║ 5/10完了 ║  [Tab:次フィールド]   ║
+╚══════════╩═══════════════════════╝</div>
+    </div>
+    <div class="card-body">
+      <h3>B: 分割ペイン形式</h3>
+      <p>左ペインにナビゲーション、右ペインに設定内容。自由に行き来できる。VimやHTOPのような操作感</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>長所</h4><ul><li>全セクションが常に見える</li><li>自由に行き来できる</li></ul></div>
+        <div class="cons"><h4>短所</h4>
+<ul><li>実装がやや複雑</li><li>小さい端末では窮屈</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C: Dashboard with live preview -->
+  <div class="card" data-choice="dashboard" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:8px;">
+      <div class="tui-mockup">╔══════════════════╦═══════════════╗
+║ <span class="tui-title">設定 — 構造</span>       ║ <span class="tui-title">設定サマリー</span>   ║
+╠══════════════════╣ Sim: <span class="tui-value">test_01</span>  ║
+║ Layer 0          ║ 層数: <span class="tui-value">2</span>       ║
+║ 名前: <span class="tui-value">[GaN    ]</span> ║               ║
+║ タイプ: <span class="tui-selected"> Semicon </span> ║ 0: GaN 200nm  ║
+║ 厚さ: <span class="tui-value">[200  ]</span>nm ║ 1: AlGaN 30nm ║
+║ 誘電率: <span class="tui-value">[9.5  ]</span> ╠═══════════════╣
+║                  ║ <span class="tui-title">進捗</span>           ║
+╠══════════════════╣ <span class="tui-progress">████</span><span class="tui-dim">░░░░░░</span> 40%  ║
+║<span class="tui-dim">F1:ヘルプ  F5:実行</span>║               ║
+╚══════════════════╩═══════════════╝</div>
+    </div>
+    <div class="card-body">
+      <h3>C: 設定+プレビュー形式</h3>
+      <p>左に入力フォーム、右に現在の設定サマリーをリアルタイム表示。入力しながら全体像を確認できる</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>長所</h4><ul><li>入力しながら確認できる</li><li>ミス防止</li></ul></div>
+        <div class="cons"><h4>短所</h4><ul><li>右パネルの情報量が多い</li><li>レイアウト制約が厳しい</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;">クリックで選択してから、ターミナルで感想を教えてください</p>
