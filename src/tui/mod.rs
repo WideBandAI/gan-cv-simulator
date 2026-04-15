@@ -15,7 +15,7 @@ use std::io;
 
 use crate::config::{
     boundary_conditions::BoundaryConditions,
-    capture_cross_section::CaptureCrossSectionConfig,
+    capture_cross_section::{CaptureCrossSectionConfig, CaptureCrossSectionModel},
     configuration_builder::{Configuration, ConfigurationBuilder},
     fixcharge::{BulkFixedCharge, InterfaceFixedCharge},
     interface_states::{ContinuousInterfaceStatesConfig, DiscreteInterfaceStatesConfig},
@@ -25,7 +25,7 @@ use crate::config::{
     structure::{DeviceStructure, MaterialType},
 };
 use crate::constants::physics::{EPSILON_0, M_ELECTRON};
-use crate::constants::units::{MEV_TO_EV, MV_TO_V, NM_TO_M, PER_CM2_TO_PER_M2, PER_CM3_TO_PER_M3};
+use crate::constants::units::{CM2_TO_M2, MEV_TO_EV, MV_TO_V, NM_TO_M, PER_CM2_TO_PER_M2, PER_CM3_TO_PER_M3};
 use crate::physics_equations::equilibrium_potential::equilibrium_potential_n_type;
 use crate::physics_equations::interface_states::{DIGSModel, DiscreteModel, DiscreteStateType};
 
@@ -102,6 +102,44 @@ impl InterfaceStateInput {
     }
 }
 
+// ─── Capture cross section input structs ─────────────────────────────────────
+
+#[derive(Debug, Clone, PartialEq)]
+enum CsModelType {
+    Constant,
+    EnergyDependent,
+}
+
+#[derive(Debug, Clone)]
+struct CaptureCrossSectionInput {
+    model_type: CsModelType,
+    sigma: String,
+    sigma_mid: String,
+    e_mid: String,
+    e_slope: String,
+    mass_electron_coeff: String,
+}
+
+impl CaptureCrossSectionInput {
+    fn new_with_default_mass(mass_coeff: f64) -> Self {
+        Self {
+            model_type: CsModelType::Constant,
+            sigma: "1e-16".to_string(),
+            sigma_mid: "1e-16".to_string(),
+            e_mid: "0.5".to_string(),
+            e_slope: "0.1".to_string(),
+            mass_electron_coeff: format!("{:.4}", mass_coeff),
+        }
+    }
+
+    fn field_count(&self) -> usize {
+        match self.model_type {
+            CsModelType::Constant => 3,
+            CsModelType::EnergyDependent => 5,
+        }
+    }
+}
+
 // ─── Pages ───────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, PartialEq)]
@@ -115,8 +153,21 @@ enum Page {
     FixedCharge,
     InterfaceStates(usize),
     DiscreteState(usize, usize),
+    CaptureCrossSection(usize),
     BoundaryConditions,
     Confirm,
+}
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+/// Returns the indices (into interface_states) of interfaces that have any states defined.
+fn active_interface_indices(interface_states: &[InterfaceStateInput]) -> Vec<usize> {
+    interface_states
+        .iter()
+        .enumerate()
+        .filter(|(_, ist)| ist.has_continuous || ist.has_discrete)
+        .map(|(i, _)| i)
+        .collect()
 }
 
 // ─── Input state structs ──────────────────────────────────────────────────────
@@ -221,6 +272,9 @@ struct App {
     // Interface states
     interface_states: Vec<InterfaceStateInput>,
 
+    // Capture cross section (one per active interface, in same order as active_interface_indices)
+    capture_cross_sections: Vec<CaptureCrossSectionInput>,
+
     // Boundary conditions
     barrier_height_ev: String,
     ec_ef_mode: EcEfMode,
@@ -255,6 +309,7 @@ impl App {
             bulk_charge_densities: Vec::new(),
             interface_charge_densities: Vec::new(),
             interface_states: Vec::new(),
+            capture_cross_sections: Vec::new(),
             barrier_height_ev: String::new(),
             ec_ef_mode: EcEfMode::Manual,
             ec_ef_bottom_ev: String::new(),
@@ -291,6 +346,9 @@ impl App {
                 }
             }
             Page::DiscreteState(_, _) => 4,
+            Page::CaptureCrossSection(k) => {
+                self.capture_cross_sections.get(*k).map(|c| c.field_count()).unwrap_or(0)
+            }
             Page::BoundaryConditions => {
                 let bottom_is_sc =
                     self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
@@ -338,6 +396,7 @@ impl App {
                 }
             }
             (Page::DiscreteState(_, _), 3) => true,
+            (Page::CaptureCrossSection(_), 0) => true,
             _ => false,
         }
     }
@@ -390,6 +449,17 @@ impl App {
                     }
                     let fc = self.field_count();
                     self.focused = self.focused.min(fc.saturating_sub(1));
+                }
+            }
+            (Page::CaptureCrossSection(k), 0) => {
+                let k = *k;
+                if let Some(ccs) = self.capture_cross_sections.get_mut(k) {
+                    ccs.model_type = match ccs.model_type {
+                        CsModelType::Constant => CsModelType::EnergyDependent,
+                        CsModelType::EnergyDependent => CsModelType::Constant,
+                    };
+                    let fc = ccs.field_count();
+                    self.focused = self.focused.min(fc - 1);
                 }
             }
             (Page::DiscreteState(i, j), 3) => {
@@ -516,6 +586,27 @@ impl App {
                     1 => Some(&mut trap.ed),
                     2 => Some(&mut trap.fwhm),
                     _ => None,
+                }
+            }
+            Page::CaptureCrossSection(k) => {
+                let f = self.focused;
+                if f == 0 {
+                    return None; // model_type toggle
+                }
+                let ccs = self.capture_cross_sections.get_mut(k)?;
+                match ccs.model_type {
+                    CsModelType::Constant => match f {
+                        1 => Some(&mut ccs.sigma),
+                        2 => Some(&mut ccs.mass_electron_coeff),
+                        _ => None,
+                    },
+                    CsModelType::EnergyDependent => match f {
+                        1 => Some(&mut ccs.sigma_mid),
+                        2 => Some(&mut ccs.e_mid),
+                        3 => Some(&mut ccs.e_slope),
+                        4 => Some(&mut ccs.mass_electron_coeff),
+                        _ => None,
+                    },
                 }
             }
             Page::BoundaryConditions => {
@@ -778,6 +869,51 @@ impl App {
         Ok(())
     }
 
+    fn validate_capture_cross_section(&self, k: usize) -> Result<(), String> {
+        let ccs = &self.capture_cross_sections[k];
+        macro_rules! parse_pos {
+            ($v:expr, $label:literal) => {{
+                let v: f64 = $v
+                    .trim()
+                    .parse()
+                    .map_err(|_| format!("{} must be a number", $label))?;
+                if v <= 0.0 {
+                    return Err(format!("{} must be > 0", $label));
+                }
+            }};
+        }
+        match ccs.model_type {
+            CsModelType::Constant => {
+                parse_pos!(ccs.sigma, "Sigma");
+            }
+            CsModelType::EnergyDependent => {
+                parse_pos!(ccs.sigma_mid, "Sigma_mid");
+                parse_pos!(ccs.e_mid, "E_mid");
+                ccs.e_slope
+                    .trim()
+                    .parse::<f64>()
+                    .map_err(|_| "E_slope must be a number".to_string())?;
+            }
+        }
+        parse_pos!(ccs.mass_electron_coeff, "Effective mass coefficient");
+        Ok(())
+    }
+
+    fn init_capture_cross_sections(&mut self, active: &[usize]) {
+        self.capture_cross_sections = active
+            .iter()
+            .map(|&iface_id| {
+                let mass_coeff = self
+                    .layers
+                    .get(iface_id + 1)
+                    .and_then(|l| l.mass_electron_coeff.trim().parse::<f64>().ok())
+                    .filter(|&m| m > 0.0)
+                    .unwrap_or(0.2);
+                CaptureCrossSectionInput::new_with_default_mass(mass_coeff)
+            })
+            .collect();
+    }
+
     fn validate_boundary_conditions(&self) -> Result<(), String> {
         self.barrier_height_ev
             .trim()
@@ -874,7 +1010,13 @@ impl App {
                     if i + 1 < num_interfaces {
                         Page::InterfaceStates(i + 1)
                     } else {
-                        Page::BoundaryConditions
+                        let active = active_interface_indices(&self.interface_states);
+                        if active.is_empty() {
+                            Page::BoundaryConditions
+                        } else {
+                            self.init_capture_cross_sections(&active);
+                            Page::CaptureCrossSection(0)
+                        }
                     }
                 }
             }),
@@ -887,8 +1029,22 @@ impl App {
                     if i + 1 < num_interfaces {
                         Page::InterfaceStates(i + 1)
                     } else {
-                        Page::BoundaryConditions
+                        let active = active_interface_indices(&self.interface_states);
+                        if active.is_empty() {
+                            Page::BoundaryConditions
+                        } else {
+                            self.init_capture_cross_sections(&active);
+                            Page::CaptureCrossSection(0)
+                        }
                     }
+                }
+            }),
+            Page::CaptureCrossSection(k) => self.validate_capture_cross_section(k).map(|_| {
+                let active = active_interface_indices(&self.interface_states);
+                if k + 1 < active.len() {
+                    Page::CaptureCrossSection(k + 1)
+                } else {
+                    Page::BoundaryConditions
                 }
             }),
             Page::BoundaryConditions => {
@@ -938,7 +1094,8 @@ impl App {
             }
             Page::DiscreteState(i, 0) => Page::InterfaceStates(i),
             Page::DiscreteState(i, j) => Page::DiscreteState(i, j - 1),
-            Page::BoundaryConditions => {
+            Page::CaptureCrossSection(0) => {
+                // Go back to the last interface state page
                 let num_interfaces = self.layers.len().saturating_sub(1);
                 if num_interfaces > 0 {
                     let last_i = num_interfaces - 1;
@@ -951,6 +1108,27 @@ impl App {
                     }
                 } else {
                     Page::FixedCharge
+                }
+            }
+            Page::CaptureCrossSection(k) => Page::CaptureCrossSection(k - 1),
+            Page::BoundaryConditions => {
+                let active = active_interface_indices(&self.interface_states);
+                if !active.is_empty() {
+                    Page::CaptureCrossSection(active.len() - 1)
+                } else {
+                    let num_interfaces = self.layers.len().saturating_sub(1);
+                    if num_interfaces > 0 {
+                        let last_i = num_interfaces - 1;
+                        let has_d = self.interface_states.get(last_i).map(|ist| ist.has_discrete).unwrap_or(false);
+                        let n_traps = self.interface_states.get(last_i).map(|ist| ist.discrete_traps.len()).unwrap_or(0);
+                        if has_d && n_traps > 0 {
+                            Page::DiscreteState(last_i, n_traps - 1)
+                        } else {
+                            Page::InterfaceStates(last_i)
+                        }
+                    } else {
+                        Page::FixedCharge
+                    }
                 }
             }
             Page::Confirm => Page::BoundaryConditions,
@@ -1097,10 +1275,32 @@ impl App {
                 discrete_interface_states.parameters.push(traps);
             }
         }
+        let active_ids = active_interface_indices(&self.interface_states);
+        let mut ccs_interface_ids = Vec::new();
+        let mut ccs_models = Vec::new();
+        let mut ccs_masses = Vec::new();
+        for (k, &iface_id) in active_ids.iter().enumerate() {
+            if let Some(ccs_input) = self.capture_cross_sections.get(k) {
+                let model = match ccs_input.model_type {
+                    CsModelType::Constant => CaptureCrossSectionModel::Constant {
+                        sigma: ccs_input.sigma.trim().parse::<f64>().unwrap() * CM2_TO_M2,
+                    },
+                    CsModelType::EnergyDependent => CaptureCrossSectionModel::EnergyDependent {
+                        sigma_mid: ccs_input.sigma_mid.trim().parse::<f64>().unwrap() * CM2_TO_M2,
+                        e_mid: ccs_input.e_mid.trim().parse().unwrap(),
+                        e_slope: ccs_input.e_slope.trim().parse().unwrap(),
+                    },
+                };
+                let mass = ccs_input.mass_electron_coeff.trim().parse::<f64>().unwrap() * M_ELECTRON;
+                ccs_interface_ids.push(iface_id as u32);
+                ccs_models.push(model);
+                ccs_masses.push(mass);
+            }
+        }
         let capture_cross_section = CaptureCrossSectionConfig {
-            interface_id: vec![],
-            model: vec![],
-            mass_electron: vec![],
+            interface_id: ccs_interface_ids,
+            model: ccs_models,
+            mass_electron: ccs_masses,
         };
 
         // Build mesh params: last layer's thickness = total - sum of preceding layers
@@ -1219,25 +1419,29 @@ fn draw(frame: &mut Frame, app: &App) {
 
 fn draw_header(frame: &mut Frame, area: Rect, app: &App) {
     let title = match &app.page {
-        Page::SimSettings => " [1/8] Simulation Settings ".to_string(),
-        Page::Measurement => " [2/8] Measurement ".to_string(),
-        Page::StructureCount => " [3/8] Device Structure ".to_string(),
-        Page::Layer(i) => format!(" [3/8] Layer {} of {} ", i + 1, app.layers.len()),
-        Page::MeshCount => " [4/8] Mesh Settings ".to_string(),
+        Page::SimSettings => " [1/9] Simulation Settings ".to_string(),
+        Page::Measurement => " [2/9] Measurement ".to_string(),
+        Page::StructureCount => " [3/9] Device Structure ".to_string(),
+        Page::Layer(i) => format!(" [3/9] Layer {} of {} ", i + 1, app.layers.len()),
+        Page::MeshCount => " [4/9] Mesh Settings ".to_string(),
         Page::MeshLayer(i) => {
-            format!(" [4/8] Mesh Layer {} of {} ", i + 1, app.mesh_layers.len())
+            format!(" [4/9] Mesh Layer {} of {} ", i + 1, app.mesh_layers.len())
         }
-        Page::FixedCharge => " [5/8] Fixed Charges ".to_string(),
+        Page::FixedCharge => " [5/9] Fixed Charges ".to_string(),
         Page::InterfaceStates(i) => {
-            format!(" [6/8] Interface {}/{} ", i + 1, app.layers.len().saturating_sub(1))
+            format!(" [6/9] Interface {}/{} ", i + 1, app.layers.len().saturating_sub(1))
         }
         Page::DiscreteState(i, j) => {
             let left = &app.layers[*i].name;
             let right = &app.layers[*i + 1].name;
-            format!(" [6/8] {left}/{right} - Discrete Trap {} ", j + 1)
+            format!(" [6/9] {left}/{right} - Discrete Trap {} ", j + 1)
         }
-        Page::BoundaryConditions => " [7/8] Boundary Conditions ".to_string(),
-        Page::Confirm => " [8/8] Confirm & Run ".to_string(),
+        Page::CaptureCrossSection(k) => {
+            let active = active_interface_indices(&app.interface_states);
+            format!(" [7/9] Capture Cross Section {}/{} ", k + 1, active.len())
+        }
+        Page::BoundaryConditions => " [8/9] Boundary Conditions ".to_string(),
+        Page::Confirm => " [9/9] Confirm & Run ".to_string(),
     };
     let header = Paragraph::new("  GaN C-V Simulator")
         .block(
@@ -1261,6 +1465,7 @@ fn draw_content(frame: &mut Frame, area: Rect, app: &App) {
         Page::FixedCharge => draw_fixed_charge(frame, area, app),
         Page::InterfaceStates(i) => draw_interface_state(frame, area, app, *i),
         Page::DiscreteState(i, j) => draw_discrete_state(frame, area, app, *i, *j),
+        Page::CaptureCrossSection(k) => draw_capture_cross_section(frame, area, app, *k),
         Page::BoundaryConditions => draw_boundary_conditions(frame, area, app),
         Page::Confirm => draw_confirm(frame, area, app),
     }
@@ -1555,6 +1760,45 @@ fn draw_discrete_state(frame: &mut Frame, area: Rect, app: &App, i: usize, j: us
     let right_name = &app.layers[i + 1].name;
     let title = format!(" {left_name}/{right_name} \u{2013} Trap {} of {} ", j + 1, app.interface_states[i].discrete_traps.len());
     let lines = field_lines(&fields, app.focused);
+    let para = Paragraph::new(lines)
+        .block(Block::default().borders(Borders::ALL).title(title));
+    frame.render_widget(para, area);
+}
+
+fn draw_capture_cross_section(frame: &mut Frame, area: Rect, app: &App, k: usize) {
+    let active = active_interface_indices(&app.interface_states);
+    let Some(&iface_id) = active.get(k) else {
+        return;
+    };
+    let left_name = &app.layers[iface_id].name;
+    let right_name = &app.layers[iface_id + 1].name;
+    let ccs = &app.capture_cross_sections[k];
+
+    let model_str = match ccs.model_type {
+        CsModelType::Constant => "Constant",
+        CsModelType::EnergyDependent => "EnergyDependent",
+    };
+
+    let mut fields: Vec<(&str, String, bool)> =
+        vec![("Model [Space: toggle]", model_str.to_string(), true)];
+    match ccs.model_type {
+        CsModelType::Constant => {
+            fields.push(("Sigma (cm\u{00b2})", ccs.sigma.clone(), false));
+        }
+        CsModelType::EnergyDependent => {
+            fields.push(("Sigma_mid (cm\u{00b2})", ccs.sigma_mid.clone(), false));
+            fields.push(("E_mid (eV)", ccs.e_mid.clone(), false));
+            fields.push(("E_slope (eV)", ccs.e_slope.clone(), false));
+        }
+    }
+    fields.push(("Effective Mass Coeff", ccs.mass_electron_coeff.clone(), false));
+
+    let lines = field_lines(&fields, app.focused);
+    let title = format!(
+        " {left_name}/{right_name} \u{2013} Capture Cross Section ({}/{}) ",
+        k + 1,
+        active.len()
+    );
     let para = Paragraph::new(lines)
         .block(Block::default().borders(Borders::ALL).title(title));
     frame.render_widget(para, area);
