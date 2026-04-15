@@ -1194,29 +1194,78 @@ impl App {
     fn build_config(self) -> ConfigurationBuilder {
         let sim_settings = SimSettings {
             sim_name: self.sim_name.trim().to_string(),
-            sor_relaxation_factor: self.sor_factor.trim().parse().unwrap(),
-            convergence_criterion: self.convergence.trim().parse().unwrap(),
-            max_iterations: self.max_iter.trim().parse().unwrap(),
+            sor_relaxation_factor: self
+                .sor_factor
+                .trim()
+                .parse()
+                .expect("Validation should have ensured this is a valid number."),
+            convergence_criterion: self
+                .convergence
+                .trim()
+                .parse()
+                .expect("Validation should have ensured this is a valid number."),
+            max_iterations: self
+                .max_iter
+                .trim()
+                .parse()
+                .expect("Validation should have ensured this is a valid number."),
             parallel_use: self.parallel,
         };
 
         let measurement = Measurement {
             temperature: Temperature {
-                temperature: self.temperature.trim().parse().unwrap(),
+                temperature: self
+                    .temperature
+                    .trim()
+                    .parse()
+                    .expect("Validation should have ensured this is a valid number."),
             },
             voltage: Voltage {
-                start: self.v_start.trim().parse().unwrap(),
-                end: self.v_end.trim().parse().unwrap(),
-                step: self.v_step.trim().parse().unwrap(),
+                start: self
+                    .v_start
+                    .trim()
+                    .parse()
+                    .expect("Validation should have ensured this is a valid number."),
+                end: self
+                    .v_end
+                    .trim()
+                    .parse()
+                    .expect("Validation should have ensured this is a valid number."),
+                step: self
+                    .v_step
+                    .trim()
+                    .parse()
+                    .expect("Validation should have ensured this is a valid number."),
             },
-            ac_voltage: self.ac_voltage.trim().parse::<f64>().unwrap() * MV_TO_V,
+            ac_voltage: self
+                .ac_voltage
+                .trim()
+                .parse::<f64>()
+                .expect("Validation should have ensured this is a valid number.")
+                * MV_TO_V,
             time: Time {
-                measurement_time: self.meas_time.trim().parse().unwrap(),
+                measurement_time: self
+                    .meas_time
+                    .trim()
+                    .parse()
+                    .expect("Validation should have ensured this is a valid number."),
             },
             stress: Stress {
-                stress_voltage: self.stress_voltage.trim().parse().unwrap(),
-                stress_relief_voltage: self.stress_relief_voltage.trim().parse().unwrap(),
-                stress_relief_time: self.stress_relief_time.trim().parse().unwrap(),
+                stress_voltage: self
+                    .stress_voltage
+                    .trim()
+                    .parse()
+                    .expect("Validation should have ensured this is a valid number."),
+                stress_relief_voltage: self
+                    .stress_relief_voltage
+                    .trim()
+                    .parse()
+                    .expect("Validation should have ensured this is a valid number."),
+                stress_relief_time: self
+                    .stress_relief_time
+                    .trim()
+                    .parse()
+                    .expect("Validation should have ensured this is a valid number."),
             },
         };
 
@@ -1237,31 +1286,63 @@ impl App {
         for (i, layer) in self.layers.iter().enumerate() {
             device_structure.name.push(layer.name.trim().to_string());
             device_structure.material_type.push(layer.material);
-            device_structure
-                .thickness
-                .push(layer.thickness_nm.trim().parse::<f64>().unwrap() * NM_TO_M);
-            device_structure
-                .permittivity
-                .push(layer.permittivity.trim().parse::<f64>().unwrap() * EPSILON_0);
-            device_structure
-                .bandgap_energy
-                .push(layer.bandgap_ev.trim().parse().unwrap());
+            device_structure.thickness.push(
+                layer
+                    .thickness_nm
+                    .trim()
+                    .parse::<f64>()
+                    .expect("Validation should have ensured this is a valid number.")
+                    * NM_TO_M,
+            );
+            device_structure.permittivity.push(
+                layer
+                    .permittivity
+                    .trim()
+                    .parse::<f64>()
+                    .expect("Validation should have ensured this is a valid number.")
+                    * EPSILON_0,
+            );
+            device_structure.bandgap_energy.push(
+                layer
+                    .bandgap_ev
+                    .trim()
+                    .parse()
+                    .expect("Validation should have ensured this is a valid number."),
+            );
             let dcb = if i == n - 1 {
                 0.0
             } else {
-                layer.delta_cb_ev.trim().parse().unwrap()
+                layer
+                    .delta_cb_ev
+                    .trim()
+                    .parse()
+                    .expect("Validation should have ensured this is a valid number.")
             };
             device_structure.delta_conduction_band.push(dcb);
             if layer.is_semiconductor() {
-                device_structure
-                    .mass_electron
-                    .push(layer.mass_electron_coeff.trim().parse::<f64>().unwrap() * M_ELECTRON);
-                device_structure
-                    .donor_concentration
-                    .push(layer.donor_conc_cm3.trim().parse::<f64>().unwrap() * PER_CM3_TO_PER_M3);
-                device_structure
-                    .energy_level_donor
-                    .push(layer.energy_donor_ev.trim().parse().unwrap());
+                device_structure.mass_electron.push(
+                    layer
+                        .mass_electron_coeff
+                        .trim()
+                        .parse::<f64>()
+                        .expect("Validation should have ensured this is a valid number.")
+                        * M_ELECTRON,
+                );
+                device_structure.donor_concentration.push(
+                    layer
+                        .donor_conc_cm3
+                        .trim()
+                        .parse::<f64>()
+                        .expect("Validation should have ensured this is a valid number.")
+                        * PER_CM3_TO_PER_M3,
+                );
+                device_structure.energy_level_donor.push(
+                    layer
+                        .energy_donor_ev
+                        .trim()
+                        .parse()
+                        .expect("Validation should have ensured this is a valid number."),
+                );
             } else {
                 device_structure.mass_electron.push(0.0);
                 device_structure.donor_concentration.push(0.0);
@@ -1274,7 +1355,12 @@ impl App {
             charge_density: self
                 .bulk_charge_densities
                 .iter()
-                .map(|s| s.trim().parse::<f64>().unwrap() * PER_CM3_TO_PER_M3)
+                .map(|s| {
+                    s.trim()
+                        .parse::<f64>()
+                        .expect("Validation should have ensured this is a valid number.")
+                        * PER_CM3_TO_PER_M3
+                })
                 .collect(),
         };
         let interface_fixed_charge = InterfaceFixedCharge {
@@ -1282,7 +1368,12 @@ impl App {
             charge_density: self
                 .interface_charge_densities
                 .iter()
-                .map(|s| s.trim().parse::<f64>().unwrap() * PER_CM2_TO_PER_M2)
+                .map(|s| {
+                    s.trim()
+                        .parse::<f64>()
+                        .expect("Validation should have ensured this is a valid number.")
+                        * PER_CM2_TO_PER_M2
+                })
                 .collect(),
         };
         let mut continuous_interface_states = ContinuousInterfaceStatesConfig {
@@ -1300,12 +1391,29 @@ impl App {
                     device_structure.bandgap_energy[i].min(device_structure.bandgap_energy[i + 1]);
                 continuous_interface_states.interface_id.push(i as u32);
                 continuous_interface_states.parameters.push(DIGSModel::new(
-                    c.dit0.trim().parse::<f64>().unwrap() * PER_CM2_TO_PER_M2,
-                    c.nssec.trim().parse().unwrap(),
-                    c.nssev.trim().parse().unwrap(),
-                    c.ecnl.trim().parse().unwrap(),
-                    c.nd.trim().parse().unwrap(),
-                    c.na.trim().parse().unwrap(),
+                    c.dit0
+                        .trim()
+                        .parse::<f64>()
+                        .expect("Validation should have ensured this is a valid number.")
+                        * PER_CM2_TO_PER_M2,
+                    c.nssec
+                        .trim()
+                        .parse()
+                        .expect("Validation should have ensured this is a valid number."),
+                    c.nssev
+                        .trim()
+                        .parse()
+                        .expect("Validation should have ensured this is a valid number."),
+                    c.ecnl
+                        .trim()
+                        .parse()
+                        .expect("Validation should have ensured this is a valid number."),
+                    c.nd.trim()
+                        .parse()
+                        .expect("Validation should have ensured this is a valid number."),
+                    c.na.trim()
+                        .parse()
+                        .expect("Validation should have ensured this is a valid number."),
                     bandgap,
                 ));
             }
@@ -1313,19 +1421,25 @@ impl App {
                 let bandgap =
                     device_structure.bandgap_energy[i].min(device_structure.bandgap_energy[i + 1]);
                 discrete_interface_states.interface_id.push(i as u32);
-                let traps: Vec<DiscreteModel> = ist
-                    .discrete_traps
-                    .iter()
-                    .map(|t| {
-                        DiscreteModel::new(
-                            t.ditmax.trim().parse::<f64>().unwrap() * PER_CM2_TO_PER_M2,
-                            t.ed.trim().parse().unwrap(),
-                            t.fwhm.trim().parse().unwrap(),
-                            t.state_type.clone(),
-                            bandgap,
-                        )
-                    })
-                    .collect();
+                let traps: Vec<DiscreteModel> =
+                    ist.discrete_traps
+                        .iter()
+                        .map(|t| {
+                            DiscreteModel::new(
+                                t.ditmax.trim().parse::<f64>().expect(
+                                    "Validation should have ensured this is a valid number.",
+                                ) * PER_CM2_TO_PER_M2,
+                                t.ed.trim().parse().expect(
+                                    "Validation should have ensured this is a valid number.",
+                                ),
+                                t.fwhm.trim().parse().expect(
+                                    "Validation should have ensured this is a valid number.",
+                                ),
+                                t.state_type.clone(),
+                                bandgap,
+                            )
+                        })
+                        .collect();
                 discrete_interface_states.parameters.push(traps);
             }
         }
@@ -1335,18 +1449,35 @@ impl App {
         let mut ccs_masses = Vec::new();
         for (k, &iface_id) in active_ids.iter().enumerate() {
             if let Some(ccs_input) = self.capture_cross_sections.get(k) {
-                let model = match ccs_input.model_type {
-                    CsModelType::Constant => CaptureCrossSectionModel::Constant {
-                        sigma: ccs_input.sigma.trim().parse::<f64>().unwrap() * CM2_TO_M2,
-                    },
-                    CsModelType::EnergyDependent => CaptureCrossSectionModel::EnergyDependent {
-                        sigma_mid: ccs_input.sigma_mid.trim().parse::<f64>().unwrap() * CM2_TO_M2,
-                        e_mid: ccs_input.e_mid.trim().parse().unwrap(),
-                        e_slope: ccs_input.e_slope.trim().parse().unwrap(),
-                    },
-                };
-                let mass =
-                    ccs_input.mass_electron_coeff.trim().parse::<f64>().unwrap() * M_ELECTRON;
+                let model =
+                    match ccs_input.model_type {
+                        CsModelType::Constant => {
+                            CaptureCrossSectionModel::Constant {
+                                sigma: ccs_input.sigma.trim().parse::<f64>().expect(
+                                    "Validation should have ensured this is a valid number.",
+                                ) * CM2_TO_M2,
+                            }
+                        }
+                        CsModelType::EnergyDependent => {
+                            CaptureCrossSectionModel::EnergyDependent {
+                                sigma_mid: ccs_input.sigma_mid.trim().parse::<f64>().expect(
+                                    "Validation should have ensured this is a valid number.",
+                                ) * CM2_TO_M2,
+                                e_mid: ccs_input.e_mid.trim().parse().expect(
+                                    "Validation should have ensured this is a valid number.",
+                                ),
+                                e_slope: ccs_input.e_slope.trim().parse().expect(
+                                    "Validation should have ensured this is a valid number.",
+                                ),
+                            }
+                        }
+                    };
+                let mass = ccs_input
+                    .mass_electron_coeff
+                    .trim()
+                    .parse::<f64>()
+                    .expect("Validation should have ensured this is a valid number.")
+                    * M_ELECTRON;
                 ccs_interface_ids.push(iface_id as u32);
                 ccs_models.push(model);
                 ccs_masses.push(mass);
@@ -1367,11 +1498,22 @@ impl App {
         let mut accumulated_m = 0.0_f64;
         for (i, ml) in self.mesh_layers.iter().enumerate() {
             layer_id.push(i as u32);
-            length_per_layer.push(ml.mesh_length_nm.trim().parse::<f64>().unwrap() * NM_TO_M);
+            length_per_layer.push(
+                ml.mesh_length_nm
+                    .trim()
+                    .parse::<f64>()
+                    .expect("Validation should have ensured this is a valid number.")
+                    * NM_TO_M,
+            );
             if i == nm - 1 {
                 layer_thickness.push(total_thickness_m - accumulated_m);
             } else {
-                let t = ml.thickness_nm.trim().parse::<f64>().unwrap() * NM_TO_M;
+                let t = ml
+                    .thickness_nm
+                    .trim()
+                    .parse::<f64>()
+                    .expect("Validation should have ensured this is a valid number.")
+                    * NM_TO_M;
                 layer_thickness.push(t);
                 accumulated_m += t;
             }
@@ -1380,7 +1522,12 @@ impl App {
             layer_id,
             length_per_layer,
             layer_thickness,
-            energy_step: self.energy_step_mev.trim().parse::<f64>().unwrap() * MEV_TO_EV,
+            energy_step: self
+                .energy_step_mev
+                .trim()
+                .parse::<f64>()
+                .expect("Validation should have ensured this is a valid number.")
+                * MEV_TO_EV,
         };
 
         let ec_ef_bottom = {
@@ -1392,11 +1539,18 @@ impl App {
             if bottom_is_sc && self.ec_ef_mode == EcEfMode::Equilibrium {
                 compute_equilibrium(&self).expect("equilibrium potential was validated")
             } else {
-                self.ec_ef_bottom_ev.trim().parse().unwrap()
+                self.ec_ef_bottom_ev
+                    .trim()
+                    .parse()
+                    .expect("Validation should have ensured this is a valid number.")
             }
         };
         let boundary_conditions = BoundaryConditions {
-            barrier_height: self.barrier_height_ev.trim().parse().unwrap(),
+            barrier_height: self
+                .barrier_height_ev
+                .trim()
+                .parse()
+                .expect("Validation should have ensured this is a valid number."),
             ec_ef_bottom,
         };
 
