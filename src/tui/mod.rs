@@ -1583,7 +1583,7 @@ fn field_lines(fields: &[(&str, String, bool)], focused: usize) -> Vec<Line<'sta
                 style,
             ))
         })
-        fields.push(("Donor Concentration (cm⁻³)", layer.donor_conc_cm3.clone(), false));
+        .collect()
 }
 
 // ─── Per-page draw functions ──────────────────────────────────────────────────
@@ -1673,7 +1673,7 @@ fn draw_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
             false,
         ));
         fields.push((
-            "Donor Concentration (cm^-3)",
+            "Donor Concentration (cm⁻³)",
             layer.donor_conc_cm3.clone(),
             false,
         ));
