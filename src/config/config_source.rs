@@ -29,7 +29,7 @@ fn list_config_files(config_dir: &std::path::Path) -> Vec<std::path::PathBuf> {
 /// ```
 pub fn select_config_source() -> anyhow::Result<ConfigurationBuilder> {
     println!("Select configuration source:");
-    println!("  [1] Interactive input");
+    println!("  [1] Interactive input (CLI)");
     println!("  [2] Load from config file");
 
     loop {
@@ -40,7 +40,7 @@ pub fn select_config_source() -> anyhow::Result<ConfigurationBuilder> {
             return Err(anyhow::anyhow!("Input stream closed unexpectedly"));
         }
         match input.trim() {
-            "" | "1" => return Ok(ConfigurationBuilder::from_interactive()),
+            "" | "1" => return crate::tui::run_tui(),
             "2" => {
                 let config_dir = std::path::Path::new(CONFIG_DIR);
                 let files = list_config_files(config_dir);

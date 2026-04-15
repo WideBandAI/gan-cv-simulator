@@ -5,6 +5,7 @@ pub mod physics_equations;
 pub mod plot;
 pub mod save_files;
 pub mod solvers;
+pub mod tui;
 pub mod utils;
 
 use crate::constants::simulation::{CONFIG_DIR, INITIAL_POTENTIAL};
