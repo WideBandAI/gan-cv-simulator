@@ -25,7 +25,7 @@ use crate::config::{
     structure::{DeviceStructure, MaterialType},
 };
 use crate::constants::physics::{EPSILON_0, M_ELECTRON};
-use crate::constants::units::{MEV_TO_EV, MV_TO_V, NM_TO_M, PER_CM3_TO_PER_M3};
+use crate::constants::units::{MEV_TO_EV, MV_TO_V, NM_TO_M, PER_CM2_TO_PER_M2, PER_CM3_TO_PER_M3};
 use crate::physics_equations::equilibrium_potential::equilibrium_potential_n_type;
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
@@ -46,6 +46,7 @@ enum Page {
     Layer(usize),
     MeshCount,
     MeshLayer(usize),
+    FixedCharge,
     BoundaryConditions,
     Confirm,
 }
@@ -145,6 +146,10 @@ struct App {
     energy_step_mev: String,
     mesh_layers: Vec<MeshLayerInput>,
 
+    // Fixed charges
+    bulk_charge_densities: Vec<String>,      // C/cm^3 per layer
+    interface_charge_densities: Vec<String>, // C/cm^2 per interface
+
     // Boundary conditions
     barrier_height_ev: String,
     ec_ef_mode: EcEfMode,
@@ -176,6 +181,8 @@ impl App {
             num_mesh_layers_str: "1".to_string(),
             energy_step_mev: "0.1".to_string(),
             mesh_layers: Vec::new(),
+            bulk_charge_densities: Vec::new(),
+            interface_charge_densities: Vec::new(),
             barrier_height_ev: String::new(),
             ec_ef_mode: EcEfMode::Manual,
             ec_ef_bottom_ev: String::new(),
@@ -197,6 +204,10 @@ impl App {
             Page::MeshLayer(i) => {
                 let is_last = *i + 1 == self.mesh_layers.len();
                 MeshLayerInput::field_count(is_last)
+            }
+            Page::FixedCharge => {
+                let n = self.layers.len();
+                n + n.saturating_sub(1) // n bulk + (n-1) interface
             }
             Page::BoundaryConditions => {
                 let bottom_is_sc =
@@ -325,6 +336,15 @@ impl App {
                     0 => Some(&mut ml.mesh_length_nm),
                     1 => Some(&mut ml.thickness_nm),
                     _ => None,
+                }
+            }
+            Page::FixedCharge => {
+                let f = self.focused;
+                let n = self.layers.len();
+                if f < n {
+                    self.bulk_charge_densities.get_mut(f)
+                } else {
+                    self.interface_charge_densities.get_mut(f - n)
                 }
             }
             Page::BoundaryConditions => {
@@ -515,6 +535,24 @@ impl App {
         Ok(())
     }
 
+    fn validate_fixed_charges(&self) -> Result<(), String> {
+        for (i, v) in self.bulk_charge_densities.iter().enumerate() {
+            v.trim().parse::<f64>().map_err(|_| {
+                format!("Bulk charge for layer '{}' must be a number", self.layers[i].name)
+            })?;
+        }
+        for (i, v) in self.interface_charge_densities.iter().enumerate() {
+            v.trim().parse::<f64>().map_err(|_| {
+                format!(
+                    "Interface charge {}/{} must be a number",
+                    self.layers[i].name,
+                    self.layers[i + 1].name
+                )
+            })?;
+        }
+        Ok(())
+    }
+
     fn validate_boundary_conditions(&self) -> Result<(), String> {
         self.barrier_height_ev
             .trim()
@@ -576,9 +614,17 @@ impl App {
                 if i + 1 < self.mesh_layers.len() {
                     Page::MeshLayer(i + 1)
                 } else {
-                    Page::BoundaryConditions
+                    // Initialize fixed charge arrays when first entering FixedCharge
+                    let n = self.layers.len();
+                    self.bulk_charge_densities.resize(n, "0".to_string());
+                    self.interface_charge_densities
+                        .resize(n.saturating_sub(1), "0".to_string());
+                    Page::FixedCharge
                 }
             }),
+            Page::FixedCharge => {
+                self.validate_fixed_charges().map(|_| Page::BoundaryConditions)
+            }
             Page::BoundaryConditions => {
                 self.validate_boundary_conditions().map(|_| Page::Confirm)
             }
@@ -609,10 +655,11 @@ impl App {
             }
             Page::MeshLayer(0) => Page::MeshCount,
             Page::MeshLayer(i) => Page::MeshLayer(i - 1),
-            Page::BoundaryConditions => {
+            Page::FixedCharge => {
                 let n = self.mesh_layers.len();
                 if n > 0 { Page::MeshLayer(n - 1) } else { Page::MeshCount }
             }
+            Page::BoundaryConditions => Page::FixedCharge,
             Page::Confirm => Page::BoundaryConditions,
         };
     }
@@ -699,11 +746,19 @@ impl App {
 
         let bulk_fixed_charge = BulkFixedCharge {
             layer_id: (0..n as u32).collect(),
-            charge_density: vec![0.0; n],
+            charge_density: self
+                .bulk_charge_densities
+                .iter()
+                .map(|s| s.trim().parse::<f64>().unwrap() * PER_CM3_TO_PER_M3)
+                .collect(),
         };
         let interface_fixed_charge = InterfaceFixedCharge {
             interface_id: (0..n.saturating_sub(1) as u32).collect(),
-            charge_density: vec![0.0; n.saturating_sub(1)],
+            charge_density: self
+                .interface_charge_densities
+                .iter()
+                .map(|s| s.trim().parse::<f64>().unwrap() * PER_CM2_TO_PER_M2)
+                .collect(),
         };
         let continuous_interface_states = ContinuousInterfaceStatesConfig {
             interface_id: vec![],
@@ -835,16 +890,17 @@ fn draw(frame: &mut Frame, app: &App) {
 
 fn draw_header(frame: &mut Frame, area: Rect, app: &App) {
     let title = match &app.page {
-        Page::SimSettings => " [1/6] Simulation Settings ".to_string(),
-        Page::Measurement => " [2/6] Measurement ".to_string(),
-        Page::StructureCount => " [3/6] Device Structure ".to_string(),
-        Page::Layer(i) => format!(" [3/6] Layer {} of {} ", i + 1, app.layers.len()),
-        Page::MeshCount => " [4/6] Mesh Settings ".to_string(),
+        Page::SimSettings => " [1/7] Simulation Settings ".to_string(),
+        Page::Measurement => " [2/7] Measurement ".to_string(),
+        Page::StructureCount => " [3/7] Device Structure ".to_string(),
+        Page::Layer(i) => format!(" [3/7] Layer {} of {} ", i + 1, app.layers.len()),
+        Page::MeshCount => " [4/7] Mesh Settings ".to_string(),
         Page::MeshLayer(i) => {
-            format!(" [4/6] Mesh Layer {} of {} ", i + 1, app.mesh_layers.len())
+            format!(" [4/7] Mesh Layer {} of {} ", i + 1, app.mesh_layers.len())
         }
-        Page::BoundaryConditions => " [5/6] Boundary Conditions ".to_string(),
-        Page::Confirm => " [6/6] Confirm & Run ".to_string(),
+        Page::FixedCharge => " [5/7] Fixed Charges ".to_string(),
+        Page::BoundaryConditions => " [6/7] Boundary Conditions ".to_string(),
+        Page::Confirm => " [7/7] Confirm & Run ".to_string(),
     };
     let header = Paragraph::new("  GaN C-V Simulator")
         .block(
@@ -865,6 +921,7 @@ fn draw_content(frame: &mut Frame, area: Rect, app: &App) {
         Page::Layer(i) => draw_layer(frame, area, app, *i),
         Page::MeshCount => draw_mesh_count(frame, area, app),
         Page::MeshLayer(i) => draw_mesh_layer(frame, area, app, *i),
+        Page::FixedCharge => draw_fixed_charge(frame, area, app),
         Page::BoundaryConditions => draw_boundary_conditions(frame, area, app),
         Page::Confirm => draw_confirm(frame, area, app),
     }
@@ -1054,6 +1111,61 @@ fn draw_mesh_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
         .style(Style::default().fg(Color::DarkGray))
         .block(Block::default().borders(Borders::ALL).title(" Info "));
     frame.render_widget(note, chunks[1]);
+}
+
+fn draw_fixed_charge(frame: &mut Frame, area: Rect, app: &App) {
+    let n = app.layers.len();
+    let mut lines: Vec<Line<'static>> = Vec::new();
+
+    // Section header: bulk charges
+    lines.push(Line::from(Span::styled(
+        "  Bulk Fixed Charge (C/cm\u{00b3}):".to_string(),
+        Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+    )));
+    for (i, val) in app.bulk_charge_densities.iter().enumerate() {
+        let active = app.focused == i;
+        let prefix = if active { "> " } else { "  " };
+        let label = format!("Layer '{}'", app.layers[i].name);
+        let val_display = if active { format!("{val}\u{2588}") } else { val.clone() };
+        let style = if active {
+            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::White)
+        };
+        lines.push(Line::from(Span::styled(
+            format!("{prefix}{label:<34}{val_display}"),
+            style,
+        )));
+    }
+
+    // Section header: interface charges (only if ≥ 2 layers)
+    if n >= 2 {
+        lines.push(Line::from(Span::raw("")));
+        lines.push(Line::from(Span::styled(
+            "  Interface Fixed Charge (C/cm\u{00b2}):".to_string(),
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+        )));
+        for (i, val) in app.interface_charge_densities.iter().enumerate() {
+            let field_idx = n + i;
+            let active = app.focused == field_idx;
+            let prefix = if active { "> " } else { "  " };
+            let label = format!("{}/{}", app.layers[i].name, app.layers[i + 1].name);
+            let val_display = if active { format!("{val}\u{2588}") } else { val.clone() };
+            let style = if active {
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            lines.push(Line::from(Span::styled(
+                format!("{prefix}{label:<34}{val_display}"),
+                style,
+            )));
+        }
+    }
+
+    let para = Paragraph::new(lines)
+        .block(Block::default().borders(Borders::ALL).title(" Fixed Charges (default: 0) "));
+    frame.render_widget(para, area);
 }
 
 fn draw_boundary_conditions(frame: &mut Frame, area: Rect, app: &App) {
