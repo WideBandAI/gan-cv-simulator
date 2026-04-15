@@ -44,11 +44,13 @@ enum Page {
     Measurement,
     StructureCount,
     Layer(usize),
-    MeshBoundary,
+    MeshCount,
+    MeshLayer(usize),
+    BoundaryConditions,
     Confirm,
 }
 
-// ─── Layer input state ────────────────────────────────────────────────────────
+// ─── Input state structs ──────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
 struct LayerInput {
@@ -88,6 +90,27 @@ impl LayerInput {
     }
 }
 
+#[derive(Debug, Clone)]
+struct MeshLayerInput {
+    mesh_length_nm: String,
+    thickness_nm: String,
+}
+
+impl MeshLayerInput {
+    fn new() -> Self {
+        Self {
+            mesh_length_nm: "0.1".to_string(),
+            thickness_nm: String::new(),
+        }
+    }
+
+    /// Non-last layer: 2 fields (mesh_length, thickness).
+    /// Last layer: 1 field (mesh_length only; thickness is auto-calculated).
+    fn field_count(is_last: bool) -> usize {
+        if is_last { 1 } else { 2 }
+    }
+}
+
 // ─── App state ────────────────────────────────────────────────────────────────
 
 struct App {
@@ -113,13 +136,16 @@ struct App {
     stress_relief_voltage: String,
     stress_relief_time: String,
 
-    // Structure
+    // Device structure
     num_layers_str: String,
     layers: Vec<LayerInput>,
 
-    // Mesh & Boundary
-    mesh_length_nm: String,
+    // Mesh
+    num_mesh_layers_str: String,
     energy_step_mev: String,
+    mesh_layers: Vec<MeshLayerInput>,
+
+    // Boundary conditions
     barrier_height_ev: String,
     ec_ef_mode: EcEfMode,
     ec_ef_bottom_ev: String,
@@ -147,13 +173,16 @@ impl App {
             stress_relief_time: "0".to_string(),
             num_layers_str: "1".to_string(),
             layers: Vec::new(),
-            mesh_length_nm: "0.1".to_string(),
+            num_mesh_layers_str: "1".to_string(),
             energy_step_mev: "0.1".to_string(),
+            mesh_layers: Vec::new(),
             barrier_height_ev: String::new(),
             ec_ef_mode: EcEfMode::Manual,
             ec_ef_bottom_ev: String::new(),
         }
     }
+
+    // ─── Field counts ─────────────────────────────────────────────────────────
 
     fn field_count(&self) -> usize {
         match &self.page {
@@ -164,14 +193,18 @@ impl App {
                 let is_last = *i + 1 == self.layers.len();
                 self.layers.get(*i).map(|l| l.field_count(is_last)).unwrap_or(0)
             }
-            Page::MeshBoundary => {
-                let bottom_is_sc = self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+            Page::MeshCount => 2,
+            Page::MeshLayer(i) => {
+                let is_last = *i + 1 == self.mesh_layers.len();
+                MeshLayerInput::field_count(is_last)
+            }
+            Page::BoundaryConditions => {
+                let bottom_is_sc =
+                    self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
                 if bottom_is_sc {
-                    // mesh_length, energy_step, barrier_height, ec_ef_mode toggle,
-                    // + ec_ef_bottom text only in Manual mode
-                    if self.ec_ef_mode == EcEfMode::Manual { 5 } else { 4 }
+                    if self.ec_ef_mode == EcEfMode::Manual { 3 } else { 2 }
                 } else {
-                    4 // mesh_length, energy_step, barrier_height, ec_ef_bottom
+                    2
                 }
             }
             Page::Confirm => 0,
@@ -194,10 +227,12 @@ impl App {
         }
     }
 
+    // ─── Toggle ───────────────────────────────────────────────────────────────
+
     fn is_toggle(&self) -> bool {
         match (&self.page, self.focused) {
             (Page::SimSettings, 4) | (Page::Layer(_), 1) => true,
-            (Page::MeshBoundary, 3) => {
+            (Page::BoundaryConditions, 1) => {
                 self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false)
             }
             _ => false,
@@ -207,15 +242,6 @@ impl App {
     fn toggle_focused(&mut self) {
         match (&self.page, self.focused) {
             (Page::SimSettings, 4) => self.parallel = !self.parallel,
-            (Page::MeshBoundary, 3) => {
-                let bottom_is_sc = self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
-                if bottom_is_sc {
-                    self.ec_ef_mode = match self.ec_ef_mode {
-                        EcEfMode::Manual => EcEfMode::Equilibrium,
-                        EcEfMode::Equilibrium => EcEfMode::Manual,
-                    };
-                }
-            }
             (Page::Layer(i), 1) => {
                 let i = *i;
                 let is_last = i + 1 == self.layers.len();
@@ -224,14 +250,28 @@ impl App {
                         MaterialType::Semiconductor => MaterialType::Insulator,
                         MaterialType::Insulator => MaterialType::Semiconductor,
                     };
-                    // Clamp focused index when fields shrink (SC→Ins removes 3 fields)
                     let fc = layer.field_count(is_last);
+                    self.focused = self.focused.min(fc - 1);
+                }
+            }
+            (Page::BoundaryConditions, 1) => {
+                let bottom_is_sc =
+                    self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+                if bottom_is_sc {
+                    self.ec_ef_mode = match self.ec_ef_mode {
+                        EcEfMode::Manual => EcEfMode::Equilibrium,
+                        EcEfMode::Equilibrium => EcEfMode::Manual,
+                    };
+                    // Clamp: if switching to Equilibrium, field 2 disappears
+                    let fc = self.field_count();
                     self.focused = self.focused.min(fc - 1);
                 }
             }
             _ => {}
         }
     }
+
+    // ─── Text field access ────────────────────────────────────────────────────
 
     fn active_text_field(&mut self) -> Option<&mut String> {
         match self.page.clone() {
@@ -259,8 +299,6 @@ impl App {
                 let f = self.focused;
                 let is_last = i + 1 == self.layers.len();
                 let layer = self.layers.get_mut(i)?;
-                // For the last layer delta_cb (internal index 5) is omitted,
-                // so shift focused >= 5 up by 1 to recover the original index.
                 let idx = if is_last && f >= 5 { f + 1 } else { f };
                 match idx {
                     0 => Some(&mut layer.name),
@@ -275,23 +313,34 @@ impl App {
                     _ => None,
                 }
             }
-            Page::MeshBoundary => {
-                let bottom_is_sc = self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+            Page::MeshCount => match self.focused {
+                0 => Some(&mut self.num_mesh_layers_str),
+                1 => Some(&mut self.energy_step_mev),
+                _ => None,
+            },
+            Page::MeshLayer(i) => {
+                let f = self.focused;
+                let ml = self.mesh_layers.get_mut(i)?;
+                match f {
+                    0 => Some(&mut ml.mesh_length_nm),
+                    1 => Some(&mut ml.thickness_nm),
+                    _ => None,
+                }
+            }
+            Page::BoundaryConditions => {
+                let bottom_is_sc =
+                    self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
                 if bottom_is_sc {
                     match self.focused {
-                        0 => Some(&mut self.mesh_length_nm),
-                        1 => Some(&mut self.energy_step_mev),
-                        2 => Some(&mut self.barrier_height_ev),
-                        3 => None, // ec_ef_mode toggle
-                        4 => Some(&mut self.ec_ef_bottom_ev), // Manual only
+                        0 => Some(&mut self.barrier_height_ev),
+                        1 => None, // toggle
+                        2 => Some(&mut self.ec_ef_bottom_ev),
                         _ => None,
                     }
                 } else {
                     match self.focused {
-                        0 => Some(&mut self.mesh_length_nm),
-                        1 => Some(&mut self.energy_step_mev),
-                        2 => Some(&mut self.barrier_height_ev),
-                        3 => Some(&mut self.ec_ef_bottom_ev),
+                        0 => Some(&mut self.barrier_height_ev),
+                        1 => Some(&mut self.ec_ef_bottom_ev),
                         _ => None,
                     }
                 }
@@ -312,7 +361,7 @@ impl App {
         }
     }
 
-    // ─── Validation helpers ───────────────────────────────────────────────────
+    // ─── Validation ───────────────────────────────────────────────────────────
 
     fn validate_sim_settings(&self) -> Result<(), String> {
         let name = self.sim_name.trim();
@@ -322,7 +371,7 @@ impl App {
                 .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
         {
             return Err(
-                "Name: letters/digits/'-'/'_'/'.' only, cannot be empty or contain '..'".into(),
+                "Name: letters/digits/'-'/'_'/'.' only, cannot be empty".into(),
             );
         }
         if name.contains("..") {
@@ -406,8 +455,30 @@ impl App {
         Ok(())
     }
 
-    fn validate_mesh_boundary(&self) -> Result<(), String> {
-        let len: f64 = self
+    fn validate_mesh_count(&self) -> Result<(), String> {
+        self.num_mesh_layers_str
+            .trim()
+            .parse::<usize>()
+            .map_err(|_| "Number of mesh layers must be a positive integer".to_string())
+            .and_then(|n| {
+                if n > 0 {
+                    Ok(())
+                } else {
+                    Err("Number of mesh layers must be ≥ 1".to_string())
+                }
+            })?;
+        self.energy_step_mev
+            .trim()
+            .parse::<f64>()
+            .map_err(|_| "Energy step must be a number (e.g. 0.1)".to_string())?;
+        Ok(())
+    }
+
+    fn validate_mesh_layer(&self, i: usize) -> Result<(), String> {
+        let ml = &self.mesh_layers[i];
+        let is_last = i + 1 == self.mesh_layers.len();
+
+        let len: f64 = ml
             .mesh_length_nm
             .trim()
             .parse()
@@ -415,28 +486,53 @@ impl App {
         if len <= 0.0 {
             return Err("Mesh length must be > 0".into());
         }
-        self.energy_step_mev
-            .trim()
-            .parse::<f64>()
-            .map_err(|_| "Energy step must be a number".to_string())?;
+
+        if !is_last {
+            let t: f64 = ml
+                .thickness_nm
+                .trim()
+                .parse()
+                .map_err(|_| "Thickness must be a positive number".to_string())?;
+            if t <= 0.0 {
+                return Err("Thickness must be > 0".into());
+            }
+            // Check that accumulated thickness doesn't exceed device total
+            let total_device_nm: f64 = self
+                .layers
+                .iter()
+                .filter_map(|l| l.thickness_nm.trim().parse::<f64>().ok())
+                .sum();
+            let accumulated_nm: f64 = self.mesh_layers[..=i]
+                .iter()
+                .filter_map(|l| l.thickness_nm.trim().parse::<f64>().ok())
+                .sum();
+            if accumulated_nm >= total_device_nm {
+                return Err(format!(
+                    "Accumulated mesh thickness ({accumulated_nm:.3} nm) must be < total device thickness ({total_device_nm:.3} nm)"
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_boundary_conditions(&self) -> Result<(), String> {
         self.barrier_height_ev
             .trim()
             .parse::<f64>()
             .map_err(|_| "Barrier height must be a number".to_string())?;
-        let bottom_is_sc = self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+        let bottom_is_sc =
+            self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
         let use_manual = !bottom_is_sc || self.ec_ef_mode == EcEfMode::Manual;
         if use_manual {
             self.ec_ef_bottom_ev
                 .trim()
                 .parse::<f64>()
                 .map_err(|_| "Ec-Ef bottom must be a number".to_string())?;
-        } else {
-            // Equilibrium: verify that layer data is parseable
-            if compute_equilibrium(self).is_none() {
-                return Err(
-                    "Cannot compute equilibrium potential: check layer mass/donor/temperature values".into(),
-                );
-            }
+        } else if compute_equilibrium(self).is_none() {
+            return Err(
+                "Cannot compute equilibrium potential: check layer mass/donor/temperature values"
+                    .into(),
+            );
         }
         Ok(())
     }
@@ -445,13 +541,12 @@ impl App {
 
     fn validate_and_advance(&mut self) {
         self.error = None;
-        let result = match self.page.clone() {
+        let result: Result<Page, String> = match self.page.clone() {
             Page::SimSettings => self.validate_sim_settings().map(|_| Page::Measurement),
             Page::Measurement => self.validate_measurement().map(|_| Page::StructureCount),
             Page::StructureCount => {
                 match self.num_layers_str.trim().parse::<usize>() {
                     Ok(n) if n > 0 => {
-                        // Grow or shrink layer vec as needed
                         while self.layers.len() < n {
                             let idx = self.layers.len();
                             self.layers.push(LayerInput::new(idx));
@@ -463,15 +558,31 @@ impl App {
                 }
             }
             Page::Layer(i) => self.validate_layer(i).map(|_| {
-                let n = self.layers.len();
-                if i + 1 < n {
+                if i + 1 < self.layers.len() {
                     Page::Layer(i + 1)
                 } else {
-                    Page::MeshBoundary
+                    Page::MeshCount
                 }
             }),
-            Page::MeshBoundary => self.validate_mesh_boundary().map(|_| Page::Confirm),
-            Page::Confirm => return, // handled by caller
+            Page::MeshCount => self.validate_mesh_count().map(|_| {
+                let n: usize = self.num_mesh_layers_str.trim().parse().unwrap();
+                while self.mesh_layers.len() < n {
+                    self.mesh_layers.push(MeshLayerInput::new());
+                }
+                self.mesh_layers.truncate(n);
+                Page::MeshLayer(0)
+            }),
+            Page::MeshLayer(i) => self.validate_mesh_layer(i).map(|_| {
+                if i + 1 < self.mesh_layers.len() {
+                    Page::MeshLayer(i + 1)
+                } else {
+                    Page::BoundaryConditions
+                }
+            }),
+            Page::BoundaryConditions => {
+                self.validate_boundary_conditions().map(|_| Page::Confirm)
+            }
+            Page::Confirm => return,
         };
 
         match result {
@@ -492,15 +603,17 @@ impl App {
             Page::StructureCount => Page::Measurement,
             Page::Layer(0) => Page::StructureCount,
             Page::Layer(i) => Page::Layer(i - 1),
-            Page::MeshBoundary => {
+            Page::MeshCount => {
                 let n = self.layers.len();
-                if n > 0 {
-                    Page::Layer(n - 1)
-                } else {
-                    Page::StructureCount
-                }
+                if n > 0 { Page::Layer(n - 1) } else { Page::StructureCount }
             }
-            Page::Confirm => Page::MeshBoundary,
+            Page::MeshLayer(0) => Page::MeshCount,
+            Page::MeshLayer(i) => Page::MeshLayer(i - 1),
+            Page::BoundaryConditions => {
+                let n = self.mesh_layers.len();
+                if n > 0 { Page::MeshLayer(n - 1) } else { Page::MeshCount }
+            }
+            Page::Confirm => Page::BoundaryConditions,
         };
     }
 
@@ -561,7 +674,6 @@ impl App {
             device_structure
                 .bandgap_energy
                 .push(layer.bandgap_ev.trim().parse().unwrap());
-            // Last layer delta_cb is always 0
             let dcb = if i == n - 1 {
                 0.0
             } else {
@@ -607,18 +719,35 @@ impl App {
             mass_electron: vec![],
         };
 
-        let total_thickness: f64 = device_structure.thickness.iter().sum();
+        // Build mesh params: last layer's thickness = total - sum of preceding layers
+        let total_thickness_m: f64 = device_structure.thickness.iter().sum();
+        let nm = self.mesh_layers.len();
+        let mut layer_id = Vec::with_capacity(nm);
+        let mut length_per_layer = Vec::with_capacity(nm);
+        let mut layer_thickness = Vec::with_capacity(nm);
+        let mut accumulated_m = 0.0_f64;
+        for (i, ml) in self.mesh_layers.iter().enumerate() {
+            layer_id.push(i as u32);
+            length_per_layer
+                .push(ml.mesh_length_nm.trim().parse::<f64>().unwrap() * NM_TO_M);
+            if i == nm - 1 {
+                layer_thickness.push(total_thickness_m - accumulated_m);
+            } else {
+                let t = ml.thickness_nm.trim().parse::<f64>().unwrap() * NM_TO_M;
+                layer_thickness.push(t);
+                accumulated_m += t;
+            }
+        }
         let mesh_params = MeshParams {
-            layer_id: vec![0],
-            length_per_layer: vec![
-                self.mesh_length_nm.trim().parse::<f64>().unwrap() * NM_TO_M,
-            ],
-            layer_thickness: vec![total_thickness],
+            layer_id,
+            length_per_layer,
+            layer_thickness,
             energy_step: self.energy_step_mev.trim().parse::<f64>().unwrap() * MEV_TO_EV,
         };
 
         let ec_ef_bottom = {
-            let bottom_is_sc = self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+            let bottom_is_sc =
+                self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
             if bottom_is_sc && self.ec_ef_mode == EcEfMode::Equilibrium {
                 compute_equilibrium(&self).expect("equilibrium potential was validated")
             } else {
@@ -647,8 +776,8 @@ impl App {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/// Returns the equilibrium potential (Ec-Ef) in eV when the bottom layer is a
-/// semiconductor and all required values are parseable; `None` otherwise.
+/// Returns the equilibrium potential (Ec-Ef) in eV for the bottom layer when it
+/// is a semiconductor and all required values are parseable; `None` otherwise.
 fn compute_equilibrium(app: &App) -> Option<f64> {
     let last = app.layers.last()?;
     if !last.is_semiconductor() {
@@ -665,6 +794,23 @@ fn compute_equilibrium(app: &App) -> Option<f64> {
         nd * PER_CM3_TO_PER_M3,
         temp,
     ))
+}
+
+/// Compute the total device thickness in nm from parsed layer inputs.
+fn total_device_nm(app: &App) -> Option<f64> {
+    let mut sum = 0.0_f64;
+    for l in &app.layers {
+        sum += l.thickness_nm.trim().parse::<f64>().ok()?;
+    }
+    Some(sum)
+}
+
+/// Compute the accumulated mesh thickness in nm for layers 0..=i.
+fn accumulated_mesh_nm(app: &App, up_to: usize) -> f64 {
+    app.mesh_layers[..up_to]
+        .iter()
+        .filter_map(|ml| ml.thickness_nm.trim().parse::<f64>().ok())
+        .sum()
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -689,12 +835,16 @@ fn draw(frame: &mut Frame, app: &App) {
 
 fn draw_header(frame: &mut Frame, area: Rect, app: &App) {
     let title = match &app.page {
-        Page::SimSettings => " [1/5] Simulation Settings ".to_string(),
-        Page::Measurement => " [2/5] Measurement ".to_string(),
-        Page::StructureCount => " [3/5] Device Structure ".to_string(),
-        Page::Layer(i) => format!(" [3/5] Layer {} of {} ", i + 1, app.layers.len()),
-        Page::MeshBoundary => " [4/5] Mesh & Boundary Conditions ".to_string(),
-        Page::Confirm => " [5/5] Confirm & Run ".to_string(),
+        Page::SimSettings => " [1/6] Simulation Settings ".to_string(),
+        Page::Measurement => " [2/6] Measurement ".to_string(),
+        Page::StructureCount => " [3/6] Device Structure ".to_string(),
+        Page::Layer(i) => format!(" [3/6] Layer {} of {} ", i + 1, app.layers.len()),
+        Page::MeshCount => " [4/6] Mesh Settings ".to_string(),
+        Page::MeshLayer(i) => {
+            format!(" [4/6] Mesh Layer {} of {} ", i + 1, app.mesh_layers.len())
+        }
+        Page::BoundaryConditions => " [5/6] Boundary Conditions ".to_string(),
+        Page::Confirm => " [6/6] Confirm & Run ".to_string(),
     };
     let header = Paragraph::new("  GaN C-V Simulator")
         .block(
@@ -713,7 +863,9 @@ fn draw_content(frame: &mut Frame, area: Rect, app: &App) {
         Page::Measurement => draw_measurement(frame, area, app),
         Page::StructureCount => draw_structure_count(frame, area, app),
         Page::Layer(i) => draw_layer(frame, area, app, *i),
-        Page::MeshBoundary => draw_mesh_boundary(frame, area, app),
+        Page::MeshCount => draw_mesh_count(frame, area, app),
+        Page::MeshLayer(i) => draw_mesh_layer(frame, area, app, *i),
+        Page::BoundaryConditions => draw_boundary_conditions(frame, area, app),
         Page::Confirm => draw_confirm(frame, area, app),
     }
 }
@@ -768,6 +920,8 @@ fn field_lines(fields: &[(&str, String, bool)], focused: usize) -> Vec<Line<'sta
         .collect()
 }
 
+// ─── Per-page draw functions ──────────────────────────────────────────────────
+
 fn draw_sim_settings(frame: &mut Frame, area: Rect, app: &App) {
     let fields = [
         ("Simulation Name", app.sim_name.clone(), false),
@@ -807,19 +961,15 @@ fn draw_measurement(frame: &mut Frame, area: Rect, app: &App) {
 fn draw_structure_count(frame: &mut Frame, area: Rect, app: &App) {
     let fields = [("Number of Layers", app.num_layers_str.clone(), false)];
     let lines = field_lines(&fields, app.focused);
-    let note = Paragraph::new(lines)
+    let para = Paragraph::new(lines)
         .block(Block::default().borders(Borders::ALL).title(" Fields "));
-    frame.render_widget(note, area);
+    frame.render_widget(para, area);
 }
 
 fn draw_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
     let layer = &app.layers[i];
     let is_last = i + 1 == app.layers.len();
-    let mat_val = if layer.is_semiconductor() {
-        "Semiconductor"
-    } else {
-        "Insulator"
-    };
+    let mat_val = if layer.is_semiconductor() { "Semiconductor" } else { "Insulator" };
     let mut fields: Vec<(&str, String, bool)> = vec![
         ("Name", layer.name.clone(), false),
         ("Material Type [Space: toggle]", mat_val.to_string(), true),
@@ -841,14 +991,76 @@ fn draw_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
     frame.render_widget(para, area);
 }
 
-fn draw_mesh_boundary(frame: &mut Frame, area: Rect, app: &App) {
+fn draw_mesh_count(frame: &mut Frame, area: Rect, app: &App) {
+    let total_nm = total_device_nm(app);
+    let info = match total_nm {
+        Some(t) => format!("\n  Total device thickness: {t:.3} nm\n  Fixed charges and interface states default to zero/none."),
+        None => "\n  (device thickness not yet available)".to_string(),
+    };
+    let fields = [
+        ("Number of Mesh Layers", app.num_mesh_layers_str.clone(), false),
+        ("Energy Step (meV)", app.energy_step_mev.clone(), false),
+    ];
+    let lines = field_lines(&fields, app.focused);
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(1), Constraint::Length(4)])
+        .split(area);
+    let para = Paragraph::new(lines)
+        .block(Block::default().borders(Borders::ALL).title(" Fields "));
+    frame.render_widget(para, chunks[0]);
+    let note = Paragraph::new(info)
+        .style(Style::default().fg(Color::DarkGray))
+        .block(Block::default().borders(Borders::ALL).title(" Info "));
+    frame.render_widget(note, chunks[1]);
+}
+
+fn draw_mesh_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
+    let ml = &app.mesh_layers[i];
+    let is_last = i + 1 == app.mesh_layers.len();
+
+    let mut fields: Vec<(&str, String, bool)> =
+        vec![("Mesh Length (nm)", ml.mesh_length_nm.clone(), false)];
+    if !is_last {
+        fields.push(("Thickness (nm)", ml.thickness_nm.clone(), false));
+    }
+
+    // Info: show auto-calculated thickness for the last layer
+    let info = if is_last {
+        let total_nm = total_device_nm(app).unwrap_or(0.0);
+        let acc_nm = accumulated_mesh_nm(app, i);
+        let remaining = total_nm - acc_nm;
+        format!(
+            "\n  Auto thickness (remaining): {remaining:.3} nm\n  (= total {total_nm:.3} nm - accumulated {acc_nm:.3} nm)"
+        )
+    } else {
+        let total_nm = total_device_nm(app).unwrap_or(0.0);
+        let acc_nm = accumulated_mesh_nm(app, i);
+        let after = accumulated_mesh_nm(app, i + 1);
+        format!(
+            "\n  Accumulated so far: {acc_nm:.3} nm  →  after this layer: {after:.3} nm\n  Total device: {total_nm:.3} nm"
+        )
+    };
+
+    let lines = field_lines(&fields, app.focused);
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(1), Constraint::Length(4)])
+        .split(area);
+    let para = Paragraph::new(lines)
+        .block(Block::default().borders(Borders::ALL).title(format!(" Mesh Layer {i} ")));
+    frame.render_widget(para, chunks[0]);
+    let note = Paragraph::new(info)
+        .style(Style::default().fg(Color::DarkGray))
+        .block(Block::default().borders(Borders::ALL).title(" Info "));
+    frame.render_widget(note, chunks[1]);
+}
+
+fn draw_boundary_conditions(frame: &mut Frame, area: Rect, app: &App) {
     let bottom_is_sc = app.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
 
-    let mut fields: Vec<(&str, String, bool)> = vec![
-        ("Mesh Length (nm)", app.mesh_length_nm.clone(), false),
-        ("Energy Step (meV)", app.energy_step_mev.clone(), false),
-        ("Barrier Height (eV)", app.barrier_height_ev.clone(), false),
-    ];
+    let mut fields: Vec<(&str, String, bool)> =
+        vec![("Barrier Height (eV)", app.barrier_height_ev.clone(), false)];
 
     if bottom_is_sc {
         let mode_label = match app.ec_ef_mode {
@@ -866,19 +1078,10 @@ fn draw_mesh_boundary(frame: &mut Frame, area: Rect, app: &App) {
         fields.push(("Ec - Ef Bottom (eV)", app.ec_ef_bottom_ev.clone(), false));
     }
 
-    let note_text = "\n  Note: A single uniform mesh layer is used for the full device.\n  Fixed charges and interface states default to zero/none.";
     let lines = field_lines(&fields, app.focused);
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(1), Constraint::Length(4)])
-        .split(area);
     let para = Paragraph::new(lines)
         .block(Block::default().borders(Borders::ALL).title(" Fields "));
-    frame.render_widget(para, chunks[0]);
-    let note = Paragraph::new(note_text)
-        .style(Style::default().fg(Color::DarkGray))
-        .block(Block::default().borders(Borders::ALL).title(" Info "));
-    frame.render_widget(note, chunks[1]);
+    frame.render_widget(para, area);
 }
 
 fn draw_confirm(frame: &mut Frame, area: Rect, app: &App) {
@@ -891,8 +1094,43 @@ fn draw_confirm(frame: &mut Frame, area: Rect, app: &App) {
             format!("  Layer {i}: {} ({}) {}nm\n", l.name, mat, l.thickness_nm)
         })
         .collect();
+
+    let mesh_summary: String = {
+        let total_nm = total_device_nm(app).unwrap_or(0.0);
+        let nm = app.mesh_layers.len();
+        let mut acc = 0.0_f64;
+        app.mesh_layers
+            .iter()
+            .enumerate()
+            .map(|(i, ml)| {
+                if i == nm - 1 {
+                    let remaining = total_nm - acc;
+                    format!(
+                        "  Mesh {i}: length={}nm  thickness={:.3}nm (auto)\n",
+                        ml.mesh_length_nm, remaining
+                    )
+                } else {
+                    let t: f64 = ml.thickness_nm.trim().parse().unwrap_or(0.0);
+                    acc += t;
+                    format!(
+                        "  Mesh {i}: length={}nm  thickness={}nm\n",
+                        ml.mesh_length_nm, ml.thickness_nm
+                    )
+                }
+            })
+            .collect()
+    };
+
+    let ec_ef_str = match app.ec_ef_mode {
+        EcEfMode::Manual => app.ec_ef_bottom_ev.clone(),
+        EcEfMode::Equilibrium => match compute_equilibrium(app) {
+            Some(v) => format!("{v:.4} (equilibrium)"),
+            None => "? (equilibrium)".to_string(),
+        },
+    };
+
     let summary = format!(
-        "\n  Simulation:   {}\n  Temperature:  {} K\n  Voltage:      {} → {} V  (step {} V)\n  AC Voltage:   {} mV\n\n{}  Mesh length:  {} nm\n  Energy step:  {} meV\n  Barrier:      {} eV\n  Ec-Ef bottom: {} eV\n\n  Fixed charges and interface states: all zero / none (default)\n\n  Press Enter to start simulation.",
+        "\n  Simulation:   {}\n  Temperature:  {} K\n  Voltage:      {} → {} V  (step {} V)\n  AC Voltage:   {} mV\n\n{}\n  Energy step:  {} meV\n{}\n  Barrier:      {} eV\n  Ec-Ef bottom: {} eV\n\n  Fixed charges and interface states: all zero / none (default)\n\n  Press Enter to start simulation.",
         app.sim_name,
         app.temperature,
         app.v_start,
@@ -900,10 +1138,10 @@ fn draw_confirm(frame: &mut Frame, area: Rect, app: &App) {
         app.v_step,
         app.ac_voltage,
         layer_summary,
-        app.mesh_length_nm,
         app.energy_step_mev,
+        mesh_summary,
         app.barrier_height_ev,
-        app.ec_ef_bottom_ev,
+        ec_ef_str,
     );
     let para = Paragraph::new(summary)
         .block(Block::default().borders(Borders::ALL).title(" Summary "))
@@ -947,7 +1185,6 @@ fn run_loop(
                     if app.is_toggle() {
                         app.toggle_focused();
                     }
-                    // Space is ignored on text fields (not valid in names/numbers)
                 }
                 KeyCode::Char(c) => app.type_char(c),
                 KeyCode::Backspace => app.backspace(),
