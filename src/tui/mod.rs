@@ -26,6 +26,15 @@ use crate::config::{
 };
 use crate::constants::physics::{EPSILON_0, M_ELECTRON};
 use crate::constants::units::{MEV_TO_EV, MV_TO_V, NM_TO_M, PER_CM3_TO_PER_M3};
+use crate::physics_equations::equilibrium_potential::equilibrium_potential_n_type;
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, PartialEq)]
+enum EcEfMode {
+    Manual,
+    Equilibrium,
+}
 
 // ─── Pages ───────────────────────────────────────────────────────────────────
 
@@ -112,6 +121,7 @@ struct App {
     mesh_length_nm: String,
     energy_step_mev: String,
     barrier_height_ev: String,
+    ec_ef_mode: EcEfMode,
     ec_ef_bottom_ev: String,
 }
 
@@ -140,6 +150,7 @@ impl App {
             mesh_length_nm: "0.1".to_string(),
             energy_step_mev: "0.1".to_string(),
             barrier_height_ev: String::new(),
+            ec_ef_mode: EcEfMode::Manual,
             ec_ef_bottom_ev: String::new(),
         }
     }
@@ -153,7 +164,16 @@ impl App {
                 let is_last = *i + 1 == self.layers.len();
                 self.layers.get(*i).map(|l| l.field_count(is_last)).unwrap_or(0)
             }
-            Page::MeshBoundary => 4,
+            Page::MeshBoundary => {
+                let bottom_is_sc = self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+                if bottom_is_sc {
+                    // mesh_length, energy_step, barrier_height, ec_ef_mode toggle,
+                    // + ec_ef_bottom text only in Manual mode
+                    if self.ec_ef_mode == EcEfMode::Manual { 5 } else { 4 }
+                } else {
+                    4 // mesh_length, energy_step, barrier_height, ec_ef_bottom
+                }
+            }
             Page::Confirm => 0,
         }
     }
@@ -175,12 +195,27 @@ impl App {
     }
 
     fn is_toggle(&self) -> bool {
-        matches!((&self.page, self.focused), (Page::SimSettings, 4) | (Page::Layer(_), 1))
+        match (&self.page, self.focused) {
+            (Page::SimSettings, 4) | (Page::Layer(_), 1) => true,
+            (Page::MeshBoundary, 3) => {
+                self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false)
+            }
+            _ => false,
+        }
     }
 
     fn toggle_focused(&mut self) {
         match (&self.page, self.focused) {
             (Page::SimSettings, 4) => self.parallel = !self.parallel,
+            (Page::MeshBoundary, 3) => {
+                let bottom_is_sc = self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+                if bottom_is_sc {
+                    self.ec_ef_mode = match self.ec_ef_mode {
+                        EcEfMode::Manual => EcEfMode::Equilibrium,
+                        EcEfMode::Equilibrium => EcEfMode::Manual,
+                    };
+                }
+            }
             (Page::Layer(i), 1) => {
                 let i = *i;
                 let is_last = i + 1 == self.layers.len();
@@ -240,13 +275,27 @@ impl App {
                     _ => None,
                 }
             }
-            Page::MeshBoundary => match self.focused {
-                0 => Some(&mut self.mesh_length_nm),
-                1 => Some(&mut self.energy_step_mev),
-                2 => Some(&mut self.barrier_height_ev),
-                3 => Some(&mut self.ec_ef_bottom_ev),
-                _ => None,
-            },
+            Page::MeshBoundary => {
+                let bottom_is_sc = self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+                if bottom_is_sc {
+                    match self.focused {
+                        0 => Some(&mut self.mesh_length_nm),
+                        1 => Some(&mut self.energy_step_mev),
+                        2 => Some(&mut self.barrier_height_ev),
+                        3 => None, // ec_ef_mode toggle
+                        4 => Some(&mut self.ec_ef_bottom_ev), // Manual only
+                        _ => None,
+                    }
+                } else {
+                    match self.focused {
+                        0 => Some(&mut self.mesh_length_nm),
+                        1 => Some(&mut self.energy_step_mev),
+                        2 => Some(&mut self.barrier_height_ev),
+                        3 => Some(&mut self.ec_ef_bottom_ev),
+                        _ => None,
+                    }
+                }
+            }
             Page::Confirm => None,
         }
     }
@@ -374,10 +423,21 @@ impl App {
             .trim()
             .parse::<f64>()
             .map_err(|_| "Barrier height must be a number".to_string())?;
-        self.ec_ef_bottom_ev
-            .trim()
-            .parse::<f64>()
-            .map_err(|_| "Ec-Ef bottom must be a number".to_string())?;
+        let bottom_is_sc = self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+        let use_manual = !bottom_is_sc || self.ec_ef_mode == EcEfMode::Manual;
+        if use_manual {
+            self.ec_ef_bottom_ev
+                .trim()
+                .parse::<f64>()
+                .map_err(|_| "Ec-Ef bottom must be a number".to_string())?;
+        } else {
+            // Equilibrium: verify that layer data is parseable
+            if compute_equilibrium(self).is_none() {
+                return Err(
+                    "Cannot compute equilibrium potential: check layer mass/donor/temperature values".into(),
+                );
+            }
+        }
         Ok(())
     }
 
@@ -557,9 +617,17 @@ impl App {
             energy_step: self.energy_step_mev.trim().parse::<f64>().unwrap() * MEV_TO_EV,
         };
 
+        let ec_ef_bottom = {
+            let bottom_is_sc = self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+            if bottom_is_sc && self.ec_ef_mode == EcEfMode::Equilibrium {
+                compute_equilibrium(&self).expect("equilibrium potential was validated")
+            } else {
+                self.ec_ef_bottom_ev.trim().parse().unwrap()
+            }
+        };
         let boundary_conditions = BoundaryConditions {
             barrier_height: self.barrier_height_ev.trim().parse().unwrap(),
-            ec_ef_bottom: self.ec_ef_bottom_ev.trim().parse().unwrap(),
+            ec_ef_bottom,
         };
 
         ConfigurationBuilder::new(Configuration {
@@ -575,6 +643,28 @@ impl App {
             boundary_conditions,
         })
     }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/// Returns the equilibrium potential (Ec-Ef) in eV when the bottom layer is a
+/// semiconductor and all required values are parseable; `None` otherwise.
+fn compute_equilibrium(app: &App) -> Option<f64> {
+    let last = app.layers.last()?;
+    if !last.is_semiconductor() {
+        return None;
+    }
+    let mass_coeff: f64 = last.mass_electron_coeff.trim().parse().ok()?;
+    let nd: f64 = last.donor_conc_cm3.trim().parse().ok()?;
+    let temp: f64 = app.temperature.trim().parse().ok()?;
+    if mass_coeff <= 0.0 || nd <= 0.0 || temp <= 0.0 {
+        return None;
+    }
+    Some(equilibrium_potential_n_type(
+        mass_coeff * M_ELECTRON,
+        nd * PER_CM3_TO_PER_M3,
+        temp,
+    ))
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -752,12 +842,30 @@ fn draw_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
 }
 
 fn draw_mesh_boundary(frame: &mut Frame, area: Rect, app: &App) {
-    let fields = [
+    let bottom_is_sc = app.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+
+    let mut fields: Vec<(&str, String, bool)> = vec![
         ("Mesh Length (nm)", app.mesh_length_nm.clone(), false),
         ("Energy Step (meV)", app.energy_step_mev.clone(), false),
         ("Barrier Height (eV)", app.barrier_height_ev.clone(), false),
-        ("Ec - Ef Bottom (eV)", app.ec_ef_bottom_ev.clone(), false),
     ];
+
+    if bottom_is_sc {
+        let mode_label = match app.ec_ef_mode {
+            EcEfMode::Manual => "Manual".to_string(),
+            EcEfMode::Equilibrium => match compute_equilibrium(app) {
+                Some(v) => format!("Equilibrium ({:.4} eV)", v),
+                None => "Equilibrium (incomplete layer data)".to_string(),
+            },
+        };
+        fields.push(("Ec-Ef Source [Space: toggle]", mode_label, true));
+        if app.ec_ef_mode == EcEfMode::Manual {
+            fields.push(("Ec - Ef Bottom (eV)", app.ec_ef_bottom_ev.clone(), false));
+        }
+    } else {
+        fields.push(("Ec - Ef Bottom (eV)", app.ec_ef_bottom_ev.clone(), false));
+    }
+
     let note_text = "\n  Note: A single uniform mesh layer is used for the full device.\n  Fixed charges and interface states default to zero/none.";
     let lines = field_lines(&fields, app.focused);
     let chunks = Layout::default()
