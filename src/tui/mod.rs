@@ -73,8 +73,9 @@ impl LayerInput {
         self.material == MaterialType::Semiconductor
     }
 
-    fn field_count(&self) -> usize {
-        if self.is_semiconductor() { 9 } else { 6 }
+    fn field_count(&self, is_last: bool) -> usize {
+        let base = if self.is_semiconductor() { 9 } else { 6 };
+        if is_last { base - 1 } else { base }
     }
 }
 
@@ -148,7 +149,10 @@ impl App {
             Page::SimSettings => 5,
             Page::Measurement => 9,
             Page::StructureCount => 1,
-            Page::Layer(i) => self.layers.get(*i).map(|l| l.field_count()).unwrap_or(0),
+            Page::Layer(i) => {
+                let is_last = *i + 1 == self.layers.len();
+                self.layers.get(*i).map(|l| l.field_count(is_last)).unwrap_or(0)
+            }
             Page::MeshBoundary => 4,
             Page::Confirm => 0,
         }
@@ -179,13 +183,14 @@ impl App {
             (Page::SimSettings, 4) => self.parallel = !self.parallel,
             (Page::Layer(i), 1) => {
                 let i = *i;
+                let is_last = i + 1 == self.layers.len();
                 if let Some(layer) = self.layers.get_mut(i) {
                     layer.material = match layer.material {
                         MaterialType::Semiconductor => MaterialType::Insulator,
                         MaterialType::Insulator => MaterialType::Semiconductor,
                     };
                     // Clamp focused index when fields shrink (SC→Ins removes 3 fields)
-                    let fc = layer.field_count();
+                    let fc = layer.field_count(is_last);
                     self.focused = self.focused.min(fc - 1);
                 }
             }
@@ -217,8 +222,12 @@ impl App {
             Page::StructureCount => Some(&mut self.num_layers_str),
             Page::Layer(i) => {
                 let f = self.focused;
+                let is_last = i + 1 == self.layers.len();
                 let layer = self.layers.get_mut(i)?;
-                match f {
+                // For the last layer delta_cb (internal index 5) is omitted,
+                // so shift focused >= 5 up by 1 to recover the original index.
+                let idx = if is_last && f >= 5 { f + 1 } else { f };
+                match idx {
                     0 => Some(&mut layer.name),
                     1 => None,
                     2 => Some(&mut layer.thickness_nm),
@@ -313,6 +322,7 @@ impl App {
 
     fn validate_layer(&self, i: usize) -> Result<(), String> {
         let layer = &self.layers[i];
+        let is_last = i + 1 == self.layers.len();
         macro_rules! parse_pos_f64 {
             ($v:expr, $label:literal) => {{
                 let v: f64 = $v
@@ -328,11 +338,13 @@ impl App {
         parse_pos_f64!(layer.thickness_nm, "Thickness");
         parse_pos_f64!(layer.permittivity, "Permittivity");
         parse_pos_f64!(layer.bandgap_ev, "Bandgap");
-        layer
-            .delta_cb_ev
-            .trim()
-            .parse::<f64>()
-            .map_err(|_| "Delta Ec must be a number".to_string())?;
+        if !is_last {
+            layer
+                .delta_cb_ev
+                .trim()
+                .parse::<f64>()
+                .map_err(|_| "Delta Ec must be a number".to_string())?;
+        }
         if layer.is_semiconductor() {
             parse_pos_f64!(layer.mass_electron_coeff, "Effective mass");
             parse_pos_f64!(layer.donor_conc_cm3, "Donor concentration");
@@ -712,6 +724,7 @@ fn draw_structure_count(frame: &mut Frame, area: Rect, app: &App) {
 
 fn draw_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
     let layer = &app.layers[i];
+    let is_last = i + 1 == app.layers.len();
     let mat_val = if layer.is_semiconductor() {
         "Semiconductor"
     } else {
@@ -723,8 +736,10 @@ fn draw_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
         ("Thickness (nm)", layer.thickness_nm.clone(), false),
         ("Relative Permittivity", layer.permittivity.clone(), false),
         ("Bandgap Energy (eV)", layer.bandgap_ev.clone(), false),
-        ("Delta Conduction Band (eV)", layer.delta_cb_ev.clone(), false),
     ];
+    if !is_last {
+        fields.push(("Delta Conduction Band (eV)", layer.delta_cb_ev.clone(), false));
+    }
     if layer.is_semiconductor() {
         fields.push(("Effective Mass Coeff", layer.mass_electron_coeff.clone(), false));
         fields.push(("Donor Concentration (cm^-3)", layer.donor_conc_cm3.clone(), false));
