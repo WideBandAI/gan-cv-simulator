@@ -27,6 +27,7 @@ use crate::config::{
 use crate::constants::physics::{EPSILON_0, M_ELECTRON};
 use crate::constants::units::{MEV_TO_EV, MV_TO_V, NM_TO_M, PER_CM2_TO_PER_M2, PER_CM3_TO_PER_M3};
 use crate::physics_equations::equilibrium_potential::equilibrium_potential_n_type;
+use crate::physics_equations::interface_states::{DIGSModel, DiscreteModel, DiscreteStateType};
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
@@ -34,6 +35,71 @@ use crate::physics_equations::equilibrium_potential::equilibrium_potential_n_typ
 enum EcEfMode {
     Manual,
     Equilibrium,
+}
+
+// ─── Interface states input structs ──────────────────────────────────────────
+
+#[derive(Debug, Clone)]
+struct ContinuousStateInput {
+    dit0: String,
+    nssec: String,
+    nssev: String,
+    ecnl: String,
+    nd: String,
+    na: String,
+}
+
+impl ContinuousStateInput {
+    fn new() -> Self {
+        Self {
+            dit0: "1e12".to_string(),
+            nssec: "10".to_string(),
+            nssev: "10".to_string(),
+            ecnl: "1.3".to_string(),
+            nd: "3".to_string(),
+            na: "3".to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct DiscreteStateInput {
+    ditmax: String,
+    ed: String,
+    fwhm: String,
+    state_type: DiscreteStateType,
+}
+
+impl DiscreteStateInput {
+    fn new() -> Self {
+        Self {
+            ditmax: "1e12".to_string(),
+            ed: "0.5".to_string(),
+            fwhm: "0.3".to_string(),
+            state_type: DiscreteStateType::DonorLike,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct InterfaceStateInput {
+    has_continuous: bool,
+    continuous: ContinuousStateInput,
+    has_discrete: bool,
+    num_discrete_str: String,
+    discrete_traps: Vec<DiscreteStateInput>,
+}
+
+impl InterfaceStateInput {
+    fn new() -> Self {
+        Self {
+            has_continuous: false,
+            continuous: ContinuousStateInput::new(),
+            has_discrete: false,
+            num_discrete_str: "1".to_string(),
+            discrete_traps: Vec::new(),
+        }
+    }
 }
 
 // ─── Pages ───────────────────────────────────────────────────────────────────
@@ -47,6 +113,8 @@ enum Page {
     MeshCount,
     MeshLayer(usize),
     FixedCharge,
+    InterfaceStates(usize),
+    DiscreteState(usize, usize),
     BoundaryConditions,
     Confirm,
 }
@@ -150,6 +218,9 @@ struct App {
     bulk_charge_densities: Vec<String>,      // C/cm^3 per layer
     interface_charge_densities: Vec<String>, // C/cm^2 per interface
 
+    // Interface states
+    interface_states: Vec<InterfaceStateInput>,
+
     // Boundary conditions
     barrier_height_ev: String,
     ec_ef_mode: EcEfMode,
@@ -183,6 +254,7 @@ impl App {
             mesh_layers: Vec::new(),
             bulk_charge_densities: Vec::new(),
             interface_charge_densities: Vec::new(),
+            interface_states: Vec::new(),
             barrier_height_ev: String::new(),
             ec_ef_mode: EcEfMode::Manual,
             ec_ef_bottom_ev: String::new(),
@@ -209,6 +281,16 @@ impl App {
                 let n = self.layers.len();
                 n + n.saturating_sub(1) // n bulk + (n-1) interface
             }
+            Page::InterfaceStates(i) => {
+                if let Some(ist) = self.interface_states.get(*i) {
+                    let cont_fields = if ist.has_continuous { 6 } else { 0 };
+                    let disc_fields = if ist.has_discrete { 1 } else { 0 };
+                    1 + cont_fields + 1 + disc_fields
+                } else {
+                    2
+                }
+            }
+            Page::DiscreteState(_, _) => 4,
             Page::BoundaryConditions => {
                 let bottom_is_sc =
                     self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
@@ -246,6 +328,16 @@ impl App {
             (Page::BoundaryConditions, 1) => {
                 self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false)
             }
+            (Page::InterfaceStates(i), f) => {
+                if let Some(ist) = self.interface_states.get(*i) {
+                    let cont_fields = if ist.has_continuous { 6 } else { 0 };
+                    let disc_toggle_idx = 1 + cont_fields;
+                    f == 0 || f == disc_toggle_idx
+                } else {
+                    false
+                }
+            }
+            (Page::DiscreteState(_, _), 3) => true,
             _ => false,
         }
     }
@@ -276,6 +368,41 @@ impl App {
                     // Clamp: if switching to Equilibrium, field 2 disappears
                     let fc = self.field_count();
                     self.focused = self.focused.min(fc - 1);
+                }
+            }
+            (Page::InterfaceStates(i), f) => {
+                let i = *i;
+                let cont_fields = self
+                    .interface_states
+                    .get(i)
+                    .map(|ist| if ist.has_continuous { 6 } else { 0 })
+                    .unwrap_or(0);
+                let disc_toggle_idx = 1 + cont_fields;
+                if f == 0 {
+                    if let Some(ist) = self.interface_states.get_mut(i) {
+                        ist.has_continuous = !ist.has_continuous;
+                    }
+                    let fc = self.field_count();
+                    self.focused = self.focused.min(fc.saturating_sub(1));
+                } else if f == disc_toggle_idx {
+                    if let Some(ist) = self.interface_states.get_mut(i) {
+                        ist.has_discrete = !ist.has_discrete;
+                    }
+                    let fc = self.field_count();
+                    self.focused = self.focused.min(fc.saturating_sub(1));
+                }
+            }
+            (Page::DiscreteState(i, j), 3) => {
+                let (i, j) = (*i, *j);
+                if let Some(trap) = self
+                    .interface_states
+                    .get_mut(i)
+                    .and_then(|ist| ist.discrete_traps.get_mut(j))
+                {
+                    trap.state_type = match trap.state_type {
+                        DiscreteStateType::DonorLike => DiscreteStateType::AcceptorLike,
+                        DiscreteStateType::AcceptorLike => DiscreteStateType::DonorLike,
+                    };
                 }
             }
             _ => {}
@@ -345,6 +472,50 @@ impl App {
                     self.bulk_charge_densities.get_mut(f)
                 } else {
                     self.interface_charge_densities.get_mut(f - n)
+                }
+            }
+            Page::InterfaceStates(i) => {
+                let f = self.focused;
+                let cont_fields = self
+                    .interface_states
+                    .get(i)
+                    .map(|ist| if ist.has_continuous { 6 } else { 0 })
+                    .unwrap_or(0);
+                let disc_toggle_idx = 1 + cont_fields;
+                if f == 0 || f == disc_toggle_idx {
+                    return None; // toggles
+                }
+                let ist = self.interface_states.get_mut(i)?;
+                if f >= 1 && f < 1 + cont_fields {
+                    match f - 1 {
+                        0 => Some(&mut ist.continuous.dit0),
+                        1 => Some(&mut ist.continuous.nssec),
+                        2 => Some(&mut ist.continuous.nssev),
+                        3 => Some(&mut ist.continuous.ecnl),
+                        4 => Some(&mut ist.continuous.nd),
+                        5 => Some(&mut ist.continuous.na),
+                        _ => None,
+                    }
+                } else if f == disc_toggle_idx + 1 && ist.has_discrete {
+                    Some(&mut ist.num_discrete_str)
+                } else {
+                    None
+                }
+            }
+            Page::DiscreteState(i, j) => {
+                let f = self.focused;
+                if f == 3 {
+                    return None; // state_type toggle
+                }
+                let trap = self
+                    .interface_states
+                    .get_mut(i)
+                    .and_then(|ist| ist.discrete_traps.get_mut(j))?;
+                match f {
+                    0 => Some(&mut trap.ditmax),
+                    1 => Some(&mut trap.ed),
+                    2 => Some(&mut trap.fwhm),
+                    _ => None,
                 }
             }
             Page::BoundaryConditions => {
@@ -535,6 +706,60 @@ impl App {
         Ok(())
     }
 
+    fn validate_interface_state(&self, i: usize) -> Result<(), String> {
+        let ist = &self.interface_states[i];
+        if ist.has_continuous {
+            let c = &ist.continuous;
+            macro_rules! parse_pos {
+                ($v:expr, $label:literal) => {{
+                    let v: f64 = $v
+                        .trim()
+                        .parse()
+                        .map_err(|_| format!("{} must be a number", $label))?;
+                    if v <= 0.0 {
+                        return Err(format!("{} must be > 0", $label));
+                    }
+                }};
+            }
+            parse_pos!(c.dit0, "Dit0");
+            parse_pos!(c.nssec, "nssec");
+            parse_pos!(c.nssev, "nssev");
+            parse_pos!(c.ecnl, "|Ec - Ecnl|");
+            parse_pos!(c.nd, "nd");
+            parse_pos!(c.na, "na");
+        }
+        if ist.has_discrete {
+            let n: usize = ist
+                .num_discrete_str
+                .trim()
+                .parse()
+                .map_err(|_| "Number of discrete traps must be a positive integer".to_string())?;
+            if n == 0 {
+                return Err("Number of discrete traps must be ≥ 1".to_string());
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_discrete_state(&self, i: usize, j: usize) -> Result<(), String> {
+        let trap = &self.interface_states[i].discrete_traps[j];
+        macro_rules! parse_pos {
+            ($v:expr, $label:literal) => {{
+                let v: f64 = $v
+                    .trim()
+                    .parse()
+                    .map_err(|_| format!("{} must be a number", $label))?;
+                if v <= 0.0 {
+                    return Err(format!("{} must be > 0", $label));
+                }
+            }};
+        }
+        parse_pos!(trap.ditmax, "Ditmax");
+        parse_pos!(trap.ed, "|Ec - Ed|");
+        parse_pos!(trap.fwhm, "FWHM");
+        Ok(())
+    }
+
     fn validate_fixed_charges(&self) -> Result<(), String> {
         for (i, v) in self.bulk_charge_densities.iter().enumerate() {
             v.trim().parse::<f64>().map_err(|_| {
@@ -622,9 +847,50 @@ impl App {
                     Page::FixedCharge
                 }
             }),
-            Page::FixedCharge => {
-                self.validate_fixed_charges().map(|_| Page::BoundaryConditions)
-            }
+            Page::FixedCharge => self.validate_fixed_charges().map(|_| {
+                let num_interfaces = self.layers.len().saturating_sub(1);
+                self.interface_states.resize(num_interfaces, InterfaceStateInput::new());
+                if num_interfaces > 0 {
+                    Page::InterfaceStates(0)
+                } else {
+                    Page::BoundaryConditions
+                }
+            }),
+            Page::InterfaceStates(i) => self.validate_interface_state(i).map(|_| {
+                let (has_discrete, n_traps) = {
+                    let ist = &self.interface_states[i];
+                    (
+                        ist.has_discrete,
+                        ist.num_discrete_str.trim().parse::<usize>().unwrap_or(0),
+                    )
+                };
+                if has_discrete {
+                    self.interface_states[i]
+                        .discrete_traps
+                        .resize(n_traps, DiscreteStateInput::new());
+                    Page::DiscreteState(i, 0)
+                } else {
+                    let num_interfaces = self.layers.len().saturating_sub(1);
+                    if i + 1 < num_interfaces {
+                        Page::InterfaceStates(i + 1)
+                    } else {
+                        Page::BoundaryConditions
+                    }
+                }
+            }),
+            Page::DiscreteState(i, j) => self.validate_discrete_state(i, j).map(|_| {
+                let num_traps = self.interface_states[i].discrete_traps.len();
+                if j + 1 < num_traps {
+                    Page::DiscreteState(i, j + 1)
+                } else {
+                    let num_interfaces = self.layers.len().saturating_sub(1);
+                    if i + 1 < num_interfaces {
+                        Page::InterfaceStates(i + 1)
+                    } else {
+                        Page::BoundaryConditions
+                    }
+                }
+            }),
             Page::BoundaryConditions => {
                 self.validate_boundary_conditions().map(|_| Page::Confirm)
             }
@@ -659,7 +925,34 @@ impl App {
                 let n = self.mesh_layers.len();
                 if n > 0 { Page::MeshLayer(n - 1) } else { Page::MeshCount }
             }
-            Page::BoundaryConditions => Page::FixedCharge,
+            Page::InterfaceStates(0) => Page::FixedCharge,
+            Page::InterfaceStates(i) => {
+                let prev = i - 1;
+                let has_d = self.interface_states.get(prev).map(|ist| ist.has_discrete).unwrap_or(false);
+                let n_traps = self.interface_states.get(prev).map(|ist| ist.discrete_traps.len()).unwrap_or(0);
+                if has_d && n_traps > 0 {
+                    Page::DiscreteState(prev, n_traps - 1)
+                } else {
+                    Page::InterfaceStates(prev)
+                }
+            }
+            Page::DiscreteState(i, 0) => Page::InterfaceStates(i),
+            Page::DiscreteState(i, j) => Page::DiscreteState(i, j - 1),
+            Page::BoundaryConditions => {
+                let num_interfaces = self.layers.len().saturating_sub(1);
+                if num_interfaces > 0 {
+                    let last_i = num_interfaces - 1;
+                    let has_d = self.interface_states.get(last_i).map(|ist| ist.has_discrete).unwrap_or(false);
+                    let n_traps = self.interface_states.get(last_i).map(|ist| ist.discrete_traps.len()).unwrap_or(0);
+                    if has_d && n_traps > 0 {
+                        Page::DiscreteState(last_i, n_traps - 1)
+                    } else {
+                        Page::InterfaceStates(last_i)
+                    }
+                } else {
+                    Page::FixedCharge
+                }
+            }
             Page::Confirm => Page::BoundaryConditions,
         };
     }
@@ -760,14 +1053,50 @@ impl App {
                 .map(|s| s.trim().parse::<f64>().unwrap() * PER_CM2_TO_PER_M2)
                 .collect(),
         };
-        let continuous_interface_states = ContinuousInterfaceStatesConfig {
+        let mut continuous_interface_states = ContinuousInterfaceStatesConfig {
             interface_id: vec![],
             parameters: vec![],
         };
-        let discrete_interface_states = DiscreteInterfaceStatesConfig {
+        let mut discrete_interface_states = DiscreteInterfaceStatesConfig {
             interface_id: vec![],
             parameters: vec![],
         };
+        for (i, ist) in self.interface_states.iter().enumerate() {
+            if ist.has_continuous {
+                let c = &ist.continuous;
+                let bandgap = device_structure.bandgap_energy[i]
+                    .min(device_structure.bandgap_energy[i + 1]);
+                continuous_interface_states.interface_id.push(i as u32);
+                continuous_interface_states.parameters.push(DIGSModel::new(
+                    c.dit0.trim().parse::<f64>().unwrap() * PER_CM2_TO_PER_M2,
+                    c.nssec.trim().parse().unwrap(),
+                    c.nssev.trim().parse().unwrap(),
+                    c.ecnl.trim().parse().unwrap(),
+                    c.nd.trim().parse().unwrap(),
+                    c.na.trim().parse().unwrap(),
+                    bandgap,
+                ));
+            }
+            if ist.has_discrete && !ist.discrete_traps.is_empty() {
+                let bandgap = device_structure.bandgap_energy[i]
+                    .min(device_structure.bandgap_energy[i + 1]);
+                discrete_interface_states.interface_id.push(i as u32);
+                let traps: Vec<DiscreteModel> = ist
+                    .discrete_traps
+                    .iter()
+                    .map(|t| {
+                        DiscreteModel::new(
+                            t.ditmax.trim().parse::<f64>().unwrap() * PER_CM2_TO_PER_M2,
+                            t.ed.trim().parse().unwrap(),
+                            t.fwhm.trim().parse().unwrap(),
+                            t.state_type.clone(),
+                            bandgap,
+                        )
+                    })
+                    .collect();
+                discrete_interface_states.parameters.push(traps);
+            }
+        }
         let capture_cross_section = CaptureCrossSectionConfig {
             interface_id: vec![],
             model: vec![],
@@ -890,17 +1219,25 @@ fn draw(frame: &mut Frame, app: &App) {
 
 fn draw_header(frame: &mut Frame, area: Rect, app: &App) {
     let title = match &app.page {
-        Page::SimSettings => " [1/7] Simulation Settings ".to_string(),
-        Page::Measurement => " [2/7] Measurement ".to_string(),
-        Page::StructureCount => " [3/7] Device Structure ".to_string(),
-        Page::Layer(i) => format!(" [3/7] Layer {} of {} ", i + 1, app.layers.len()),
-        Page::MeshCount => " [4/7] Mesh Settings ".to_string(),
+        Page::SimSettings => " [1/8] Simulation Settings ".to_string(),
+        Page::Measurement => " [2/8] Measurement ".to_string(),
+        Page::StructureCount => " [3/8] Device Structure ".to_string(),
+        Page::Layer(i) => format!(" [3/8] Layer {} of {} ", i + 1, app.layers.len()),
+        Page::MeshCount => " [4/8] Mesh Settings ".to_string(),
         Page::MeshLayer(i) => {
-            format!(" [4/7] Mesh Layer {} of {} ", i + 1, app.mesh_layers.len())
+            format!(" [4/8] Mesh Layer {} of {} ", i + 1, app.mesh_layers.len())
         }
-        Page::FixedCharge => " [5/7] Fixed Charges ".to_string(),
-        Page::BoundaryConditions => " [6/7] Boundary Conditions ".to_string(),
-        Page::Confirm => " [7/7] Confirm & Run ".to_string(),
+        Page::FixedCharge => " [5/8] Fixed Charges ".to_string(),
+        Page::InterfaceStates(i) => {
+            format!(" [6/8] Interface {}/{} ", i + 1, app.layers.len().saturating_sub(1))
+        }
+        Page::DiscreteState(i, j) => {
+            let left = &app.layers[*i].name;
+            let right = &app.layers[*i + 1].name;
+            format!(" [6/8] {left}/{right} - Discrete Trap {} ", j + 1)
+        }
+        Page::BoundaryConditions => " [7/8] Boundary Conditions ".to_string(),
+        Page::Confirm => " [8/8] Confirm & Run ".to_string(),
     };
     let header = Paragraph::new("  GaN C-V Simulator")
         .block(
@@ -922,6 +1259,8 @@ fn draw_content(frame: &mut Frame, area: Rect, app: &App) {
         Page::MeshCount => draw_mesh_count(frame, area, app),
         Page::MeshLayer(i) => draw_mesh_layer(frame, area, app, *i),
         Page::FixedCharge => draw_fixed_charge(frame, area, app),
+        Page::InterfaceStates(i) => draw_interface_state(frame, area, app, *i),
+        Page::DiscreteState(i, j) => draw_discrete_state(frame, area, app, *i, *j),
         Page::BoundaryConditions => draw_boundary_conditions(frame, area, app),
         Page::Confirm => draw_confirm(frame, area, app),
     }
@@ -1165,6 +1504,59 @@ fn draw_fixed_charge(frame: &mut Frame, area: Rect, app: &App) {
 
     let para = Paragraph::new(lines)
         .block(Block::default().borders(Borders::ALL).title(" Fixed Charges (default: 0) "));
+    frame.render_widget(para, area);
+}
+
+fn draw_interface_state(frame: &mut Frame, area: Rect, app: &App, i: usize) {
+    let ist = &app.interface_states[i];
+    let left_name = &app.layers[i].name;
+    let right_name = &app.layers[i + 1].name;
+
+    let cont_str = if ist.has_continuous { "ON" } else { "OFF" };
+    let disc_str = if ist.has_discrete { "ON" } else { "OFF" };
+
+    let mut fields: Vec<(&str, String, bool)> = vec![
+        ("Continuous Traps [Space: toggle]", cont_str.to_string(), true),
+    ];
+    if ist.has_continuous {
+        let c = &ist.continuous;
+        fields.push(("Dit0 (cm\u{207b}\u{00b2})", c.dit0.clone(), false));
+        fields.push(("nssec", c.nssec.clone(), false));
+        fields.push(("nssev", c.nssev.clone(), false));
+        fields.push(("|Ec \u{2212} Ecnl| (eV)", c.ecnl.clone(), false));
+        fields.push(("nd", c.nd.clone(), false));
+        fields.push(("na", c.na.clone(), false));
+    }
+    fields.push(("Discrete Traps  [Space: toggle]", disc_str.to_string(), true));
+    if ist.has_discrete {
+        fields.push(("Number of Discrete Traps", ist.num_discrete_str.clone(), false));
+    }
+
+    let lines = field_lines(&fields, app.focused);
+    let title = format!(" Interface {left_name}/{right_name} ");
+    let para = Paragraph::new(lines)
+        .block(Block::default().borders(Borders::ALL).title(title));
+    frame.render_widget(para, area);
+}
+
+fn draw_discrete_state(frame: &mut Frame, area: Rect, app: &App, i: usize, j: usize) {
+    let trap = &app.interface_states[i].discrete_traps[j];
+    let state_str = match trap.state_type {
+        DiscreteStateType::DonorLike => "DonorLike",
+        DiscreteStateType::AcceptorLike => "AcceptorLike",
+    };
+    let fields = [
+        ("Ditmax (cm\u{207b}\u{00b2})", trap.ditmax.clone(), false),
+        ("|Ec \u{2212} Ed| (eV)", trap.ed.clone(), false),
+        ("FWHM (eV)", trap.fwhm.clone(), false),
+        ("State Type [Space: toggle]", state_str.to_string(), true),
+    ];
+    let left_name = &app.layers[i].name;
+    let right_name = &app.layers[i + 1].name;
+    let title = format!(" {left_name}/{right_name} \u{2013} Trap {} of {} ", j + 1, app.interface_states[i].discrete_traps.len());
+    let lines = field_lines(&fields, app.focused);
+    let para = Paragraph::new(lines)
+        .block(Block::default().borders(Borders::ALL).title(title));
     frame.render_widget(para, area);
 }
 
