@@ -29,8 +29,9 @@ fn list_config_files(config_dir: &std::path::Path) -> Vec<std::path::PathBuf> {
 /// ```
 pub fn select_config_source() -> anyhow::Result<ConfigurationBuilder> {
     println!("Select configuration source:");
-    println!("  [1] Interactive input");
+    println!("  [1] Interactive input (CLI)");
     println!("  [2] Load from config file");
+    println!("  [3] TUI wizard");
 
     loop {
         let mut input = String::new();
@@ -41,6 +42,7 @@ pub fn select_config_source() -> anyhow::Result<ConfigurationBuilder> {
         }
         match input.trim() {
             "" | "1" => return Ok(ConfigurationBuilder::from_interactive()),
+            "3" => return crate::tui::run_tui(),
             "2" => {
                 let config_dir = std::path::Path::new(CONFIG_DIR);
                 let files = list_config_files(config_dir);
