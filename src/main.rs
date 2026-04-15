@@ -17,9 +17,10 @@ use crate::mesh::mesh_builder as mb;
 use crate::solvers::cv_solver::CVSolver;
 use crate::solvers::poisson_solver::PoissonSolver;
 use crate::utils::save_configuration;
+use colored::*;
 
 fn main() -> anyhow::Result<()> {
-    println!("GaN C-V Simulator");
+    println!("\n{}\n", "GaN C-V Simulator".green().bold());
     let config = select_config_source()?.build();
     println!("{:#?}", config);
 

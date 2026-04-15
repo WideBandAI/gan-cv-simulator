@@ -7,6 +7,7 @@ use crate::save_files::cv_curves::save_cv_curves;
 use crate::save_files::interface_states::save_interface_states;
 use crate::save_files::potential_profile::save_potential_profile;
 use crate::solvers::poisson_solver::PoissonSolver;
+use colored::*;
 
 #[derive(Debug)]
 pub struct CVSolver {
@@ -114,10 +115,14 @@ impl CVSolver {
             self.set_dc_save_potential(gate_voltage, time_step * index as f64, index)?;
             let capacitance = self.solve_cv(gate_voltage)?;
             println!(
-                "Meas Time: {:.3} s, Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
-                time_step * index as f64,
-                gate_voltage,
-                capacitance * F_TO_NF * PER_M2_TO_PER_CM2
+                "{}",
+                format!(
+                    "Meas Time: {:.3} s, Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2",
+                    time_step * index as f64,
+                    gate_voltage,
+                    capacitance * F_TO_NF * PER_M2_TO_PER_CM2
+                )
+                .cyan()
             );
             gate_voltages.push(gate_voltage);
             capacitances.push(capacitance * F_TO_NF * PER_M2_TO_PER_CM2);
