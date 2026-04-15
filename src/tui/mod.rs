@@ -1,15 +1,15 @@
 use crossterm::{
     event::{self, Event, KeyCode, KeyModifiers},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{
+    Frame, Terminal,
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
-    Frame, Terminal,
 };
 use std::io;
 
@@ -25,7 +25,9 @@ use crate::config::{
     structure::{DeviceStructure, MaterialType},
 };
 use crate::constants::physics::{EPSILON_0, M_ELECTRON};
-use crate::constants::units::{CM2_TO_M2, MEV_TO_EV, MV_TO_V, NM_TO_M, PER_CM2_TO_PER_M2, PER_CM3_TO_PER_M3};
+use crate::constants::units::{
+    CM2_TO_M2, MEV_TO_EV, MV_TO_V, NM_TO_M, PER_CM2_TO_PER_M2, PER_CM3_TO_PER_M3,
+};
 use crate::physics_equations::equilibrium_potential::equilibrium_potential_n_type;
 use crate::physics_equations::interface_states::{DIGSModel, DiscreteModel, DiscreteStateType};
 
@@ -325,7 +327,10 @@ impl App {
             Page::StructureCount => 1,
             Page::Layer(i) => {
                 let is_last = *i + 1 == self.layers.len();
-                self.layers.get(*i).map(|l| l.field_count(is_last)).unwrap_or(0)
+                self.layers
+                    .get(*i)
+                    .map(|l| l.field_count(is_last))
+                    .unwrap_or(0)
             }
             Page::MeshCount => 2,
             Page::MeshLayer(i) => {
@@ -346,14 +351,23 @@ impl App {
                 }
             }
             Page::DiscreteState(_, _) => 4,
-            Page::CaptureCrossSection(k) => {
-                self.capture_cross_sections.get(*k).map(|c| c.field_count()).unwrap_or(0)
-            }
+            Page::CaptureCrossSection(k) => self
+                .capture_cross_sections
+                .get(*k)
+                .map(|c| c.field_count())
+                .unwrap_or(0),
             Page::BoundaryConditions => {
-                let bottom_is_sc =
-                    self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+                let bottom_is_sc = self
+                    .layers
+                    .last()
+                    .map(|l| l.is_semiconductor())
+                    .unwrap_or(false);
                 if bottom_is_sc {
-                    if self.ec_ef_mode == EcEfMode::Manual { 3 } else { 2 }
+                    if self.ec_ef_mode == EcEfMode::Manual {
+                        3
+                    } else {
+                        2
+                    }
                 } else {
                     2
                 }
@@ -383,9 +397,11 @@ impl App {
     fn is_toggle(&self) -> bool {
         match (&self.page, self.focused) {
             (Page::SimSettings, 4) | (Page::Layer(_), 1) => true,
-            (Page::BoundaryConditions, 1) => {
-                self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false)
-            }
+            (Page::BoundaryConditions, 1) => self
+                .layers
+                .last()
+                .map(|l| l.is_semiconductor())
+                .unwrap_or(false),
             (Page::InterfaceStates(i), f) => {
                 if let Some(ist) = self.interface_states.get(*i) {
                     let cont_fields = if ist.has_continuous { 6 } else { 0 };
@@ -417,8 +433,11 @@ impl App {
                 }
             }
             (Page::BoundaryConditions, 1) => {
-                let bottom_is_sc =
-                    self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+                let bottom_is_sc = self
+                    .layers
+                    .last()
+                    .map(|l| l.is_semiconductor())
+                    .unwrap_or(false);
                 if bottom_is_sc {
                     self.ec_ef_mode = match self.ec_ef_mode {
                         EcEfMode::Manual => EcEfMode::Equilibrium,
@@ -610,8 +629,11 @@ impl App {
                 }
             }
             Page::BoundaryConditions => {
-                let bottom_is_sc =
-                    self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+                let bottom_is_sc = self
+                    .layers
+                    .last()
+                    .map(|l| l.is_semiconductor())
+                    .unwrap_or(false);
                 if bottom_is_sc {
                     match self.focused {
                         0 => Some(&mut self.barrier_height_ev),
@@ -652,9 +674,7 @@ impl App {
                 .chars()
                 .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
         {
-            return Err(
-                "Name: letters/digits/'-'/'_'/'.' only, cannot be empty".into(),
-            );
+            return Err("Name: letters/digits/'-'/'_'/'.' only, cannot be empty".into());
         }
         if name.contains("..") {
             return Err("Name cannot contain '..'".into());
@@ -820,11 +840,10 @@ impl App {
             parse_pos!(c.na, "na");
         }
         if ist.has_discrete {
-            let n: usize = ist
-                .num_discrete_str
-                .trim()
-                .parse()
-                .map_err(|_| "Number of discrete traps must be a positive integer".to_string())?;
+            let n: usize =
+                ist.num_discrete_str.trim().parse().map_err(|_| {
+                    "Number of discrete traps must be a positive integer".to_string()
+                })?;
             if n == 0 {
                 return Err("Number of discrete traps must be ≥ 1".to_string());
             }
@@ -854,7 +873,10 @@ impl App {
     fn validate_fixed_charges(&self) -> Result<(), String> {
         for (i, v) in self.bulk_charge_densities.iter().enumerate() {
             v.trim().parse::<f64>().map_err(|_| {
-                format!("Bulk charge for layer '{}' must be a number", self.layers[i].name)
+                format!(
+                    "Bulk charge for layer '{}' must be a number",
+                    self.layers[i].name
+                )
             })?;
         }
         for (i, v) in self.interface_charge_densities.iter().enumerate() {
@@ -919,8 +941,11 @@ impl App {
             .trim()
             .parse::<f64>()
             .map_err(|_| "Barrier height must be a number".to_string())?;
-        let bottom_is_sc =
-            self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+        let bottom_is_sc = self
+            .layers
+            .last()
+            .map(|l| l.is_semiconductor())
+            .unwrap_or(false);
         let use_manual = !bottom_is_sc || self.ec_ef_mode == EcEfMode::Manual;
         if use_manual {
             self.ec_ef_bottom_ev
@@ -943,19 +968,17 @@ impl App {
         let result: Result<Page, String> = match self.page.clone() {
             Page::SimSettings => self.validate_sim_settings().map(|_| Page::Measurement),
             Page::Measurement => self.validate_measurement().map(|_| Page::StructureCount),
-            Page::StructureCount => {
-                match self.num_layers_str.trim().parse::<usize>() {
-                    Ok(n) if n > 0 => {
-                        while self.layers.len() < n {
-                            let idx = self.layers.len();
-                            self.layers.push(LayerInput::new(idx));
-                        }
-                        self.layers.truncate(n);
-                        Ok(Page::Layer(0))
+            Page::StructureCount => match self.num_layers_str.trim().parse::<usize>() {
+                Ok(n) if n > 0 => {
+                    while self.layers.len() < n {
+                        let idx = self.layers.len();
+                        self.layers.push(LayerInput::new(idx));
                     }
-                    _ => Err("Number of layers must be ≥ 1".to_string()),
+                    self.layers.truncate(n);
+                    Ok(Page::Layer(0))
                 }
-            }
+                _ => Err("Number of layers must be ≥ 1".to_string()),
+            },
             Page::Layer(i) => self.validate_layer(i).map(|_| {
                 if i + 1 < self.layers.len() {
                     Page::Layer(i + 1)
@@ -985,7 +1008,8 @@ impl App {
             }),
             Page::FixedCharge => self.validate_fixed_charges().map(|_| {
                 let num_interfaces = self.layers.len().saturating_sub(1);
-                self.interface_states.resize(num_interfaces, InterfaceStateInput::new());
+                self.interface_states
+                    .resize(num_interfaces, InterfaceStateInput::new());
                 if num_interfaces > 0 {
                     Page::InterfaceStates(0)
                 } else {
@@ -1047,9 +1071,7 @@ impl App {
                     Page::BoundaryConditions
                 }
             }),
-            Page::BoundaryConditions => {
-                self.validate_boundary_conditions().map(|_| Page::Confirm)
-            }
+            Page::BoundaryConditions => self.validate_boundary_conditions().map(|_| Page::Confirm),
             Page::Confirm => return,
         };
 
@@ -1073,19 +1095,35 @@ impl App {
             Page::Layer(i) => Page::Layer(i - 1),
             Page::MeshCount => {
                 let n = self.layers.len();
-                if n > 0 { Page::Layer(n - 1) } else { Page::StructureCount }
+                if n > 0 {
+                    Page::Layer(n - 1)
+                } else {
+                    Page::StructureCount
+                }
             }
             Page::MeshLayer(0) => Page::MeshCount,
             Page::MeshLayer(i) => Page::MeshLayer(i - 1),
             Page::FixedCharge => {
                 let n = self.mesh_layers.len();
-                if n > 0 { Page::MeshLayer(n - 1) } else { Page::MeshCount }
+                if n > 0 {
+                    Page::MeshLayer(n - 1)
+                } else {
+                    Page::MeshCount
+                }
             }
             Page::InterfaceStates(0) => Page::FixedCharge,
             Page::InterfaceStates(i) => {
                 let prev = i - 1;
-                let has_d = self.interface_states.get(prev).map(|ist| ist.has_discrete).unwrap_or(false);
-                let n_traps = self.interface_states.get(prev).map(|ist| ist.discrete_traps.len()).unwrap_or(0);
+                let has_d = self
+                    .interface_states
+                    .get(prev)
+                    .map(|ist| ist.has_discrete)
+                    .unwrap_or(false);
+                let n_traps = self
+                    .interface_states
+                    .get(prev)
+                    .map(|ist| ist.discrete_traps.len())
+                    .unwrap_or(0);
                 if has_d && n_traps > 0 {
                     Page::DiscreteState(prev, n_traps - 1)
                 } else {
@@ -1099,8 +1137,16 @@ impl App {
                 let num_interfaces = self.layers.len().saturating_sub(1);
                 if num_interfaces > 0 {
                     let last_i = num_interfaces - 1;
-                    let has_d = self.interface_states.get(last_i).map(|ist| ist.has_discrete).unwrap_or(false);
-                    let n_traps = self.interface_states.get(last_i).map(|ist| ist.discrete_traps.len()).unwrap_or(0);
+                    let has_d = self
+                        .interface_states
+                        .get(last_i)
+                        .map(|ist| ist.has_discrete)
+                        .unwrap_or(false);
+                    let n_traps = self
+                        .interface_states
+                        .get(last_i)
+                        .map(|ist| ist.discrete_traps.len())
+                        .unwrap_or(0);
                     if has_d && n_traps > 0 {
                         Page::DiscreteState(last_i, n_traps - 1)
                     } else {
@@ -1119,8 +1165,16 @@ impl App {
                     let num_interfaces = self.layers.len().saturating_sub(1);
                     if num_interfaces > 0 {
                         let last_i = num_interfaces - 1;
-                        let has_d = self.interface_states.get(last_i).map(|ist| ist.has_discrete).unwrap_or(false);
-                        let n_traps = self.interface_states.get(last_i).map(|ist| ist.discrete_traps.len()).unwrap_or(0);
+                        let has_d = self
+                            .interface_states
+                            .get(last_i)
+                            .map(|ist| ist.has_discrete)
+                            .unwrap_or(false);
+                        let n_traps = self
+                            .interface_states
+                            .get(last_i)
+                            .map(|ist| ist.discrete_traps.len())
+                            .unwrap_or(0);
                         if has_d && n_traps > 0 {
                             Page::DiscreteState(last_i, n_traps - 1)
                         } else {
@@ -1199,12 +1253,12 @@ impl App {
             };
             device_structure.delta_conduction_band.push(dcb);
             if layer.is_semiconductor() {
-                device_structure.mass_electron.push(
-                    layer.mass_electron_coeff.trim().parse::<f64>().unwrap() * M_ELECTRON,
-                );
-                device_structure.donor_concentration.push(
-                    layer.donor_conc_cm3.trim().parse::<f64>().unwrap() * PER_CM3_TO_PER_M3,
-                );
+                device_structure
+                    .mass_electron
+                    .push(layer.mass_electron_coeff.trim().parse::<f64>().unwrap() * M_ELECTRON);
+                device_structure
+                    .donor_concentration
+                    .push(layer.donor_conc_cm3.trim().parse::<f64>().unwrap() * PER_CM3_TO_PER_M3);
                 device_structure
                     .energy_level_donor
                     .push(layer.energy_donor_ev.trim().parse().unwrap());
@@ -1242,8 +1296,8 @@ impl App {
         for (i, ist) in self.interface_states.iter().enumerate() {
             if ist.has_continuous {
                 let c = &ist.continuous;
-                let bandgap = device_structure.bandgap_energy[i]
-                    .min(device_structure.bandgap_energy[i + 1]);
+                let bandgap =
+                    device_structure.bandgap_energy[i].min(device_structure.bandgap_energy[i + 1]);
                 continuous_interface_states.interface_id.push(i as u32);
                 continuous_interface_states.parameters.push(DIGSModel::new(
                     c.dit0.trim().parse::<f64>().unwrap() * PER_CM2_TO_PER_M2,
@@ -1256,8 +1310,8 @@ impl App {
                 ));
             }
             if ist.has_discrete && !ist.discrete_traps.is_empty() {
-                let bandgap = device_structure.bandgap_energy[i]
-                    .min(device_structure.bandgap_energy[i + 1]);
+                let bandgap =
+                    device_structure.bandgap_energy[i].min(device_structure.bandgap_energy[i + 1]);
                 discrete_interface_states.interface_id.push(i as u32);
                 let traps: Vec<DiscreteModel> = ist
                     .discrete_traps
@@ -1291,7 +1345,8 @@ impl App {
                         e_slope: ccs_input.e_slope.trim().parse().unwrap(),
                     },
                 };
-                let mass = ccs_input.mass_electron_coeff.trim().parse::<f64>().unwrap() * M_ELECTRON;
+                let mass =
+                    ccs_input.mass_electron_coeff.trim().parse::<f64>().unwrap() * M_ELECTRON;
                 ccs_interface_ids.push(iface_id as u32);
                 ccs_models.push(model);
                 ccs_masses.push(mass);
@@ -1312,8 +1367,7 @@ impl App {
         let mut accumulated_m = 0.0_f64;
         for (i, ml) in self.mesh_layers.iter().enumerate() {
             layer_id.push(i as u32);
-            length_per_layer
-                .push(ml.mesh_length_nm.trim().parse::<f64>().unwrap() * NM_TO_M);
+            length_per_layer.push(ml.mesh_length_nm.trim().parse::<f64>().unwrap() * NM_TO_M);
             if i == nm - 1 {
                 layer_thickness.push(total_thickness_m - accumulated_m);
             } else {
@@ -1330,8 +1384,11 @@ impl App {
         };
 
         let ec_ef_bottom = {
-            let bottom_is_sc =
-                self.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+            let bottom_is_sc = self
+                .layers
+                .last()
+                .map(|l| l.is_semiconductor())
+                .unwrap_or(false);
             if bottom_is_sc && self.ec_ef_mode == EcEfMode::Equilibrium {
                 compute_equilibrium(&self).expect("equilibrium potential was validated")
             } else {
@@ -1429,7 +1486,11 @@ fn draw_header(frame: &mut Frame, area: Rect, app: &App) {
         }
         Page::FixedCharge => " [5/9] Fixed Charges ".to_string(),
         Page::InterfaceStates(i) => {
-            format!(" [6/9] Interface {}/{} ", i + 1, app.layers.len().saturating_sub(1))
+            format!(
+                " [6/9] Interface {}/{} ",
+                i + 1,
+                app.layers.len().saturating_sub(1)
+            )
         }
         Page::DiscreteState(i, j) => {
             let left = &app.layers[*i].name;
@@ -1450,7 +1511,11 @@ fn draw_header(frame: &mut Frame, area: Rect, app: &App) {
                 .title(title)
                 .border_style(Style::default().fg(Color::Cyan)),
         )
-        .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD));
+        .style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        );
     frame.render_widget(header, area);
 }
 
@@ -1531,13 +1596,17 @@ fn draw_sim_settings(frame: &mut Frame, area: Rect, app: &App) {
         ("Max Iterations", app.max_iter.clone(), false),
         (
             "Parallel Processing",
-            if app.parallel { "ON".to_string() } else { "OFF".to_string() },
+            if app.parallel {
+                "ON".to_string()
+            } else {
+                "OFF".to_string()
+            },
             true,
         ),
     ];
     let lines = field_lines(&fields, app.focused);
-    let para = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(" Fields "));
+    let para =
+        Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(" Fields "));
     frame.render_widget(para, area);
 }
 
@@ -1550,27 +1619,39 @@ fn draw_measurement(frame: &mut Frame, area: Rect, app: &App) {
         ("AC Voltage (mV)", app.ac_voltage.clone(), false),
         ("Measurement Time (s)", app.meas_time.clone(), false),
         ("Stress Voltage (V)", app.stress_voltage.clone(), false),
-        ("Stress Relief Voltage (V)", app.stress_relief_voltage.clone(), false),
-        ("Stress Relief Time (s)", app.stress_relief_time.clone(), false),
+        (
+            "Stress Relief Voltage (V)",
+            app.stress_relief_voltage.clone(),
+            false,
+        ),
+        (
+            "Stress Relief Time (s)",
+            app.stress_relief_time.clone(),
+            false,
+        ),
     ];
     let lines = field_lines(&fields, app.focused);
-    let para = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(" Fields "));
+    let para =
+        Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(" Fields "));
     frame.render_widget(para, area);
 }
 
 fn draw_structure_count(frame: &mut Frame, area: Rect, app: &App) {
     let fields = [("Number of Layers", app.num_layers_str.clone(), false)];
     let lines = field_lines(&fields, app.focused);
-    let para = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(" Fields "));
+    let para =
+        Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(" Fields "));
     frame.render_widget(para, area);
 }
 
 fn draw_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
     let layer = &app.layers[i];
     let is_last = i + 1 == app.layers.len();
-    let mat_val = if layer.is_semiconductor() { "Semiconductor" } else { "Insulator" };
+    let mat_val = if layer.is_semiconductor() {
+        "Semiconductor"
+    } else {
+        "Insulator"
+    };
     let mut fields: Vec<(&str, String, bool)> = vec![
         ("Name", layer.name.clone(), false),
         ("Material Type [Space: toggle]", mat_val.to_string(), true),
@@ -1579,27 +1660,52 @@ fn draw_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
         ("Bandgap Energy (eV)", layer.bandgap_ev.clone(), false),
     ];
     if !is_last {
-        fields.push(("Delta Conduction Band (eV)", layer.delta_cb_ev.clone(), false));
+        fields.push((
+            "Delta Conduction Band (eV)",
+            layer.delta_cb_ev.clone(),
+            false,
+        ));
     }
     if layer.is_semiconductor() {
-        fields.push(("Effective Mass Coeff", layer.mass_electron_coeff.clone(), false));
-        fields.push(("Donor Concentration (cm^-3)", layer.donor_conc_cm3.clone(), false));
-        fields.push(("Energy Level Donor Ec-Ed (eV)", layer.energy_donor_ev.clone(), false));
+        fields.push((
+            "Effective Mass Coeff",
+            layer.mass_electron_coeff.clone(),
+            false,
+        ));
+        fields.push((
+            "Donor Concentration (cm^-3)",
+            layer.donor_conc_cm3.clone(),
+            false,
+        ));
+        fields.push((
+            "Energy Level Donor Ec-Ed (eV)",
+            layer.energy_donor_ev.clone(),
+            false,
+        ));
     }
     let lines = field_lines(&fields, app.focused);
-    let para = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(format!(" Layer {i} ")));
+    let para = Paragraph::new(lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(format!(" Layer {i} ")),
+    );
     frame.render_widget(para, area);
 }
 
 fn draw_mesh_count(frame: &mut Frame, area: Rect, app: &App) {
     let total_nm = total_device_nm(app);
     let info = match total_nm {
-        Some(t) => format!("\n  Total device thickness: {t:.3} nm\n  Fixed charges and interface states default to zero/none."),
+        Some(t) => format!(
+            "\n  Total device thickness: {t:.3} nm\n  Fixed charges and interface states default to zero/none."
+        ),
         None => "\n  (device thickness not yet available)".to_string(),
     };
     let fields = [
-        ("Number of Mesh Layers", app.num_mesh_layers_str.clone(), false),
+        (
+            "Number of Mesh Layers",
+            app.num_mesh_layers_str.clone(),
+            false,
+        ),
         ("Energy Step (meV)", app.energy_step_mev.clone(), false),
     ];
     let lines = field_lines(&fields, app.focused);
@@ -1607,8 +1713,8 @@ fn draw_mesh_count(frame: &mut Frame, area: Rect, app: &App) {
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(1), Constraint::Length(4)])
         .split(area);
-    let para = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(" Fields "));
+    let para =
+        Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(" Fields "));
     frame.render_widget(para, chunks[0]);
     let note = Paragraph::new(info)
         .style(Style::default().fg(Color::DarkGray))
@@ -1648,8 +1754,11 @@ fn draw_mesh_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(1), Constraint::Length(4)])
         .split(area);
-    let para = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(format!(" Mesh Layer {i} ")));
+    let para = Paragraph::new(lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(format!(" Mesh Layer {i} ")),
+    );
     frame.render_widget(para, chunks[0]);
     let note = Paragraph::new(info)
         .style(Style::default().fg(Color::DarkGray))
@@ -1664,15 +1773,23 @@ fn draw_fixed_charge(frame: &mut Frame, area: Rect, app: &App) {
     // Section header: bulk charges
     lines.push(Line::from(Span::styled(
         "  Bulk Fixed Charge (C/cm\u{00b3}):".to_string(),
-        Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD),
     )));
     for (i, val) in app.bulk_charge_densities.iter().enumerate() {
         let active = app.focused == i;
         let prefix = if active { "> " } else { "  " };
         let label = format!("Layer '{}'", app.layers[i].name);
-        let val_display = if active { format!("{val}\u{2588}") } else { val.clone() };
+        let val_display = if active {
+            format!("{val}\u{2588}")
+        } else {
+            val.clone()
+        };
         let style = if active {
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(Color::White)
         };
@@ -1687,16 +1804,24 @@ fn draw_fixed_charge(frame: &mut Frame, area: Rect, app: &App) {
         lines.push(Line::from(Span::raw("")));
         lines.push(Line::from(Span::styled(
             "  Interface Fixed Charge (C/cm\u{00b2}):".to_string(),
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
         )));
         for (i, val) in app.interface_charge_densities.iter().enumerate() {
             let field_idx = n + i;
             let active = app.focused == field_idx;
             let prefix = if active { "> " } else { "  " };
             let label = format!("{}/{}", app.layers[i].name, app.layers[i + 1].name);
-            let val_display = if active { format!("{val}\u{2588}") } else { val.clone() };
+            let val_display = if active {
+                format!("{val}\u{2588}")
+            } else {
+                val.clone()
+            };
             let style = if active {
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(Color::White)
             };
@@ -1707,8 +1832,11 @@ fn draw_fixed_charge(frame: &mut Frame, area: Rect, app: &App) {
         }
     }
 
-    let para = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(" Fixed Charges (default: 0) "));
+    let para = Paragraph::new(lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(" Fixed Charges (default: 0) "),
+    );
     frame.render_widget(para, area);
 }
 
@@ -1720,9 +1848,11 @@ fn draw_interface_state(frame: &mut Frame, area: Rect, app: &App, i: usize) {
     let cont_str = if ist.has_continuous { "ON" } else { "OFF" };
     let disc_str = if ist.has_discrete { "ON" } else { "OFF" };
 
-    let mut fields: Vec<(&str, String, bool)> = vec![
-        ("Continuous Traps [Space: toggle]", cont_str.to_string(), true),
-    ];
+    let mut fields: Vec<(&str, String, bool)> = vec![(
+        "Continuous Traps [Space: toggle]",
+        cont_str.to_string(),
+        true,
+    )];
     if ist.has_continuous {
         let c = &ist.continuous;
         fields.push(("Dit0 (cm\u{207b}\u{00b2})", c.dit0.clone(), false));
@@ -1732,15 +1862,22 @@ fn draw_interface_state(frame: &mut Frame, area: Rect, app: &App, i: usize) {
         fields.push(("nd", c.nd.clone(), false));
         fields.push(("na", c.na.clone(), false));
     }
-    fields.push(("Discrete Traps  [Space: toggle]", disc_str.to_string(), true));
+    fields.push((
+        "Discrete Traps  [Space: toggle]",
+        disc_str.to_string(),
+        true,
+    ));
     if ist.has_discrete {
-        fields.push(("Number of Discrete Traps", ist.num_discrete_str.clone(), false));
+        fields.push((
+            "Number of Discrete Traps",
+            ist.num_discrete_str.clone(),
+            false,
+        ));
     }
 
     let lines = field_lines(&fields, app.focused);
     let title = format!(" Interface {left_name}/{right_name} ");
-    let para = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(title));
+    let para = Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(title));
     frame.render_widget(para, area);
 }
 
@@ -1758,10 +1895,13 @@ fn draw_discrete_state(frame: &mut Frame, area: Rect, app: &App, i: usize, j: us
     ];
     let left_name = &app.layers[i].name;
     let right_name = &app.layers[i + 1].name;
-    let title = format!(" {left_name}/{right_name} \u{2013} Trap {} of {} ", j + 1, app.interface_states[i].discrete_traps.len());
+    let title = format!(
+        " {left_name}/{right_name} \u{2013} Trap {} of {} ",
+        j + 1,
+        app.interface_states[i].discrete_traps.len()
+    );
     let lines = field_lines(&fields, app.focused);
-    let para = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(title));
+    let para = Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(title));
     frame.render_widget(para, area);
 }
 
@@ -1791,7 +1931,11 @@ fn draw_capture_cross_section(frame: &mut Frame, area: Rect, app: &App, k: usize
             fields.push(("E_slope (eV)", ccs.e_slope.clone(), false));
         }
     }
-    fields.push(("Effective Mass Coeff", ccs.mass_electron_coeff.clone(), false));
+    fields.push((
+        "Effective Mass Coeff",
+        ccs.mass_electron_coeff.clone(),
+        false,
+    ));
 
     let lines = field_lines(&fields, app.focused);
     let title = format!(
@@ -1799,13 +1943,16 @@ fn draw_capture_cross_section(frame: &mut Frame, area: Rect, app: &App, k: usize
         k + 1,
         active.len()
     );
-    let para = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(title));
+    let para = Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(title));
     frame.render_widget(para, area);
 }
 
 fn draw_boundary_conditions(frame: &mut Frame, area: Rect, app: &App) {
-    let bottom_is_sc = app.layers.last().map(|l| l.is_semiconductor()).unwrap_or(false);
+    let bottom_is_sc = app
+        .layers
+        .last()
+        .map(|l| l.is_semiconductor())
+        .unwrap_or(false);
 
     let mut fields: Vec<(&str, String, bool)> =
         vec![("Barrier Height (eV)", app.barrier_height_ev.clone(), false)];
@@ -1827,8 +1974,8 @@ fn draw_boundary_conditions(frame: &mut Frame, area: Rect, app: &App) {
     }
 
     let lines = field_lines(&fields, app.focused);
-    let para = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title(" Fields "));
+    let para =
+        Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title(" Fields "));
     frame.render_widget(para, area);
 }
 
