@@ -125,7 +125,7 @@ impl CVSolver {
             println!(
                 "{}\n",
                 format!(
-                    "Meas Time: {:.3} s, Gate Voltage: {:.3} V, Capacitance: {:.3e} nF/cm^2",
+                    "Meas Time: {:.3} s, Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2",
                     time_step * index as f64,
                     gate_voltage,
                     capacitance * F_TO_NF * PER_M2_TO_PER_CM2

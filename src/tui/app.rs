@@ -19,6 +19,7 @@ use crate::constants::units::{
 };
 use crate::physics_equations::equilibrium_potential::equilibrium_potential_n_type;
 use crate::physics_equations::interface_states::{DIGSModel, DiscreteModel, DiscreteStateType};
+use crate::utils::is_valid_filename;
 
 // ─── App state ────────────────────────────────────────────────────────────────
 
@@ -456,15 +457,10 @@ impl App {
 
     fn validate_sim_settings(&self) -> Result<(), String> {
         let name = self.sim_name.trim();
-        if name.is_empty()
-            || !name
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
-        {
-            return Err("Name: letters/digits/'-'/'_'/'.' only, cannot be empty".into());
-        }
-        if name.contains("..") {
-            return Err("Name cannot contain '..'".into());
+        if !is_valid_filename(name) {
+            return Err(
+                "Name: letters/digits/'-'/'_'/'.' only, cannot be empty or contain '..' or path separators".into(),
+            );
         }
         self.sor_factor
             .trim()
@@ -589,12 +585,22 @@ impl App {
             let total_device_nm: f64 = self
                 .layers
                 .iter()
-                .filter_map(|l| l.thickness_nm.trim().parse::<f64>().ok())
-                .sum();
+                .try_fold(0.0_f64, |acc, l| {
+                    l.thickness_nm
+                        .trim()
+                        .parse::<f64>()
+                        .map(|v| acc + v)
+                        .map_err(|_| "Layer thickness must be a number".to_string())
+                })?;
             let accumulated_nm: f64 = self.mesh_layers[..=i]
                 .iter()
-                .filter_map(|l| l.thickness_nm.trim().parse::<f64>().ok())
-                .sum();
+                .try_fold(0.0_f64, |acc, l| {
+                    l.thickness_nm
+                        .trim()
+                        .parse::<f64>()
+                        .map(|v| acc + v)
+                        .map_err(|_| "Mesh layer thickness must be a number".to_string())
+                })?;
             if accumulated_nm >= total_device_nm {
                 return Err(format!(
                     "Accumulated mesh thickness ({accumulated_nm:.3} nm) must be < total device thickness ({total_device_nm:.3} nm)"
@@ -1388,9 +1394,10 @@ pub(crate) fn total_device_nm(app: &App) -> Option<f64> {
 }
 
 /// Compute the accumulated mesh thickness in nm for layers 0..up_to.
-pub(crate) fn accumulated_mesh_nm(app: &App, up_to: usize) -> f64 {
-    app.mesh_layers[..up_to]
-        .iter()
-        .filter_map(|ml| ml.thickness_nm.trim().parse::<f64>().ok())
-        .sum()
+///
+/// Returns `None` if `up_to` is out of range or any layer thickness fails to parse.
+pub(crate) fn accumulated_mesh_nm(app: &App, up_to: usize) -> Option<f64> {
+    app.mesh_layers.get(..up_to)?.iter().try_fold(0.0_f64, |acc, ml| {
+        ml.thickness_nm.trim().parse::<f64>().ok().map(|v| acc + v)
+    })
 }

@@ -291,15 +291,15 @@ fn draw_mesh_layer(frame: &mut Frame, area: Rect, app: &App, i: usize) {
     // Info: show auto-calculated thickness for the last layer
     let info = if is_last {
         let total_nm = total_device_nm(app).unwrap_or(0.0);
-        let acc_nm = accumulated_mesh_nm(app, i);
+        let acc_nm = accumulated_mesh_nm(app, i).unwrap_or(0.0);
         let remaining = total_nm - acc_nm;
         format!(
             "\n  Auto thickness (remaining): {remaining:.3} nm\n  (= total {total_nm:.3} nm - accumulated {acc_nm:.3} nm)"
         )
     } else {
         let total_nm = total_device_nm(app).unwrap_or(0.0);
-        let acc_nm = accumulated_mesh_nm(app, i);
-        let after = accumulated_mesh_nm(app, i + 1);
+        let acc_nm = accumulated_mesh_nm(app, i).unwrap_or(0.0);
+        let after = accumulated_mesh_nm(app, i + 1).unwrap_or(0.0);
         format!(
             "\n  Accumulated so far: {acc_nm:.3} nm  →  after this layer: {after:.3} nm\n  Total device: {total_nm:.3} nm"
         )
