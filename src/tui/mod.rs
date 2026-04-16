@@ -47,10 +47,8 @@ fn run_loop(
                 KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     return Err(anyhow::anyhow!("TUI cancelled by user"));
                 }
-                KeyCode::Char(' ') => {
-                    if app.is_toggle() {
-                        app.toggle_focused();
-                    }
+                KeyCode::Char(' ') if app.is_toggle() => {
+                    app.toggle_focused();
                 }
                 KeyCode::Char(c) => app.type_char(c),
                 KeyCode::Backspace => app.backspace(),
