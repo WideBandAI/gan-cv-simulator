@@ -10,8 +10,8 @@ use crossterm::{
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::io;
 
-use app::App;
 use crate::config::configuration_builder::ConfigurationBuilder;
+use app::App;
 use render::draw;
 use types::Page;
 

@@ -1,6 +1,6 @@
 use super::types::{
-    active_interface_indices, CaptureCrossSectionInput, CsModelType,
-    DiscreteStateInput, EcEfMode, InterfaceStateInput, LayerInput, MeshLayerInput, Page,
+    CaptureCrossSectionInput, CsModelType, DiscreteStateInput, EcEfMode, InterfaceStateInput,
+    LayerInput, MeshLayerInput, Page, active_interface_indices,
 };
 use crate::config::{
     boundary_conditions::BoundaryConditions,
@@ -55,7 +55,7 @@ pub(crate) struct App {
     pub(crate) mesh_layers: Vec<MeshLayerInput>,
 
     // Fixed charges
-    pub(crate) bulk_charge_densities: Vec<String>,      // C/cm^3 per layer
+    pub(crate) bulk_charge_densities: Vec<String>, // C/cm^3 per layer
     pub(crate) interface_charge_densities: Vec<String>, // C/cm^2 per interface
 
     // Interface states

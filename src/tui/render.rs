@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use super::app::{App, accumulated_mesh_nm, compute_equilibrium, total_device_nm};
-use super::types::{active_interface_indices, CsModelType, EcEfMode, Page};
+use super::types::{CsModelType, EcEfMode, Page, active_interface_indices};
 use crate::physics_equations::interface_states::DiscreteStateType;
 
 // ─── Top-level draw ───────────────────────────────────────────────────────────
