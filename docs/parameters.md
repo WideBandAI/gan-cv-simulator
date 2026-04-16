@@ -10,7 +10,7 @@ These settings control the overall simulation behavior and termination criteria.
 | `Simulation Name` | String | - | Name for this simulation run. Used as the output directory name. |
 | `SOR Relaxation Factor` | Float | 1.9 | Successive Over-Relaxation factor for the Poisson solver. |
 | `Convergence Criterion` | Float | 1e-6 | Convergence threshold in eV. |
-| `Max Iterations` | Integer | 100,000 | Maximum number of iterations for the solver. |
+| `Max Iterations` | Integer | 1,000,000 | Maximum number of iterations for the solver. |
 | `Parallel Processing` | Boolean | false | Whether to use parallel processing for the Poisson solver. |
 
 ## Measurement Parameters
