@@ -80,7 +80,7 @@ impl App {
             sim_name: String::new(),
             sor_factor: "1.9".to_string(),
             convergence: "1e-6".to_string(),
-            max_iter: "100000".to_string(),
+            max_iter: "1000000".to_string(),
             parallel: false,
             temperature: "300".to_string(),
             v_start: String::new(),

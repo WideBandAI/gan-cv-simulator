@@ -60,8 +60,8 @@ pub fn define_sim_settings() -> SimSettings {
         1e-6,
     );
     let max_iterations: usize = get_parsed_input_with_default(
-        "Enter the maximum number of iterations. Default is 100000: ",
-        100000,
+        "Enter the maximum number of iterations. Default is 1000000: ",
+        1000000,
     );
     let parallel_use: bool =
         get_bool_input("Use parallel processing for Poisson solver? (y/n). Default is n: ");
