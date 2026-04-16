@@ -582,19 +582,15 @@ impl App {
                 return Err("Thickness must be > 0".into());
             }
             // Check that accumulated thickness doesn't exceed device total
-            let total_device_nm: f64 = self
-                .layers
-                .iter()
-                .try_fold(0.0_f64, |acc, l| {
-                    l.thickness_nm
-                        .trim()
-                        .parse::<f64>()
-                        .map(|v| acc + v)
-                        .map_err(|_| "Layer thickness must be a number".to_string())
-                })?;
-            let accumulated_nm: f64 = self.mesh_layers[..=i]
-                .iter()
-                .try_fold(0.0_f64, |acc, l| {
+            let total_device_nm: f64 = self.layers.iter().try_fold(0.0_f64, |acc, l| {
+                l.thickness_nm
+                    .trim()
+                    .parse::<f64>()
+                    .map(|v| acc + v)
+                    .map_err(|_| "Layer thickness must be a number".to_string())
+            })?;
+            let accumulated_nm: f64 =
+                self.mesh_layers[..=i].iter().try_fold(0.0_f64, |acc, l| {
                     l.thickness_nm
                         .trim()
                         .parse::<f64>()
@@ -1397,7 +1393,10 @@ pub(crate) fn total_device_nm(app: &App) -> Option<f64> {
 ///
 /// Returns `None` if `up_to` is out of range or any layer thickness fails to parse.
 pub(crate) fn accumulated_mesh_nm(app: &App, up_to: usize) -> Option<f64> {
-    app.mesh_layers.get(..up_to)?.iter().try_fold(0.0_f64, |acc, ml| {
-        ml.thickness_nm.trim().parse::<f64>().ok().map(|v| acc + v)
-    })
+    app.mesh_layers
+        .get(..up_to)?
+        .iter()
+        .try_fold(0.0_f64, |acc, ml| {
+            ml.thickness_nm.trim().parse::<f64>().ok().map(|v| acc + v)
+        })
 }
