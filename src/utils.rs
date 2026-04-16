@@ -165,6 +165,20 @@ pub fn anti_traversal_filename(filename: &str) -> Option<String> {
     }
 }
 
+/// Validate that a filename is safe and well-formed.
+///
+/// Rejects empty names, path separators (`/`, `\`), `..` segments, and any
+/// character outside the set `[a-zA-Z0-9_\-.]`.
+pub fn is_valid_filename(name: &str) -> bool {
+    !name.is_empty()
+        && !name.contains('/')
+        && !name.contains('\\')
+        && !name.contains("..")
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
+}
+
 /// Save configuration as json file.
 ///
 /// # Arguments

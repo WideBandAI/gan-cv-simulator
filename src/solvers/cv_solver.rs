@@ -7,6 +7,7 @@ use crate::save_files::cv_curves::save_cv_curves;
 use crate::save_files::interface_states::save_interface_states;
 use crate::save_files::potential_profile::save_potential_profile;
 use crate::solvers::poisson_solver::PoissonSolver;
+use colored::*;
 
 #[derive(Debug)]
 pub struct CVSolver {
@@ -91,8 +92,12 @@ impl CVSolver {
 
         self.set_dc(self.measurement.stress.stress_voltage, 0.0);
         println!(
-            "Applied stress voltage: {:.3} V",
-            self.measurement.stress.stress_voltage
+            "{}",
+            format!(
+                "Applied stress voltage: {:.3} V",
+                self.measurement.stress.stress_voltage
+            )
+            .green()
         );
 
         self.set_dc(
@@ -100,9 +105,13 @@ impl CVSolver {
             self.measurement.stress.stress_relief_time,
         );
         println!(
-            "Applied stress relief voltage: {:.3} V for {:.3} s\n",
-            self.measurement.stress.stress_relief_voltage,
-            self.measurement.stress.stress_relief_time
+            "{}\n",
+            format!(
+                "Applied stress relief voltage: {:.3} V for {:.3} s",
+                self.measurement.stress.stress_relief_voltage,
+                self.measurement.stress.stress_relief_time
+            )
+            .green()
         );
 
         // determine loop direction based on sign of step
@@ -114,10 +123,14 @@ impl CVSolver {
             self.set_dc_save_potential(gate_voltage, time_step * index as f64, index)?;
             let capacitance = self.solve_cv(gate_voltage)?;
             println!(
-                "Meas Time: {:.3} s, Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2\n",
-                time_step * index as f64,
-                gate_voltage,
-                capacitance * F_TO_NF * PER_M2_TO_PER_CM2
+                "{}\n",
+                format!(
+                    "Meas Time: {:.3} s, Gate Voltage: {:<10.3} V, Capacitance: {:.3e} nF/cm^2",
+                    time_step * index as f64,
+                    gate_voltage,
+                    capacitance * F_TO_NF * PER_M2_TO_PER_CM2
+                )
+                .green()
             );
             gate_voltages.push(gate_voltage);
             capacitances.push(capacitance * F_TO_NF * PER_M2_TO_PER_CM2);
