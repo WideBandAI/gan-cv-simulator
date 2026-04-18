@@ -11,7 +11,7 @@
       "temperature": 300.0
     },
     "voltage": {
-      "start": -15.0,
+      "start": -10.0,
       "end": 10.0,
       "step": 0.25
     },
@@ -21,7 +21,7 @@
     },
     "stress": {
       "stress_voltage": 10.0,
-      "stress_relief_voltage": -15.0,
+      "stress_relief_voltage": -10.0,
       "stress_relief_time": 10.0
     }
   },
@@ -44,7 +44,7 @@
     ],
     "mass_electron": [
       0.0,
-      1.82187674e-31
+      1.8218767400000002e-31
     ],
     "permittivity": [
       7.968769038000001e-11,
@@ -131,7 +131,7 @@
       }
     ],
     "mass_electron": [
-      1.82187674e-31
+      1.8218767400000002e-31
     ]
   },
   "mesh_params": {
