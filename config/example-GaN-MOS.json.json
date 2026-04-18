@@ -1,0 +1,159 @@
+{
+  "sim_settings": {
+    "sim_name": "example-GaN-MOS.json",
+    "sor_relaxation_factor": 1.98,
+    "convergence_criterion": 1e-6,
+    "max_iterations": 1000000,
+    "parallel_use": false
+  },
+  "measurement": {
+    "temperature": {
+      "temperature": 300.0
+    },
+    "voltage": {
+      "start": -15.0,
+      "end": 10.0,
+      "step": 0.25
+    },
+    "ac_voltage": 0.02,
+    "time": {
+      "measurement_time": 100.0
+    },
+    "stress": {
+      "stress_voltage": 10.0,
+      "stress_relief_voltage": -15.0,
+      "stress_relief_time": 10.0
+    }
+  },
+  "device_structure": {
+    "id": [
+      0,
+      1
+    ],
+    "name": [
+      "Al2O3",
+      "GaN"
+    ],
+    "material_type": [
+      "Insulator",
+      "Semiconductor"
+    ],
+    "thickness": [
+      3.0000000000000004e-8,
+      1.0000000000000002e-6
+    ],
+    "mass_electron": [
+      0.0,
+      1.82187674e-31
+    ],
+    "permittivity": [
+      7.968769038000001e-11,
+      8.411478429e-11
+    ],
+    "bandgap_energy": [
+      7.0,
+      3.4
+    ],
+    "delta_conduction_band": [
+      2.4,
+      0.0
+    ],
+    "donor_concentration": [
+      0.0,
+      5e+22
+    ],
+    "energy_level_donor": [
+      0.0,
+      0.025
+    ]
+  },
+  "bulk_fixed_charge": {
+    "layer_id": [
+      0,
+      1
+    ],
+    "charge_density": [
+      0.0,
+      0.0
+    ]
+  },
+  "interface_fixed_charge": {
+    "interface_id": [
+      0
+    ],
+    "charge_density": [
+      2e+16
+    ]
+  },
+  "continuous_interface_states": {
+    "interface_id": [
+      0
+    ],
+    "parameters": [
+      {
+        "dit0": 3e+16,
+        "nssec": 40.0,
+        "nssev": 40.0,
+        "ecnl": 1.3,
+        "nd": 3.0,
+        "na": 3.0,
+        "bandgap": 3.4
+      }
+    ]
+  },
+  "discrete_interface_states": {
+    "interface_id": [
+      0
+    ],
+    "parameters": [
+      [
+        {
+          "ditmax": 5e+16,
+          "ed": 0.5,
+          "fwhm": 0.3,
+          "state_type": "AcceptorLike",
+          "bandgap": 3.4
+        }
+      ]
+    ]
+  },
+  "capture_cross_section": {
+    "interface_id": [
+      0
+    ],
+    "model": [
+      {
+        "EnergyDependent": {
+          "sigma_mid": 1e-20,
+          "e_mid": 0.5,
+          "e_slope": 0.1
+        }
+      }
+    ],
+    "mass_electron": [
+      1.82187674e-31
+    ]
+  },
+  "mesh_params": {
+    "layer_id": [
+      0,
+      1,
+      2
+    ],
+    "length_per_layer": [
+      1.0000000000000002e-10,
+      3.9999999999999996e-10,
+      1e-9
+    ],
+    "layer_thickness": [
+      1.0000000000000001e-7,
+      3.0000000000000004e-7,
+      6.300000000000001e-7
+    ],
+    "energy_step": 0.0001
+  },
+  "boundary_conditions": {
+    "barrier_height": 3.5,
+    "ec_ef_bottom": 0.09834641179769142
+  }
+}
