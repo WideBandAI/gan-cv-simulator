@@ -81,7 +81,7 @@ Example configurations are provided in `config/`:
 config/
 ├── example-GaN-schottky.json
 ├── example-AlGaN-GaN-schottoky.json
-├── example-GaN-MOS.json.json
+├── example-GaN-MOS.json
 └── example-AlGaN-GaN-MOS.json
 ```
 
