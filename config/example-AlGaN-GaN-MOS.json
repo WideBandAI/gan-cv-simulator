@@ -11,7 +11,7 @@
       "temperature": 300.0
     },
     "voltage": {
-      "start": -10.0,
+      "start": -7.0,
       "end": 10.0,
       "step": 0.25
     },
@@ -138,7 +138,7 @@
     "model": [
       {
         "EnergyDependent": {
-          "sigma_mid": 1.0000000000000001e-20,
+          "sigma_mid": 1e-20,
           "e_mid": 0.5,
           "e_slope": 0.1
         }
