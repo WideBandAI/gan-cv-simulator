@@ -1,6 +1,6 @@
 {
   "sim_settings": {
-    "sim_name": "example-AlGaN-GaN-schottoky",
+    "sim_name": "example-AlGaN-GaN-schottky",
     "sor_relaxation_factor": 1.98,
     "convergence_criterion": 1e-6,
     "max_iterations": 1000000,
