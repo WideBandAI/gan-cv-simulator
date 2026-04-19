@@ -80,7 +80,7 @@ Example configurations are provided in `config/`:
 ```text
 config/
 ├── example-GaN-schottky.json
-├── example-AlGaN-GaN-schottoky.json
+├── example-AlGaN-GaN-schottky.json
 ├── example-GaN-MOS.json
 └── example-AlGaN-GaN-MOS.json
 ```
