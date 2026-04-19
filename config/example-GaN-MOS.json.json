@@ -44,7 +44,7 @@
     ],
     "mass_electron": [
       0.0,
-      1.8218767400000002e-31
+      1.82187674e-31
     ],
     "permittivity": [
       7.968769038000001e-11,
@@ -82,7 +82,7 @@
       0
     ],
     "charge_density": [
-      2e+16
+      -2e+16
     ]
   },
   "continuous_interface_states": {
@@ -92,8 +92,8 @@
     "parameters": [
       {
         "dit0": 3e+16,
-        "nssec": 40.0,
-        "nssev": 40.0,
+        "nssec": 10.0,
+        "nssev": 10.0,
         "ecnl": 1.3,
         "nd": 3.0,
         "na": 3.0,
@@ -131,7 +131,7 @@
       }
     ],
     "mass_electron": [
-      1.8218767400000002e-31
+      1.82187674e-31
     ]
   },
   "mesh_params": {
