@@ -72,10 +72,12 @@ The interactive CLI will prompt you step-by-step for:
 
 After the run, the resulting configuration is automatically saved as a JSON file in the `config/` directory.
 
+The configuration file stores values entered through the CLI, multiplied by scaling factors such as $m_{0}$.
+
 ### Option 2: Load from JSON config file
 
 Place a JSON configuration file in the `config/` directory and select option `[2]`.
-Example configurations are provided in `config/`:
+Example configurations are provided in [config/](./config/):
 
 ```text
 config/
