@@ -32,3 +32,4 @@ target
 docs/superpowers/*
 *.txt
 *.json
+!config/example-*.json

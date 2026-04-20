@@ -1,0 +1,123 @@
+{
+  "sim_settings": {
+    "sim_name": "example-AlGaN-GaN-schottky",
+    "sor_relaxation_factor": 1.98,
+    "convergence_criterion": 1e-6,
+    "max_iterations": 1000000,
+    "parallel_use": false
+  },
+  "measurement": {
+    "temperature": {
+      "temperature": 300.0
+    },
+    "voltage": {
+      "start": -5.0,
+      "end": 0.0,
+      "step": 0.1
+    },
+    "ac_voltage": 0.02,
+    "time": {
+      "measurement_time": 100.0
+    },
+    "stress": {
+      "stress_voltage": 0.0,
+      "stress_relief_voltage": 0.0,
+      "stress_relief_time": 0.0
+    }
+  },
+  "device_structure": {
+    "id": [
+      0,
+      1
+    ],
+    "name": [
+      "AlGaN",
+      "GaN"
+    ],
+    "material_type": [
+      "Semiconductor",
+      "Semiconductor"
+    ],
+    "thickness": [
+      2e-8,
+      1.0000000000000002e-6
+    ],
+    "mass_electron": [
+      2.095158251e-31,
+      1.8218767400000002e-31
+    ],
+    "permittivity": [
+      8.1458527944e-11,
+      8.411478429e-11
+    ],
+    "bandgap_energy": [
+      4.0,
+      3.4
+    ],
+    "delta_conduction_band": [
+      0.35,
+      0.0
+    ],
+    "donor_concentration": [
+      1e+20,
+      1e+20
+    ],
+    "energy_level_donor": [
+      0.025,
+      0.025
+    ]
+  },
+  "bulk_fixed_charge": {
+    "layer_id": [
+      0,
+      1
+    ],
+    "charge_density": [
+      0.0,
+      0.0
+    ]
+  },
+  "interface_fixed_charge": {
+    "interface_id": [
+      0
+    ],
+    "charge_density": [
+      8e+16
+    ]
+  },
+  "continuous_interface_states": {
+    "interface_id": [],
+    "parameters": []
+  },
+  "discrete_interface_states": {
+    "interface_id": [],
+    "parameters": []
+  },
+  "capture_cross_section": {
+    "interface_id": [],
+    "model": [],
+    "mass_electron": []
+  },
+  "mesh_params": {
+    "layer_id": [
+      0,
+      1,
+      2
+    ],
+    "length_per_layer": [
+      1.0000000000000002e-10,
+      4.0000000000000007e-10,
+      8e-10
+    ],
+    "layer_thickness": [
+      1.0000000000000001e-7,
+      1.0000000000000001e-7,
+      8.200000000000002e-7
+    ],
+    "energy_step": 0.0001
+  },
+  "boundary_conditions": {
+    "barrier_height": 1.2,
+    "ec_ef_bottom": 0.1994800299510413
+  }
+}

@@ -53,12 +53,49 @@ Run the simulator from the terminal:
 gan-cv-simulator
 ```
 
-The interactive CLI will prompt you for:
+You will be prompted to choose a configuration source:
+
+```text
+Select configuration source:
+  [1] Interactive input (CLI)
+  [2] Load from config file
+```
+
+### Option 1: Interactive CLI
+
+The interactive CLI will prompt you step-by-step for:
 
   * **Simulation & Mesh:** Convergence criteria, relaxation factors, and discretization.
   * **Device Structure:** Layer thickness, materials, doping, and fixed charges.
   * **Interface Physics:** Continuous DIGS model, discrete Gaussian traps, and energy-dependent capture cross-sections.
   * **Measurement Conditions:** Temperature, voltage sweep, and stress conditions.
+
+After the run, the resulting configuration is automatically saved as a JSON file in the `config/` directory.
+
+The configuration file stores values entered through the CLI, multiplied by scaling factors such as $m_{0}$.
+
+### Option 2: Load from JSON config file (Quick Start)
+
+Place a JSON configuration file in the `config/` directory and select option `[2]`.
+Example configurations are provided in [config/](./config/):
+
+```text
+config/
+├── example-GaN-schottky.json
+├── example-AlGaN-GaN-schottky.json
+├── example-GaN-MOS.json
+└── example-AlGaN-GaN-MOS.json
+```
+
+To run with an existing config:
+
+```bash
+# Copy and edit an example config
+cp config/example-GaN-schottky.json config/my-device.json
+# Edit my-device.json as needed, then run:
+gan-cv-simulator
+# Select [2] and choose my-device.json
+```
 
 ### Documentation
 

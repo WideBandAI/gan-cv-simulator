@@ -24,7 +24,8 @@ pub fn plot_cv_curves(
     root.fill(&WHITE)?;
 
     let (xmin, xmax) = find_range(voltage);
-    let (ymin, ymax) = find_range(capacitance);
+    let (_ymin, ymax) = find_range(capacitance);
+    let ymin = _ymin.min(0.0); // Ensure y-axis starts at 0
 
     let mut chart = ChartBuilder::on(&root)
         .margin(30)
