@@ -49,7 +49,7 @@ pub fn select_config_source() -> anyhow::Result<ConfigurationBuilder> {
                         "No config files found in '{}'. Falling back to interactive input.",
                         config_dir.display()
                     );
-                    return Ok(crate::tui::run_tui()?);
+                    return crate::tui::run_tui();
                 }
                 println!("Available config files:");
                 for (i, path) in files.iter().enumerate() {
