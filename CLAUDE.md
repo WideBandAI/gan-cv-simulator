@@ -10,7 +10,7 @@ This document contains critical information about working with this codebase. Fo
    - Running tools: `cargo run`
    - Testing: `cargo test`
    - Upgrading: `cargo update`
-   - FORBIDDEN: manual editing of Cargo.lock (unless necessary)
+   - FORBIDDEN: manual editing of Cargo.lock
 
 2. Code Quality
    - Explicit types preferred for public APIs
