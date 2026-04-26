@@ -58,4 +58,4 @@ This document contains critical information about working with this codebase. Fo
 
 - For commits fixing bugs or adding features based on user reports add:
   ```bash
-  git commit --trailer "Reported-by:<name>"
+  git commit --trailer "Reported-by: <name>"
