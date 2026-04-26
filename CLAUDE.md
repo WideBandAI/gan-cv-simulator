@@ -56,6 +56,8 @@ This document contains critical information about working with this codebase. Fo
      - Clippy reports warnings (treated as errors)
      - Tests are failing
 
+## Commit Message Guidelines
+
 - For commits fixing bugs or adding features based on user reports add:
   ```bash
   git commit --trailer "Reported-by: <name>"
