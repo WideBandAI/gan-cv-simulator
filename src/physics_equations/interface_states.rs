@@ -158,6 +158,26 @@ impl DiscreteModel {
     /// let potential = 1.0;
     /// let trap_states = model.discrete_states(potential);
     /// ```
+    /// Returns the maximum Dit value in m⁻².
+    pub fn ditmax(&self) -> f64 {
+        self.ditmax
+    }
+
+    /// Returns the energy level |Ec - Ed| in eV.
+    pub fn ed(&self) -> f64 {
+        self.ed
+    }
+
+    /// Returns the FWHM in eV.
+    pub fn fwhm(&self) -> f64 {
+        self.fwhm
+    }
+
+    /// Returns the trap state type.
+    pub fn state_type(&self) -> &DiscreteStateType {
+        &self.state_type
+    }
+
     pub fn discrete_states(&self, potential: f64) -> Result<TrapStatesType, PotentialError> {
         if potential > self.bandgap {
             Err(PotentialError::GreaterThanBandgap)
