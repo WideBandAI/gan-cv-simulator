@@ -63,6 +63,8 @@ pub fn print_interface_states(
         ];
         let sep = build_sep(&col_widths);
         println!("\n{}", sep);
+        println!("|{}|", build_title_row("Continuous Interface States (DIGS)", &col_widths));
+        println!("{}", sep);
         println!("|{}|", build_header_row(&headers, &col_widths));
         println!("{}", sep);
         for (idx, &iface_id) in continuous.interface_id.iter().enumerate() {
@@ -95,6 +97,8 @@ pub fn print_interface_states(
         ];
         let sep = build_sep(&col_widths);
         println!("\n{}", sep);
+        println!("|{}|", build_title_row("Discrete Interface States", &col_widths));
+        println!("{}", sep);
         println!("|{}|", build_header_row(&headers, &col_widths));
         println!("{}", sep);
         for (idx, &iface_id) in discrete.interface_id.iter().enumerate() {
@@ -132,4 +136,9 @@ fn build_header_row(headers: &[&str], col_widths: &[usize]) -> String {
         .map(|(h, &w)| format!(" {:^w$} ", h, w = w))
         .collect::<Vec<_>>()
         .join("|")
+}
+
+fn build_title_row(title: &str, col_widths: &[usize]) -> String {
+    let total = col_widths.iter().map(|&w| w + 2).sum::<usize>() + col_widths.len() - 1;
+    format!(" {:<total$} ", title, total = total)
 }
