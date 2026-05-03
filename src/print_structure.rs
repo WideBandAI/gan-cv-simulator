@@ -22,18 +22,26 @@ pub fn print_layer_structure(device: &DeviceStructure) {
     println!("{}", sep);
 
     for i in 0..device.id.len() {
-        let mat = match device.material_type[i] {
-            MaterialType::Semiconductor => "Semiconductor",
-            MaterialType::Insulator => "Insulator",
+        let name = device.name.get(i).map(|s| s.as_str()).unwrap_or("Unknown");
+        let mat = match device.material_type.get(i) {
+            Some(MaterialType::Semiconductor) => "Semiconductor",
+            Some(MaterialType::Insulator) => "Insulator",
+            None => "Unknown",
         };
         println!(
-            "| {:<15} | {:<13} | {:>10.2} | {:>8.3} | {:>8.3} | {:>14.3e} |",
-            device.name[i],
+            "| {:<w0$} | {:<w1$} | {:>w2$.2} | {:>w3$.3} | {:>w4$.3} | {:>w5$.3e} |",
+            name,
             mat,
-            device.thickness[i] * M_TO_NM,
-            device.bandgap_energy[i],
-            device.delta_conduction_band[i],
-            device.donor_concentration[i] * PER_M3_TO_PER_CM3,
+            device.thickness.get(i).unwrap_or(&0.0) * M_TO_NM,
+            device.bandgap_energy.get(i).unwrap_or(&0.0),
+            device.delta_conduction_band.get(i).unwrap_or(&0.0),
+            device.donor_concentration.get(i).unwrap_or(&0.0) * PER_M3_TO_PER_CM3,
+            w0 = col_widths[0],
+            w1 = col_widths[1],
+            w2 = col_widths[2],
+            w3 = col_widths[3],
+            w4 = col_widths[4],
+            w5 = col_widths[5],
         );
     }
 
@@ -63,16 +71,23 @@ pub fn print_interface_states(
         ];
         let sep = build_sep(&col_widths);
         println!("\n{}", sep);
-        println!("|{}|", build_title_row("Continuous Interface States (DIGS)", &col_widths));
+        println!(
+            "|{}|",
+            build_title_row("Continuous Interface States (DIGS)", &col_widths)
+        );
         println!("{}", sep);
         println!("|{}|", build_header_row(&headers, &col_widths));
         println!("{}", sep);
         for (idx, &iface_id) in continuous.interface_id.iter().enumerate() {
             let i = iface_id as usize;
-            let iface_name = format!("{} / {}", device.name[i], device.name[i + 1]);
+            let iface_name = format!(
+                "{} / {}",
+                device.name.get(i).map(|s| s.as_str()).unwrap_or("?"),
+                device.name.get(i + 1).map(|s| s.as_str()).unwrap_or("?")
+            );
             let p = &continuous.parameters[idx];
             println!(
-                "| {:<23} | {:>14.3e} | {:>6.2} | {:>6.2} | {:>11.3} | {:>6.2} | {:>6.2} |",
+                "| {:<w0$} | {:>w1$.3e} | {:>w2$.2} | {:>w3$.2} | {:>w4$.3} | {:>w5$.2} | {:>w6$.2} |",
                 iface_name,
                 p.dit0 * PER_M2_TO_PER_CM2,
                 p.nssec,
@@ -80,6 +95,13 @@ pub fn print_interface_states(
                 p.ecnl,
                 p.nd,
                 p.na,
+                w0 = col_widths[0],
+                w1 = col_widths[1],
+                w2 = col_widths[2],
+                w3 = col_widths[3],
+                w4 = col_widths[4],
+                w5 = col_widths[5],
+                w6 = col_widths[6],
             );
         }
         println!("{}\n", sep);
@@ -97,22 +119,35 @@ pub fn print_interface_states(
         ];
         let sep = build_sep(&col_widths);
         println!("\n{}", sep);
-        println!("|{}|", build_title_row("Discrete Interface States", &col_widths));
+        println!(
+            "|{}|",
+            build_title_row("Discrete Interface States", &col_widths)
+        );
         println!("{}", sep);
         println!("|{}|", build_header_row(&headers, &col_widths));
         println!("{}", sep);
         for (idx, &iface_id) in discrete.interface_id.iter().enumerate() {
             let i = iface_id as usize;
-            let iface_name = format!("{} / {}", device.name[i], device.name[i + 1]);
+            let iface_name = format!(
+                "{} / {}",
+                device.name.get(i).map(|s| s.as_str()).unwrap_or("?"),
+                device.name.get(i + 1).map(|s| s.as_str()).unwrap_or("?")
+            );
             for (trap_idx, model) in discrete.parameters[idx].iter().enumerate() {
                 println!(
-                    "| {:<23} | {:>5} | {:>14.3e} | {:>10.3} | {:>8.3} | {:<13} |",
+                    "| {:<w0$} | {:>w1$} | {:>w2$.3e} | {:>w3$.3} | {:>w4$.3} | {:<w5$} |",
                     iface_name,
                     trap_idx,
                     model.ditmax() * PER_M2_TO_PER_CM2,
                     model.ed(),
                     model.fwhm(),
                     model.state_type().to_string(),
+                    w0 = col_widths[0],
+                    w1 = col_widths[1],
+                    w2 = col_widths[2],
+                    w3 = col_widths[3],
+                    w4 = col_widths[4],
+                    w5 = col_widths[5],
                 );
             }
         }
