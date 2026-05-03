@@ -83,6 +83,7 @@ Example configurations are provided in [config/](./config/):
 config/
 ├── example-GaN-schottky.json
 ├── example-AlGaN-GaN-schottky.json
+├── example-GaN-MOS-multi-discrete.json
 ├── example-GaN-MOS.json
 └── example-AlGaN-GaN-MOS.json
 ```

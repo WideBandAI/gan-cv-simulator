@@ -3,6 +3,7 @@ pub mod constants;
 pub mod mesh;
 pub mod physics_equations;
 pub mod plot;
+pub mod print_structure;
 pub mod save_files;
 pub mod solvers;
 pub mod tui;
@@ -14,6 +15,7 @@ use std::fs;
 
 use crate::config::config_source::select_config_source;
 use crate::mesh::mesh_builder as mb;
+use crate::print_structure::{print_interface_states, print_layer_structure};
 use crate::solvers::cv_solver::CVSolver;
 use crate::solvers::poisson_solver::PoissonSolver;
 use crate::utils::save_configuration;
@@ -58,6 +60,13 @@ fn main() -> anyhow::Result<()> {
         "Configuration saved to '{}' and '{}'.",
         global_config_path.display(),
         output_config_path.display()
+    );
+
+    print_layer_structure(&config.device_structure);
+    print_interface_states(
+        &config.device_structure,
+        &config.continuous_interface_states,
+        &config.discrete_interface_states,
     );
 
     let mesh_structure = mb::build(&config);
