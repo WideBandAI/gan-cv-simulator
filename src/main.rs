@@ -19,6 +19,50 @@ use crate::solvers::poisson_solver::PoissonSolver;
 use crate::utils::save_configuration;
 use colored::*;
 
+fn print_layer_structure(device: &config::structure::DeviceStructure) {
+    use crate::constants::units::{M_TO_NM, PER_M3_TO_PER_CM3};
+
+    let col_widths: [usize; 6] = [15, 13, 10, 8, 8, 14];
+    let headers = ["Layer", "Material", "Thick(nm)", "Eg(eV)", "dEc(eV)", "Nd(cm^-3)"];
+
+    let sep: String = {
+        let inner = col_widths
+            .iter()
+            .map(|&w| "-".repeat(w + 2))
+            .collect::<Vec<_>>()
+            .join("+");
+        format!("+{}+", inner)
+    };
+
+    println!("\n{}", sep);
+    let header_row: String = headers
+        .iter()
+        .zip(col_widths.iter())
+        .map(|(h, &w)| format!(" {:^w$} ", h, w = w))
+        .collect::<Vec<_>>()
+        .join("|");
+    println!("|{}|", header_row);
+    println!("{}", sep);
+
+    for i in 0..device.id.len() {
+        let mat = match device.material_type[i] {
+            config::structure::MaterialType::Semiconductor => "Semiconductor",
+            config::structure::MaterialType::Insulator => "Insulator",
+        };
+        println!(
+            "| {:<15} | {:<13} | {:>10.2} | {:>8.3} | {:>8.3} | {:>14.3e} |",
+            device.name[i],
+            mat,
+            device.thickness[i] * M_TO_NM,
+            device.bandgap_energy[i],
+            device.delta_conduction_band[i],
+            device.donor_concentration[i] * PER_M3_TO_PER_CM3,
+        );
+    }
+
+    println!("{}\n", sep);
+}
+
 fn main() -> anyhow::Result<()> {
     println!("\n{}\n", "GaN C-V Simulator".green().bold());
     let config = select_config_source()?.build();
@@ -59,6 +103,8 @@ fn main() -> anyhow::Result<()> {
         global_config_path.display(),
         output_config_path.display()
     );
+
+    print_layer_structure(&config.device_structure);
 
     let mesh_structure = mb::build(&config);
     let poisson_solver = PoissonSolver::new(
