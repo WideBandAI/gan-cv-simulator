@@ -43,7 +43,7 @@ fn run_loop(
         terminal.draw(|f| draw(f, &app))?;
 
         if let Event::Key(key) = event::read()? {
-            if key.kind != KeyEventKind::Press {
+            if key.kind == KeyEventKind::Release {
                 continue;
             }
             match key.code {
