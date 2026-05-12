@@ -3,7 +3,7 @@ mod render;
 mod types;
 
 use crossterm::{
-    event::{self, Event, KeyCode, KeyModifiers},
+    event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -43,6 +43,9 @@ fn run_loop(
         terminal.draw(|f| draw(f, &app))?;
 
         if let Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Release {
+                continue;
+            }
             match key.code {
                 KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     return Err(anyhow::anyhow!("TUI cancelled by user"));

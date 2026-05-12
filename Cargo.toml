@@ -1,6 +1,6 @@
 [package]
 name = "gan-cv-simulator"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2024"
 license = "Apache-2.0"
 description = "Simulate the C-V characteristics of n-GaN and GaN HEMTs diodes."

@@ -77,16 +77,7 @@ The configuration file stores values entered through the CLI, multiplied by scal
 ### Option 2: Load from JSON config file (Quick Start)
 
 Place a JSON configuration file in the `config/` directory and select option `[2]`.
-Example configurations are provided in [config/](./config/):
-
-```text
-config/
-├── example-GaN-schottky.json
-├── example-AlGaN-GaN-schottky.json
-├── example-GaN-MOS-multi-discrete.json
-├── example-GaN-MOS.json
-└── example-AlGaN-GaN-MOS.json
-```
+Example configurations are provided in [config/example*.json](./config/).
 
 To run with an existing config:
 
