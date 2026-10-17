@@ -17,7 +17,7 @@ use crate::constants::physics::{EPSILON_0, M_ELECTRON};
 use crate::constants::units::{
     CM2_TO_M2, MEV_TO_EV, MV_TO_V, NM_TO_M, PER_CM2_TO_PER_M2, PER_CM3_TO_PER_M3,
 };
-use crate::physics_equations::equilibrium_potential::equilibrium_potential_n_type;
+use crate::physics_equations::fermi_dirac_density::CarrierStatistics;
 use crate::physics_equations::interface_states::{DIGSModel, DiscreteModel, DiscreteStateType};
 use crate::utils::is_valid_filename;
 
@@ -34,6 +34,7 @@ pub(crate) struct App {
     pub(crate) convergence: String,
     pub(crate) max_iter: String,
     pub(crate) parallel: bool,
+    pub(crate) fermi_dirac_density: bool,
 
     // Measurement
     pub(crate) temperature: String,
@@ -72,6 +73,14 @@ pub(crate) struct App {
 }
 
 impl App {
+    pub(crate) fn carrier_statistics(&self) -> CarrierStatistics {
+        if self.fermi_dirac_density {
+            CarrierStatistics::FermiDirac
+        } else {
+            CarrierStatistics::Boltzmann
+        }
+    }
+
     pub(crate) fn new() -> Self {
         Self {
             page: Page::SimSettings,
@@ -82,6 +91,7 @@ impl App {
             convergence: "1e-6".to_string(),
             max_iter: "1000000".to_string(),
             parallel: false,
+            fermi_dirac_density: false,
             temperature: "300".to_string(),
             v_start: String::new(),
             v_end: String::new(),
@@ -110,7 +120,7 @@ impl App {
 
     fn field_count(&self) -> usize {
         match &self.page {
-            Page::SimSettings => 5,
+            Page::SimSettings => 6,
             Page::Measurement => 9,
             Page::StructureCount => 1,
             Page::Layer(i) => {
@@ -184,7 +194,7 @@ impl App {
 
     pub(crate) fn is_toggle(&self) -> bool {
         match (&self.page, self.focused) {
-            (Page::SimSettings, 4) | (Page::Layer(_), 1) => true,
+            (Page::SimSettings, 4 | 5) | (Page::Layer(_), 1) => true,
             (Page::BoundaryConditions, 1) => self
                 .layers
                 .last()
@@ -208,6 +218,7 @@ impl App {
     pub(crate) fn toggle_focused(&mut self) {
         match (&self.page, self.focused) {
             (Page::SimSettings, 4) => self.parallel = !self.parallel,
+            (Page::SimSettings, 5) => self.fermi_dirac_density = !self.fermi_dirac_density,
             (Page::Layer(i), 1) => {
                 let i = *i;
                 let is_last = i + 1 == self.layers.len();
@@ -982,6 +993,7 @@ impl App {
 
     pub(crate) fn build_config(self) -> ConfigurationBuilder {
         let sim_settings = SimSettings {
+            carrier_statistics: self.carrier_statistics(),
             sim_name: self.sim_name.trim().to_string(),
             sor_relaxation_factor: self
                 .sor_factor
@@ -1373,7 +1385,7 @@ pub(crate) fn compute_equilibrium(app: &App) -> Option<f64> {
     if mass_coeff <= 0.0 || nd <= 0.0 || temp <= 0.0 {
         return None;
     }
-    Some(equilibrium_potential_n_type(
+    Some(app.carrier_statistics().equilibrium_potential(
         mass_coeff * M_ELECTRON,
         nd * PER_CM3_TO_PER_M3,
         temp,
@@ -1399,4 +1411,27 @@ pub(crate) fn accumulated_mesh_nm(app: &App, up_to: usize) -> Option<f64> {
         .try_fold(0.0_f64, |acc, ml| {
             ml.thickness_nm.trim().parse::<f64>().ok().map(|v| acc + v)
         })
+}
+
+#[cfg(test)]
+mod carrier_statistics_tests {
+    use super::*;
+
+    #[test]
+    fn toggle_selects_statistics_and_updates_equilibrium() {
+        let mut app = App::new();
+        assert_eq!(app.carrier_statistics(), CarrierStatistics::Boltzmann);
+        app.layers.push(LayerInput::new(0));
+        app.layers[0].donor_conc_cm3 = "1e20".to_string();
+        let legacy = compute_equilibrium(&app).unwrap();
+        app.focused = 4;
+        app.next_field();
+        assert_eq!(app.focused, 5);
+        assert!(app.is_toggle());
+        app.toggle_focused();
+        assert_eq!(app.carrier_statistics(), CarrierStatistics::FermiDirac);
+        assert!(compute_equilibrium(&app).unwrap() < legacy);
+        app.next_field();
+        assert_eq!(app.focused, 0);
+    }
 }
