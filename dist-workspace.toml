@@ -18,4 +18,5 @@ install-updater = false
 
 # Keep generated CI consistent with the action version updated by Dependabot.
 [dist.github-action-commits]
+"actions/download-artifact" = "v8"
 "actions/upload-artifact" = "v7"
