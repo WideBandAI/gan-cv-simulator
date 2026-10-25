@@ -15,7 +15,7 @@ crossterm = "0.29.0"
 ratatui = "0.30.0"
 approx = "0.5.1"
 indicatif = "0.18.4"
-itertools = "0.14.0"
+itertools = "0.15.0"
 plotters = { version = "0.3.7", features = ["fontconfig-dlopen"] }
 rand = "0.9.4"
 rayon = "1.11.0"
