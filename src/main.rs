@@ -70,7 +70,7 @@ fn main() -> anyhow::Result<()> {
     );
 
     let mesh_structure = mb::build(&config);
-    let poisson_solver = PoissonSolver::new(
+    let mut poisson_solver = PoissonSolver::new(
         mesh_structure,
         INITIAL_POTENTIAL,
         config.measurement.temperature.temperature,
@@ -78,6 +78,12 @@ fn main() -> anyhow::Result<()> {
         config.sim_settings.convergence_criterion,
         config.sim_settings.max_iterations,
         config.sim_settings.parallel_use,
+    );
+    poisson_solver.set_electron_density_model(
+        config
+            .sim_settings
+            .carrier_statistics
+            .model(config.measurement.temperature.temperature),
     );
     let mut cv_solver = CVSolver::new(
         poisson_solver,

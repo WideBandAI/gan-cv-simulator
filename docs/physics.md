@@ -198,3 +198,33 @@ The simulator uses a small AC amplitude $\Delta V$ (typically 20 mV) to numerica
   publisher={AIP Publishing}
 }
 ```
+## Optional Fermi-Dirac conduction-band density
+
+For a local 3D parabolic band, the optional `fermi_dirac` model uses
+
+$$
+n = N_c F_{1/2}(\eta), \qquad
+\eta = -\frac{q(E_c-E_F)}{k_BT}, \qquad
+F_{1/2}(\eta)=\frac{2}{\sqrt{\pi}}\int_0^\infty
+\frac{\sqrt{x}}{1+\exp(x-\eta)}\,dx.
+$$
+
+Here `Ec-Ef` is supplied numerically in eV, effective mass in kg, and density
+in m^-3. The normalized integral tends to `exp(eta)` in the nondegenerate limit;
+at `eta=0`, it is approximately 0.765147024625408, not 0.5.
+See [NIST DLMF 25.12.14](https://dlmf.nist.gov/25.12.E14) for the normalization.
+
+The implementation substitutes `x=u^2`, uses composite 16-point Gauss-Legendre
+quadrature with panels at most 0.5 wide in u, and truncates at
+`x=max(eta,0)+48`. Negative eta uses an exponentially scaled integrand to retain
+relative accuracy under depletion. For `eta>64`, a Sommerfeld expansion through
+relative order `eta^-6` bounds computational work. Independent Decimal/Simpson
+reference cases cover depletion, the band edge, accumulation, and the expansion
+transition, with a target relative accuracy of 1e-8. Fixed quadrature does not
+provide a runtime error estimate. FD evaluations cost more than the legacy
+exponential; large mesh sweeps should be profiled before use.
+
+This is a bulk local-density model, not a Schrodinger-Poisson/subband model for a
+quantized 2DEG. Interface-trap Fermi-Dirac occupation and SRH emission retain their
+existing definitions. The Poisson iteration and its convergence criteria are
+unchanged; selecting FD does not guarantee convergence for every bias/mesh.

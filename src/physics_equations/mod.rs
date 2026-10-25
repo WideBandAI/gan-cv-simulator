@@ -4,6 +4,7 @@ pub mod donor_activation;
 pub mod electron_density;
 pub mod equilibrium_potential;
 pub mod fermi_dirac;
+pub mod fermi_dirac_density;
 pub mod interface_states;
 pub mod srh_statistics;
 
