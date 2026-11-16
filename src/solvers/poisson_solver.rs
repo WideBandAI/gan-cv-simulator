@@ -155,6 +155,12 @@ impl PoissonSolver {
                 .delta_conduction_band(self.mesh_structure.id.len() - 1);
     }
 
+    /// Replace the electron density model while preserving the solver temperature.
+    pub fn set_electron_density_model(&mut self, mut model: Box<dyn ElectronDensity>) {
+        model.set_temperature(self.temperature);
+        self.electron_density_model = model;
+    }
+
     /// Set temperature
     ///
     /// # Arguments
@@ -1209,5 +1215,67 @@ mod tests {
             "SRHStatistics temperature should be 400.0, got {}",
             srh.get_temperature()
         );
+    }
+    #[test]
+    fn test_density_model_drives_bulk_and_output_with_temperature_and_band_offset() {
+        use crate::physics_equations::fermi_dirac_density::CarrierStatistics;
+        let mass = 0.2 * M_ELECTRON;
+        let eps = 10.0 * EPSILON_0;
+        let mut mesh = make_simple_mesh(mass, eps, 0.0, 0.0);
+        if let PropertyType::Bulk(ref mut properties) = mesh.property_type[1] {
+            properties.delta_conduction_band = 0.03;
+        }
+        let mut solver = PoissonSolver::new(mesh, 0.02, 300.0, 1.0, 1e-8, 100, false);
+        let legacy = BoltzmannApproximation::new(300.0).electron_density(0.05, mass);
+        solver.calculate_electron_density();
+        assert!(relative_eq!(
+            solver.potential.electron_density[1],
+            legacy,
+            max_relative = 1e-12
+        ));
+        solver.set_electron_density_model(CarrierStatistics::FermiDirac.model(500.0));
+        assert_eq!(solver.electron_density_model.get_temperature(), 300.0);
+        for temperature in [300.0, 400.0] {
+            solver.set_temperature(temperature);
+            let expected = CarrierStatistics::FermiDirac
+                .model(temperature)
+                .electron_density(0.05, mass);
+            let delta = Q_ELECTRON * expected * 1e-18 / (2.0 * eps);
+            assert!(relative_eq!(
+                solver.solve_bulk(1),
+                delta,
+                max_relative = 1e-10
+            ));
+            let profile = solver.get_potential_profile();
+            assert!(relative_eq!(
+                profile.electron_density[1],
+                expected,
+                max_relative = 1e-12
+            ));
+        }
+    }
+
+    #[test]
+    fn test_fd_serial_and_parallel_converge_to_same_solution() {
+        use crate::physics_equations::fermi_dirac_density::CarrierStatistics;
+        let solve = |parallel| {
+            let mesh = make_simple_mesh(0.2 * M_ELECTRON, 10.0 * EPSILON_0, 1e22, 0.0);
+            let mut solver = PoissonSolver::new(mesh, 0.1, 300.0, 1.0, 1e-12, 10000, parallel);
+            solver.set_electron_density_model(CarrierStatistics::FermiDirac.model(300.0));
+            assert!(solver.solve_poisson(0.0) < 10000);
+            solver.get_potential_profile()
+        };
+        let serial = solve(false);
+        let parallel = solve(true);
+        for (a, b) in serial.potential.iter().zip(&parallel.potential) {
+            assert!(relative_eq!(a, b, epsilon = 1e-10));
+        }
+        for (a, b) in serial
+            .electron_density
+            .iter()
+            .zip(&parallel.electron_density)
+        {
+            assert!(relative_eq!(a, b, max_relative = 1e-8));
+        }
     }
 }

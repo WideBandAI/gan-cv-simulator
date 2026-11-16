@@ -1,6 +1,6 @@
 use crate::config::measurement::Measurement;
 use crate::config::structure::{DeviceStructure, MaterialType};
-use crate::physics_equations::equilibrium_potential::equilibrium_potential_n_type;
+use crate::physics_equations::fermi_dirac_density::CarrierStatistics;
 use crate::utils::{get_parsed_input, get_parsed_input_with_default};
 
 /// Boundary conditions for the potential solver.
@@ -40,6 +40,19 @@ pub fn define_boundary_conditions(
     device_structure: &DeviceStructure,
     measurement: &Measurement,
 ) -> BoundaryConditions {
+    define_boundary_conditions_with_statistics(
+        device_structure,
+        measurement,
+        CarrierStatistics::Boltzmann,
+    )
+}
+
+/// Define boundary conditions using the selected fully ionized bulk statistics.
+pub fn define_boundary_conditions_with_statistics(
+    device_structure: &DeviceStructure,
+    measurement: &Measurement,
+    statistics: CarrierStatistics,
+) -> BoundaryConditions {
     println!("Define boundary conditions.");
 
     let barrier_height: f64 = get_parsed_input("Enter the barrier height (in eV): ");
@@ -50,7 +63,7 @@ pub fn define_boundary_conditions(
         device_structure.donor_concentration.last(),
     ) {
         let equilibrium_potential =
-            equilibrium_potential_n_type(*me, *nd, measurement.temperature.temperature);
+            statistics.equilibrium_potential(*me, *nd, measurement.temperature.temperature);
         get_parsed_input_with_default(
             "Enter the potential difference between the bottom layer's conduction band and fermi level (in eV). default is equilibrium potential: ",
             equilibrium_potential,

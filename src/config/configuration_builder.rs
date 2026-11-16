@@ -1,5 +1,5 @@
 use crate::config::boundary_conditions::BoundaryConditions;
-use crate::config::boundary_conditions::define_boundary_conditions;
+use crate::config::boundary_conditions::define_boundary_conditions_with_statistics;
 use crate::config::capture_cross_section::CaptureCrossSectionConfig;
 use crate::config::capture_cross_section::define_capture_cross_section;
 use crate::config::fixcharge::BulkFixedCharge;
@@ -59,7 +59,11 @@ impl ConfigurationBuilder {
             &device_structure,
         );
         let mesh_params = define_mesh_params(&device_structure);
-        let boundary_conditions = define_boundary_conditions(&device_structure, &measurement);
+        let boundary_conditions = define_boundary_conditions_with_statistics(
+            &device_structure,
+            &measurement,
+            sim_settings.carrier_statistics,
+        );
 
         let configuration = Configuration {
             measurement,

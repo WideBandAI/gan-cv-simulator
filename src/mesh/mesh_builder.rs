@@ -606,6 +606,7 @@ mod tests {
                 ec_ef_bottom: 0.1,
             },
             sim_settings: SimSettings {
+                carrier_statistics: Default::default(),
                 sim_name: "test_simulation".to_string(),
                 sor_relaxation_factor: 1.9,
                 convergence_criterion: 1e-6,

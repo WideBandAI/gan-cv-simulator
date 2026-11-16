@@ -1,3 +1,4 @@
+use crate::physics_equations::fermi_dirac_density::CarrierStatistics;
 use crate::utils::anti_traversal_filename;
 use crate::utils::get_bool_input;
 use crate::utils::get_input;
@@ -10,6 +11,9 @@ pub struct SimSettings {
     pub convergence_criterion: f64,
     pub max_iterations: usize,
     pub parallel_use: bool,
+    /// Electron density statistics; omitted fields retain the legacy model.
+    #[serde(default)]
+    pub carrier_statistics: CarrierStatistics,
 }
 
 /// Validates a simulation name taken from user input.
@@ -66,7 +70,15 @@ pub fn define_sim_settings() -> SimSettings {
     let parallel_use: bool =
         get_bool_input("Use parallel processing for Poisson solver? (y/n). Default is n: ");
 
+    let carrier_statistics =
+        if get_bool_input("Use Fermi-Dirac electron density? (y/n). Default is n: ") {
+            CarrierStatistics::FermiDirac
+        } else {
+            CarrierStatistics::Boltzmann
+        };
+
     SimSettings {
+        carrier_statistics,
         sim_name,
         sor_relaxation_factor,
         convergence_criterion,
@@ -95,5 +107,28 @@ mod tests {
         assert!(!validate_sim_name("foo/bar"));
         assert!(!validate_sim_name("foo\\bar"));
         assert!(!validate_sim_name("sim name"));
+    }
+}
+
+#[cfg(test)]
+mod carrier_statistics_tests {
+    use super::*;
+
+    #[test]
+    fn old_json_defaults_to_boltzmann_and_fd_round_trips() {
+        let old = r#"{"sim_name":"legacy","sor_relaxation_factor":1.9,"convergence_criterion":1e-6,"max_iterations":1000,"parallel_use":false}"#;
+        let mut settings: SimSettings = serde_json::from_str(old).unwrap();
+        assert_eq!(settings.carrier_statistics, CarrierStatistics::Boltzmann);
+        settings.carrier_statistics = CarrierStatistics::FermiDirac;
+        let json = serde_json::to_string(&settings).unwrap();
+        assert!(json.contains("fermi_dirac"));
+        let restored: SimSettings = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.carrier_statistics, CarrierStatistics::FermiDirac);
+        assert!(
+            serde_json::from_str::<SimSettings>(
+                &old.replace("false", "false,\"carrier_statistics\":\"typo\"")
+            )
+            .is_err()
+        );
     }
 }

@@ -119,3 +119,23 @@ These parameters define the potential at the device boundaries.
 |-----------|------|---------|-------------|
 | `Barrier Height` | Float | - | Schottky barrier height at the surface interface in eV. |
 | `Ec - Ef (Bottom)` | Float | Equilibrium | Potential difference between the conduction band and Fermi level at the bottom contact. |
+
+## Carrier statistics
+
+`sim_settings.carrier_statistics` selects `"boltzmann"` (the default when omitted)
+or `"fermi_dirac"`. For example, add this field to an existing configuration:
+
+```json
+"carrier_statistics": "fermi_dirac"
+```
+
+The interactive CLI asks whether to use Fermi-Dirac density. In the TUI, toggle
+**Carrier Statistics** on the simulation settings page. The selected model is
+saved in both output and reusable configurations and used for Poisson charge and
+electron-density output. Temperature changes update the selected model.
+
+The interactive bottom-boundary equilibrium default uses the selected statistics
+and assumes complete donor ionization (`n = Nd`), matching the legacy convention.
+It is not a self-consistent incomplete-ionization neutrality solution. Explicit
+`ec_ef_bottom` values in JSON or manual input are preserved; when changing models
+in an existing JSON file, choose that boundary consistently with the new model.

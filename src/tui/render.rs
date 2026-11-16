@@ -150,6 +150,7 @@ fn draw_sim_settings(frame: &mut Frame, area: Rect, app: &App) {
         ("SOR Relaxation Factor", app.sor_factor.clone(), false),
         ("Convergence Criterion (eV)", app.convergence.clone(), false),
         ("Max Iterations", app.max_iter.clone(), false),
+        // Keep toggle order aligned with App::toggle_focused().
         (
             "Parallel Processing",
             if app.parallel {
@@ -157,6 +158,11 @@ fn draw_sim_settings(frame: &mut Frame, area: Rect, app: &App) {
             } else {
                 "OFF".to_string()
             },
+            true,
+        ),
+        (
+            "Carrier Statistics",
+            format!("{:?}", app.carrier_statistics()),
             true,
         ),
     ];
